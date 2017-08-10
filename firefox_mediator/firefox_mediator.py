@@ -43,6 +43,14 @@ def sendMessage(encodedMessage):
     sys.stdout.buffer.write(encodedMessage['content'])
     sys.stdout.buffer.flush()
 
+# TODO:
+# 1. Run HTTP server and accept the following commands:
+#    - /list_tabs
+#    - /close_tabs
+#    - /move_tabs ???
+#    - /open_tab
+#    - /new_tab (google search)
+#
 
 _logger.info('Starting mediator...')
 while True:
