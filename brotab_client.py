@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """
 This is a browser tab client. It allows listing, closing and creating
@@ -48,11 +48,12 @@ News:
 """
 
 import sys
-from telnetlib import Telnet
-from json import loads
-# from json import dumps
-from urllib import quote_plus
 from getpass import getuser
+from json import loads
+from telnetlib import Telnet
+# from json import dumps
+from urllib.parse import quote_plus
+
 import requests
 
 # from pprint import pprint
@@ -64,11 +65,12 @@ MAX_NUMBER_OF_TABS = 1000
 def infer_delete_commands(tabs_before, tabs_after):
     commands = []
     after = set(tabs_after)
-    for index in range(len(tabs_before)-1, -1, -1):
+    for index in range(len(tabs_before) - 1, -1, -1):
         value = tabs_before[index]
         if value not in after:
             commands.append('delete %d' % index)
     return commands
+
 
 def infer_move_commands(tabs_before, tabs_after):
     pass
@@ -153,9 +155,11 @@ class ChromeAPI(object):
         for i, tab in enumerate(self._list_tabs(num_tabs)):
             line = '%s%s\t%s\t%s\n' % (ChromeAPI.BROWSER_PREFIX, i,
                                        tab['title'], tab['url'])
-            line = line.encode('utf8')
-            lines.append(line)
-        sys.stdout.writelines(lines)
+            print(line.strip())
+            # line = line.encode('utf8')
+            # print(line.decode('utf8'))
+            # lines.append(line)
+        # sys.stdout.writelines(str(lines))
 
 
 class Mozrepl(object):
@@ -170,8 +174,8 @@ class Mozrepl(object):
         self.t = Telnet(self.ip, self.port)
 
         while True:
-            index, match, text = self.t.expect([r'.*\n', # match greeting line
-                                                r'repl\d+>'], # match repl line
+            index, match, text = self.t.expect([r'.*\n',  # match greeting line
+                                                r'repl\d+>'],  # match repl line
                                                1)
             if text.startswith('repl'):
                 self.prompt = text
@@ -223,7 +227,8 @@ class FirefoxAPI(object):
 
         query = ' '.join(args[1:])
         with Mozrepl() as mozrepl:
-            result = mozrepl.js('new_tab("https://www.google.com/search?q=%s", true);' % quote_plus(query))
+            result = mozrepl.js(
+                'new_tab("https://www.google.com/search?q=%s", true);' % quote_plus(query))
             result = loads(result)
 
     def list_tabs(self, args):
@@ -241,6 +246,65 @@ class FirefoxAPI(object):
                 line = line.encode('utf8')
                 lines.append(line)
             sys.stdout.writelines(lines)
+
+
+class FirefoxMediatorAPI(object):
+    BROWSER_PREFIX = 'f.'
+    HTTP_PORT = 4625
+    IFACE = 'localhost'
+
+    def _filter_tabs(self, tabs):
+        prefix_len = len(FirefoxMediatorAPI.BROWSER_PREFIX)
+        return [tab[prefix_len:] for tab in tabs
+                if tab.startswith(FirefoxMediatorAPI.BROWSER_PREFIX)]
+
+    def close_tabs(self, args):
+        tabs = ','.join(self._filter_tabs(args))
+        self._get('/close_tabs/%s' % tabs)
+
+    def activate_tab(self, args):
+        args = self._filter_tabs(args)
+        if len(args) == 0:
+            return
+
+        strWindowTab = args[0]
+        with Mozrepl() as mozrepl:
+            result = mozrepl.js('activate_tab("%s");' % strWindowTab)
+            result = loads(result)
+
+    def new_tab(self, args):
+        if args[0] != FirefoxAPI.BROWSER_PREFIX:
+            return 2
+
+        query = ' '.join(args[1:])
+        with Mozrepl() as mozrepl:
+            result = mozrepl.js(
+                'new_tab("https://www.google.com/search?q=%s", true);' % quote_plus(query))
+            result = loads(result)
+
+    def list_tabs(self, args):
+        num_tabs = MAX_NUMBER_OF_TABS
+        if len(args) > 0:
+            num_tabs = int(args[0])
+
+        result = self._get('/list_tabs')
+        for line in result.text.splitlines():
+            line = '%s%s' % (FirefoxMediatorAPI.BROWSER_PREFIX, line)
+            print(line)
+
+    def _get(self, path):
+        return requests.get('http://%s:%s%s' % (
+            FirefoxMediatorAPI.IFACE, FirefoxMediatorAPI.HTTP_PORT, path))
+
+        # print(result.text)
+        # lines = []
+        # for tab in result:
+        #     line = '%s%s.%s\t%s\t%s\n' % (FirefoxAPI.BROWSER_PREFIX,
+        #                                     tab['windowId'], tab['tabId'],
+        #                                     tab['title'], tab['url'])
+        #     line = line.encode('utf8')
+        #     lines.append(line)
+        # sys.stdout.writelines(lines)
 
 
 class BrowserAPI(object):
@@ -276,7 +340,7 @@ class BrowserAPI(object):
             try:
                 api.list_tabs(args)
             except ValueError as e:
-                print >> sys.stderr, "Cannot decode JSON: %s: %s" % (api, e)
+                print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
 
     def move_tabs(self, args):
         """
@@ -293,7 +357,8 @@ def main(args):
     command = args[0]
     rest = args[1:]
 
-    api = BrowserAPI([FirefoxAPI(), ChromeAPI()])
+    # api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
+    api = BrowserAPI([FirefoxMediatorAPI()])
 
     if command == 'list_tabs':
         return api.list_tabs(rest)

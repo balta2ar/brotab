@@ -7,6 +7,7 @@ import sys
 import urllib
 
 import flask
+
 app = flask.Flask(__name__)
 
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
@@ -57,6 +58,7 @@ class FirefoxRemoteAPI:
     Communicates with Firefox using stdin/stdout. This mediator is supposed
     to be run by Firefox after request by the helper extension.
     """
+
     def __init__(self):
         self._transport = StdTransport(sys.stdin.buffer, sys.stdout.buffer)
 
@@ -75,7 +77,8 @@ class FirefoxRemoteAPI:
         self._transport.send(command)
 
     def new_tab(self, query):
-        url = "https://www.google.com/search?q=%s" % urllib.parse.quote_plus(query)
+        url = "https://www.google.com/search?q=%s" % urllib.parse.quote_plus(
+            query)
         logger.info('opening url: %s', url)
         command = {'name': 'new_tab', 'url': url}
         self._transport.send(command)
@@ -91,20 +94,24 @@ class FirefoxRemoteAPI:
 
 firefox = FirefoxRemoteAPI()
 
+
 @app.route('/list_tabs')
 def list_tabs():
     tabs = firefox.list_tabs()
     return '\n'.join(tabs)
+
 
 @app.route('/close_tabs/<tab_ids>')
 def close_tabs(tab_ids):
     firefox.close_tabs(tab_ids)
     return 'OK'
 
+
 @app.route('/new_tab/<query>')
 def new_tab(query):
     firefox.new_tab(query)
     return 'OK'
+
 
 @app.route('/activate_tab/<int:tab_id>')
 def activate_tab(tab_id):
@@ -123,7 +130,7 @@ def activate_tab(tab_id):
 
 if __name__ == '__main__':
     logger.info('Starting mediator on %s:%s...',
-                 DEFAULT_HTTP_IFACE, DEFAULT_HTTP_PORT)
+                DEFAULT_HTTP_IFACE, DEFAULT_HTTP_PORT)
     app.run('0.0.0.0', DEFAULT_HTTP_PORT)
 
     logger.info('Exiting mediator...')
