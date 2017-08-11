@@ -16,6 +16,10 @@ To enable RPC in Firefox, install Mozrepl plugin:
 
     Change port to 4242, and tick Tools -> MozRepl -> Activate on startup
 
+Todo:
+    [_] add rt-browsers support for Chromium (grab tabs from from database)
+    [_] add rt-browsers-history to grab rt tickets from browser history
+
 News:
 
     Starting from Firefox 55 mozrepl is not working anymore. Even worse, they
