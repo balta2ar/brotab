@@ -109,12 +109,15 @@ class ChromeAPI(object):
         self._host = host
         self._port = port
 
+    def _get(self, path):
+        return requests.get('http://%s:%s%s' % (self._host, self._port, path))
+
     def _filter_tabs(self, tabs):
         return [tab[len(ChromeAPI.BROWSER_PREFIX):] for tab in tabs
                 if tab.startswith(ChromeAPI.BROWSER_PREFIX)]
 
     def _list_tabs(self, num_tabs):
-        response = requests.get("http://%s:%s/json" % (self._host, self._port))
+        response = self._get('/json')
         result = loads(response.text)
         result = [tab for tab in result if tab['type'] == 'page']
         return result[:num_tabs]
@@ -123,8 +126,7 @@ class ChromeAPI(object):
         current_tabs = self._list_tabs(MAX_NUMBER_OF_TABS)
         for tab in self._filter_tabs(args):
             tab_id = current_tabs[int(tab)]['id']
-            requests.get("http://%s:%s/json/close/%s" % (
-                self._host, self._port, tab_id))
+            self._get('/json/close/%s' % tab_id)
 
     def activate_tab(self, args):
         args = self._filter_tabs(args)
@@ -134,8 +136,7 @@ class ChromeAPI(object):
         tab = args[0]
         current_tabs = self._list_tabs(MAX_NUMBER_OF_TABS)
         tab_id = current_tabs[int(tab)]['id']
-        requests.get("http://%s:%s/json/activate/%s" % (
-            self._host, self._port, tab_id))
+        self._get('/json/activate/%s' % tab_id)
 
     def new_tab(self, args):
         if args[0] != ChromeAPI.BROWSER_PREFIX:
@@ -143,8 +144,7 @@ class ChromeAPI(object):
 
         query = ' '.join(args[1:])
         url = "https://www.google.com/search?q=%s" % quote_plus(query)
-        requests.get("http://%s:%s/json/new?%s" % (
-            self._host, self._port, url))
+        self._get('/json/new?%s' % url)
 
     def list_tabs(self, args):
         num_tabs = MAX_NUMBER_OF_TABS
@@ -156,10 +156,6 @@ class ChromeAPI(object):
             line = '%s%s\t%s\t%s\n' % (ChromeAPI.BROWSER_PREFIX, i,
                                        tab['title'], tab['url'])
             print(line.strip())
-            # line = line.encode('utf8')
-            # print(line.decode('utf8'))
-            # lines.append(line)
-        # sys.stdout.writelines(str(lines))
 
 
 class Mozrepl(object):
@@ -199,6 +195,10 @@ class Mozrepl(object):
 
 
 class FirefoxAPI(object):
+    """
+    This API uses mozrepl plugin which does not work since Firefox 55. Thus
+    this API is deprecated and is not used.
+    """
     BROWSER_PREFIX = 'f.'
 
     def _filter_tabs(self, tabs):
@@ -250,8 +250,10 @@ class FirefoxAPI(object):
 
 class FirefoxMediatorAPI(object):
     BROWSER_PREFIX = 'f.'
-    HTTP_PORT = 4625
-    IFACE = 'localhost'
+
+    def __init__(self, host='localhost', port=4625):
+        self._host = host
+        self._port = port
 
     def _filter_tabs(self, tabs):
         prefix_len = len(FirefoxMediatorAPI.BROWSER_PREFIX)
@@ -268,19 +270,14 @@ class FirefoxMediatorAPI(object):
             return
 
         strWindowTab = args[0]
-        with Mozrepl() as mozrepl:
-            result = mozrepl.js('activate_tab("%s");' % strWindowTab)
-            result = loads(result)
+        self._get('/activate_tab/%s' % strWindowTab)
 
     def new_tab(self, args):
         if args[0] != FirefoxAPI.BROWSER_PREFIX:
             return 2
 
         query = ' '.join(args[1:])
-        with Mozrepl() as mozrepl:
-            result = mozrepl.js(
-                'new_tab("https://www.google.com/search?q=%s", true);' % quote_plus(query))
-            result = loads(result)
+        self._get('/new_tab/%s' % query)
 
     def list_tabs(self, args):
         num_tabs = MAX_NUMBER_OF_TABS
@@ -288,23 +285,12 @@ class FirefoxMediatorAPI(object):
             num_tabs = int(args[0])
 
         result = self._get('/list_tabs')
-        for line in result.text.splitlines():
+        for line in result.text.splitlines()[:num_tabs]:
             line = '%s%s' % (FirefoxMediatorAPI.BROWSER_PREFIX, line)
             print(line)
 
     def _get(self, path):
-        return requests.get('http://%s:%s%s' % (
-            FirefoxMediatorAPI.IFACE, FirefoxMediatorAPI.HTTP_PORT, path))
-
-        # print(result.text)
-        # lines = []
-        # for tab in result:
-        #     line = '%s%s.%s\t%s\t%s\n' % (FirefoxAPI.BROWSER_PREFIX,
-        #                                     tab['windowId'], tab['tabId'],
-        #                                     tab['title'], tab['url'])
-        #     line = line.encode('utf8')
-        #     lines.append(line)
-        # sys.stdout.writelines(lines)
+        return requests.get('http://%s:%s%s' % (self._host, self._port, path))
 
 
 class BrowserAPI(object):
@@ -357,8 +343,7 @@ def main(args):
     command = args[0]
     rest = args[1:]
 
-    # api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
-    api = BrowserAPI([FirefoxMediatorAPI()])
+    api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
 
     if command == 'list_tabs':
         return api.list_tabs(rest)
