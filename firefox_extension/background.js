@@ -6,7 +6,7 @@ var port = browser.runtime.connectNative("firefox_mediator");
 function listTabsSuccess(tabs) {
   lines = [];
   for (let tab of tabs) {
-    line = tab.id + "\t" + tab.title;
+    line = tab.id + "\t" + tab.title + "\t" + tab.url;
     console.log(line);
     lines.push(line);
   }

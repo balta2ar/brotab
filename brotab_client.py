@@ -153,9 +153,9 @@ class ChromeAPI(object):
 
         lines = []
         for i, tab in enumerate(self._list_tabs(num_tabs)):
-            line = '%s%s\t%s\t%s\n' % (ChromeAPI.BROWSER_PREFIX, i,
-                                       tab['title'], tab['url'])
-            print(line.strip())
+            line = '%s%s\t%s\t%s' % (ChromeAPI.BROWSER_PREFIX, i,
+                                     tab['title'], tab['url'])
+            print(line)
 
 
 class Mozrepl(object):
