@@ -42,10 +42,18 @@ function naturalCompare(a, b) {
     return ax.length - bx.length;
 }
 
+function compareWindowIdTabId(a, b) {
+  // (a, b) => [a.windowId, a.index] > [b.windowId, b.index]
+  if (a.windowId != b.windowId) {
+    return a.windowId - b.windowId;
+  }
+  return a.index - b.index;
+}
+
 function listTabsSuccess(tabs) {
   lines = [];
   // Make sure tabs are sorted by their index within a window
-  tabs.sort((a, b) => [a.windowId, a.index] > [b.windowId, b.index]);
+  tabs.sort(compareWindowIdTabId);
   for (let tab of tabs) {
     line = + tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url;
     console.log(line);

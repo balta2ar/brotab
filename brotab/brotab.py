@@ -259,7 +259,7 @@ class FirefoxMediatorAPI(object):
 
     def close_tabs(self, args):
         # tabs = ','.join(self.filter_tabs(args))
-        tabs = ','.join(args)
+        tabs = ','.join(map(str, args))
         self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args):
