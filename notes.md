@@ -11,3 +11,18 @@ fc close
 fo open
 fs search
 
+# CompleBox
+
+Desired modes:
+
+* insert
+    * rt ticket number
+    * rt ticket: title
+    * ticket url
+    * ? insert all: ticket: title (url)
+* open rt ticket in a browser
+
+* open sheet ticket in a browser
+
+* activate browser tab
+* close browser tab

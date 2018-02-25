@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import json
 import logging
@@ -16,6 +16,7 @@ logging.basicConfig(
     filename='/tmp/firefox_mediator.log',
     level=logging.DEBUG)
 logger = logging.getLogger('firefox_mediator')
+logger.info('Logger has been created')
 
 # try:
 
@@ -67,6 +68,18 @@ class FirefoxRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
+    def move_tabs(self, tab_pairs: str):
+        """
+        :param tab_pairs: Comma-separated list of tab IDs to close.
+        """
+        logger.info('move_tabs, tab_pairs: %s', tab_pairs)
+
+        pairs = [list(map(int, pair.split(' ')))
+                 for pair in tab_pairs.split(',')]
+        logger.info('moving tab ids: %s', pairs)
+        command = {'name': 'move_tabs', 'move_pairs': pairs}
+        self._transport.send(command)
+
     def close_tabs(self, tab_ids: str):
         """
         :param tab_ids: Comma-separated list of tab IDs to close.
@@ -88,17 +101,21 @@ class FirefoxRemoteAPI:
         command = {'name': 'activate_tab', 'tab_id': tab_id}
         self._transport.send(command)
 
-    def move_tabs(self, tab_ids):
-        pass
-
 
 firefox = FirefoxRemoteAPI()
+logger.info('FirefoxRemoteAPI has been created')
 
 
 @app.route('/list_tabs')
 def list_tabs():
     tabs = firefox.list_tabs()
     return '\n'.join(tabs)
+
+
+@app.route('/move_tabs/<tab_pairs>')
+def move_tabs(tab_pairs):
+    firefox.move_tabs(tab_pairs)
+    return 'OK'
 
 
 @app.route('/close_tabs/<tab_ids>')
@@ -125,7 +142,10 @@ def activate_tab(tab_id):
 #    - /close_tabs
 #    - /move_tabs ???
 #    - /open_tab
+#    - /open_urls
 #    - /new_tab (google search)
+#    - /get_tab_text
+#    - /get_active_tab_text
 #
 
 if __name__ == '__main__':

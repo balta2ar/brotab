@@ -4,7 +4,7 @@
 # These are shell helpers for browser tab client (brotab).
 #
 
-export BROTAB_CLIENT=brotab_client.py
+export BROTAB_CLIENT="$HOME/rc.arch/bz/brotab/brotab_client.py"
 
 
 #
@@ -12,23 +12,17 @@ export BROTAB_CLIENT=brotab_client.py
 #
 function fcl() {
     if [ $# -eq 0 ]; then
-        result=$(_list_tabs | _colorize_tabs | fzf -m --no-sort --tac --prompt="close> " --toggle-sort=\`)
+        result=$(_list_tabs | _colorize_tabs | fzf --ansi -m --no-sort --prompt="close> " --toggle-sort=\`)
         if [ $? -ne 0 ]; then return $?; fi
     else
         result=`echo "$*" | tr " " "\n"`
     fi
     echo "$result" | while read -r line; do
         id=`echo "$line" | cut -f1 -d' '`
-        echo "Closing tab: $line" >&2
+        # echo "Closing tab: $line" >&2
         echo "$id"
     done | xargs $BROTAB_CLIENT close_tabs
 }
-
-
-function _list_tabs() {
-    $BROTAB_CLIENT list_tabs 1000
-}
-
 
 function _colorize_tabs() {
     local YELLOW='\x1b[0;33m'
@@ -51,21 +45,34 @@ function _activate_browser() {
     fi
 }
 
+function _activate_tab() {
+    local strWindowTab=$1
+    # echo "Activating tab: $result"
+    $BROTAB_CLIENT activate_tab $strWindowTab
+    _activate_browser $strWindowTab
+}
+
+function _close_tabs() {
+    $BROTAB_CLIENT close_tabs $*
+}
+
+function _list_tabs() {
+    $BROTAB_CLIENT list_tabs 1000
+}
+
 
 #
 # Browser Open tab script
 #
 function fo() {
     if [ $# -eq 0 ]; then
-        result=$(_list_tabs | _colorize_tabs | fzf --no-sort --tac --prompt="open> " --toggle-sort=\`)
+        result=$(_list_tabs | _colorize_tabs | fzf --ansi --no-sort --prompt="open> " --toggle-sort=\`)
         if [ $? -ne 0 ]; then return $?; fi
     else
         result=$*
     fi
     strWindowTab=`echo "$result" | cut -f1 -d' '`
-    echo "Activating tab: $result"
-    $BROTAB_CLIENT activate_tab $strWindowTab
-    _activate_browser $strWindowTab
+    _activate_tab "$strWindowTab"
 }
 
 
