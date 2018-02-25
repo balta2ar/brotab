@@ -7,6 +7,7 @@ import sys
 import urllib
 
 import flask
+from werkzeug.exceptions import BadRequest
 
 app = flask.Flask(__name__)
 
@@ -68,16 +69,19 @@ class FirefoxRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-    def move_tabs(self, tab_pairs: str):
+    def move_tabs(self, move_triplets: str):
         """
-        :param tab_pairs: Comma-separated list of tab IDs to close.
+        :param move_triplets: Comma-separated list of:
+            <tabID> <windowID> <newIndex>
         """
-        logger.info('move_tabs, tab_pairs: %s', tab_pairs)
+        logger.info('move_tabs, move_triplets: %s', move_triplets)
 
-        pairs = [list(map(int, pair.split(' ')))
-                 for pair in tab_pairs.split(',')]
-        logger.info('moving tab ids: %s', pairs)
-        command = {'name': 'move_tabs', 'move_pairs': pairs}
+        triplets = [list(map(int, triplet.split(' ')))
+                    for triplet in move_triplets.split(',')]
+        # if len(triplets) != 3:
+        #     raise BadRequest('Invalid input for command move_tabs: %s' % triplets)
+        logger.info('moving tab ids: %s', triplets)
+        command = {'name': 'move_tabs', 'move_triplets': triplets}
         self._transport.send(command)
 
     def close_tabs(self, tab_ids: str):
@@ -112,9 +116,9 @@ def list_tabs():
     return '\n'.join(tabs)
 
 
-@app.route('/move_tabs/<tab_pairs>')
-def move_tabs(tab_pairs):
-    firefox.move_tabs(tab_pairs)
+@app.route('/move_tabs/<move_triplets>')
+def move_tabs(move_triplets):
+    firefox.move_tabs(move_triplets)
     return 'OK'
 
 

@@ -15,7 +15,7 @@ from setuptools import find_packages, setup, Command
 NAME = 'brotab'
 DESCRIPTION = "Control your browser's tabs from the command line"
 URL = 'https://github.com/balta2ar/brotab'
-EMAIL = 'baltazar dot bz at gmail com'
+EMAIL = 'baltazar.bz@gmail.com'
 AUTHOR = 'Yuri Bochkarev'
 
 # What packages are required for this module to be executed?
@@ -91,7 +91,10 @@ setup(
     # py_modules=['mypackage'],
 
     entry_points={
-        'console_scripts': ['brotab=brotab.brotab:main'],
+        'console_scripts': [
+            'brotab=brotab.brotab:main',
+            'bt=brotab.brotab:main',
+        ],
     },
     install_requires=REQUIRED,
     include_package_data=True,

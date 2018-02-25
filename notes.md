@@ -41,6 +41,7 @@ Install/devops
 [_] put helpers into brotab.sh
 [_] create helpers bt-list, bt-move, etc
 [_] add file with fzf integration: brotab-fzf.zsh
+[_] zsh completion for commands
 
 Testing:
 [_] how to setup integration testing? w chromium, firefox

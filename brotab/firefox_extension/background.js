@@ -23,9 +23,9 @@ function naturalCompare(a, b) {
 function listTabsSuccess(tabs) {
   lines = [];
   // Make sure tabs are sorted by their index within a window
-  tabs.sort((a, b) => a.index > b.index);
+  tabs.sort((a, b) => [a.windowId, a.index] > [b.windowId, b.index]);
   for (let tab of tabs) {
-    line = tab.id + "\t" + tab.title + "\t" + tab.url;
+    line = + tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url;
     console.log(line);
     lines.push(line);
   }
@@ -45,9 +45,10 @@ function closeTabs(tab_ids) {
   browser.tabs.remove(tab_ids);
 }
 
-function moveTabs(move_pairs) {
-  for (let pair of move_pairs) {
-    browser.tabs.move(pair[0], {index: pair[1]}).then(
+function moveTabs(move_triplets) {
+  for (let triplet of move_triplets) {
+    const [tabId, windowId, index] = triplet;
+    browser.tabs.move(tabId, {index: index, windowId: windowId}).then(
       (tab) => console.log(`Moved: ${tab}`),
       (error) => console.log(`Error moving tab: ${error}`)
     )
@@ -79,8 +80,8 @@ port.onMessage.addListener((command) => {
   }
 
   else if (command['name'] == 'move_tabs') {
-    console.log('Moving tabs:', command['move_pairs']);
-    moveTabs(command['move_pairs']);
+    console.log('Moving tabs:', command['move_triplets']);
+    moveTabs(command['move_triplets']);
   }
 
   else if (command['name'] == 'new_tab') {

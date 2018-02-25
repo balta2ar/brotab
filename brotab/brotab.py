@@ -49,185 +49,35 @@ News:
 
 import os
 import sys
+import logging
+from argparse import ArgumentParser
+from functools import partial
+from itertools import chain
 from getpass import getuser
 from json import loads
 from telnetlib import Telnet
 # from json import dumps
 from urllib.parse import quote_plus
-from subprocess import check_call, CalledProcessError
-from tempfile import NamedTemporaryFile
 from traceback import print_exc
 
 import requests
 
-# from pprint import pprint
+from brotab.io import edit_tabs_in_editor
+from brotab.operations import infer_delete_and_move_commands
+from brotab.tab import parse_tab_lines
 
+
+# from pprint import pprint
 
 MAX_NUMBER_OF_TABS = 1000
 
-
-def _get_old_index(tab, tabs_before):
-    for index, value in enumerate(tabs_before):
-        if value == tab:
-            return index
-
-    raise ValueError('Tab %s not found' % tab)
-
-
-def _get_tab_id(tab):
-    index = tab.split('\t')[0]
-    str_index = index.split('.')[1]
-    return int(str_index)
-
-
-def _get_index_by_tab_id(tab_id, tabs):
-    for index, tab in enumerate(tabs):
-        if tab_id == _get_tab_id(tab):
-            return index
-
-    return None
-
-
-def get_longest_increasing_subsequence(X):
-    """Returns the Longest Increasing Subsequence in the Given List/Array"""
-    N = len(X)
-    P = [0] * N
-    M = [0] * (N+1)
-    L = 0
-    for i in range(N):
-       lo = 1
-       hi = L
-       while lo <= hi:
-           mid = (lo+hi)//2
-           if (X[M[mid]] < X[i]):
-               lo = mid+1
-           else:
-               hi = mid-1
-
-       newL = lo
-       P[i] = M[newL-1]
-       M[newL] = i
-
-       if (newL > L):
-           L = newL
-
-    S = []
-    k = M[L]
-    for i in range(L-1, -1, -1):
-        S.append(X[k])
-        k = P[k]
-    return S[::-1]
-
-
-def infer_delete_commands(tabs_before, tabs_after):
-    commands = []
-    after = set(tabs_after)
-    for index in range(len(tabs_before) - 1, -1, -1):
-        tab = tabs_before[index]
-        if tab not in after:
-            commands.append(_get_tab_id(tab))
-    return commands
-
-
-def infer_move_commands(tabs_before, tabs_after):
-    """
-    `tabs_before` and `tabs_after` contain an integer in the beginning
-    but that's a tab ID, not a position. Thus, a move command means:
-
-        move <tab_id> <to_index>
-
-    where <to_index> is an index within a browser window. Consider this:
-
-    Before:         After:
-    f.4\ta          f.8\ta
-    f.8\ta          f.4\ta
-    f.1\aa          f.1\ta
-
-    The correspoding move commands:
-
-        move f.8 0
-
-    """
-    # Remember which tab corresponds to which index in the old list
-    tab_to_old_index = {tab: index for index, tab in enumerate(tabs_before)}
-    # Now see how indices have been reordered by user
-    reordered_indices = [tab_to_old_index[tab] for tab in tabs_after]
-    # These indices are in correct order, we should not touch them
-    correctly_ordered_new_indices = set(get_longest_increasing_subsequence(
-        reordered_indices))
-
-    commands = []
-    for new_index, old_index in enumerate(reordered_indices):
-        if old_index not in correctly_ordered_new_indices:
-            tab = tabs_before[old_index]
-            tab_id = _get_tab_id(tab)
-            commands.append((tab_id, new_index))
-    return commands
-
-
-def apply_delete_commands(tabs_before, delete_commands):
-    tabs = tabs_before[:]
-    for tab_id in delete_commands:
-        #tab_id = int(command.split()[1])
-        del tabs[_get_index_by_tab_id(tab_id, tabs)]
-    return tabs
-
-
-def apply_move_commands(tabs_before, move_commands):
-    tabs = tabs_before[:]
-    for tab_id, index_to in move_commands:
-        index_from = _get_index_by_tab_id(tab_id, tabs)
-        tabs.insert(index_to, tabs.pop(index_from))
-    return tabs
-
-
-def infer_delete_and_move_commands(tabs_before, tabs_after):
-    """
-    This command takes browser tabs before the edit and after the edit and
-    infers a sequence of commands that need to be executed in a browser
-    to make transform state from `tabs_before` to `tabs_after`.
-
-    Sample input:
-        f.0	GMail
-        f.1	Posix man
-        f.2	news
-
-    Sample output:
-        m 0 5,m 1 1,d 2
-    Means:
-        move 0 to index 5,
-        move 1 to index 1,
-        delete 2
-
-    Note that after moves and deletes, indices do not need to be adjusted on the
-    browser side. All the indices are calculated by the client program so that
-    the JS extension can simply execute the commands without thinking.
-    """
-    delete_commands = infer_delete_commands(tabs_before, tabs_after)
-    tabs_before = apply_delete_commands(tabs_before, delete_commands)
-    move_commands = infer_move_commands(tabs_before, tabs_after)
-    return delete_commands, move_commands
-
-
-def save_tabs_to_file(tabs, filename):
-    with open(filename, 'w') as file_:
-        file_.write('\n'.join(tabs))
-
-
-def load_tabs_from_file(filename):
-    with open(filename) as file_:
-        return [line.strip() for line in file_.readlines()]
-
-
-def edit_tabs_in_editor(tabs_before):
-    with NamedTemporaryFile() as file_:
-        save_tabs_to_file(tabs_before, file_.name)
-        try:
-            check_call([os.environ.get('EDITOR', 'nvim'), file_.name])
-            tabs_after = load_tabs_from_file(file_.name)
-            return tabs_after
-        except CalledProcessError:
-            return None
+FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
+logging.basicConfig(
+    format=FORMAT,
+    filename='/tmp/brotab.log',
+    level=logging.DEBUG)
+logger = logging.getLogger('brotab')
+logger.info('Logger has been created')
 
 
 class ChromeAPI(object):
@@ -240,7 +90,7 @@ class ChromeAPI(object):
     def _get(self, path):
         return requests.get('http://%s:%s%s' % (self._host, self._port, path))
 
-    def _filter_tabs(self, tabs):
+    def filter_tabs(self, tabs):
         return [tab[len(ChromeAPI.BROWSER_PREFIX):] for tab in tabs
                 if tab.startswith(ChromeAPI.BROWSER_PREFIX)]
 
@@ -252,12 +102,12 @@ class ChromeAPI(object):
 
     def close_tabs(self, args):
         current_tabs = self._list_tabs(MAX_NUMBER_OF_TABS)
-        for tab in self._filter_tabs(args):
+        for tab in self.filter_tabs(args):
             tab_id = current_tabs[int(tab)]['id']
             self._get('/json/close/%s' % tab_id)
 
     def activate_tab(self, args):
-        args = self._filter_tabs(args)
+        args = self.filter_tabs(args)
         if len(args) == 0:
             return
 
@@ -331,18 +181,18 @@ class Mozrepl(object):
 #     """
 #     BROWSER_PREFIX = 'f.'
 #
-#     def _filter_tabs(self, tabs):
+#     def filter_tabs(self, tabs):
 #         return [tab[len(FirefoxAPI.BROWSER_PREFIX):] for tab in tabs
 #                 if tab.startswith(FirefoxAPI.BROWSER_PREFIX)]
 #
 #     def close_tabs(self, args):
 #         with Mozrepl() as mozrepl:
-#             tabs = ' '.join(self._filter_tabs(args))
+#             tabs = ' '.join(self.filter_tabs(args))
 #             result = mozrepl.js('close_tabs("%s");' % tabs)
 #             result = loads(result)
 #
 #     def activate_tab(self, args):
-#         args = self._filter_tabs(args)
+#         args = self.filter_tabs(args)
 #         if len(args) == 0:
 #             return
 #
@@ -379,7 +229,7 @@ class Mozrepl(object):
 #         return lines
 #
 #     def move_tabs(self, args):
-#         args = self._filter_tabs(args)
+#         args = self.filter_tabs(args)
 #         if len(args) == 0:
 #             return
 #
@@ -387,26 +237,33 @@ class Mozrepl(object):
 
 
 class FirefoxMediatorAPI(object):
-    BROWSER_PREFIX = 'f.'
+    # BROWSER_PREFIX = 'f.'
 
-    def __init__(self, host='localhost', port=4625):
+    def __init__(self, prefix, host='localhost', port=4625):
+        self._prefix = '%s.' % prefix
         self._host = host
         self._port = port
 
     def prefix_tabs(self, tabs):
-        return ['%s%s' % (self.BROWSER_PREFIX, tab) for tab in tabs]
+        return ['%s%s' % (self._prefix, tab) for tab in tabs]
 
-    def _filter_tabs(self, tabs):
-        prefix_len = len(FirefoxMediatorAPI.BROWSER_PREFIX)
-        return [tab[prefix_len:] for tab in tabs
-                if tab.startswith(FirefoxMediatorAPI.BROWSER_PREFIX)]
+    def unprefix_tabs(self, tabs):
+        N = len(self._prefix)
+        return [tab[N:] if tab.startswith(self._prefix) else tab for tab in tabs]
+
+    def filter_tabs(self, tabs):
+        # N = len(self._prefix)
+        # return [tab[N:] for tab in tabs
+        return [tab for tab in tabs
+                if tab.startswith(self._prefix)]
 
     def close_tabs(self, args):
-        tabs = ','.join(self._filter_tabs(args))
+        # tabs = ','.join(self.filter_tabs(args))
+        tabs = ','.join(args)
         self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args):
-        args = self._filter_tabs(args)
+        # args = self.filter_tabs(args)
         if len(args) == 0:
             return
 
@@ -414,7 +271,7 @@ class FirefoxMediatorAPI(object):
         self._get('/activate_tab/%s' % strWindowTab)
 
     def new_tab(self, args):
-        if args[0] != FirefoxMediatorAPI.BROWSER_PREFIX:
+        if args[0] != self._prefix:
             return 2
 
         query = ' '.join(args[1:])
@@ -429,14 +286,16 @@ class FirefoxMediatorAPI(object):
         lines = []
         for line in result.text.splitlines()[:num_tabs]:
         #for line in result.text.split('\n')[:num_tabs]:
-            line = '%s%s' % (FirefoxMediatorAPI.BROWSER_PREFIX, line)
-            print(line)
+            # line = '%s%s' % (self._prefix, line)
+            # print(line)
             lines.append(line)
-        return lines
+        return self.prefix_tabs(lines)
 
     def move_tabs(self, args):
-        print('SENDING MOVE COMMANDS:', args)
-        commands = ','.join('%s %s' % (tab_id, new_index) for tab_id, new_index in args)
+        logger.info('SENDING MOVE COMMANDS: %s', args)
+        commands = ','.join(
+            '%s %s %s' % (tab_id, window_id, new_index)
+            for tab_id, window_id, new_index in args)
         self._get('/move_tabs/%s' % commands)
 
     def _get(self, path):
@@ -472,17 +331,46 @@ class BrowserAPI(object):
             api.new_tab(args)
 
     def list_tabs(self, args):
-        exit_code = 0
+        # exit_code = 0
+        tabs = []
         for api in self._apis:
             try:
-                api.list_tabs(args)
+                tabs.extend(api.list_tabs(args))
             except ValueError as e:
                 print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
-                exit_code = 1
+                # exit_code = 1
             except requests.exceptions.ConnectionError as e:
                 print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
-                exit_code = 1
-        return exit_code
+                # exit_code = 1
+        return tabs
+        #return exit_code
+
+    def _safe_list_tabs(self, api):
+        try:
+            return api.list_tabs([])
+        except ValueError as e:
+            print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
+            print_exc(file=sys.stderr)
+        except requests.exceptions.ConnectionError as e:
+            print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
+            print_exc(file=sys.stderr)
+        return []
+
+    def _move_tabs_if_changed(self, api, tabs_before, tabs_after):
+        # if tabs_after is None:
+            # return
+
+        delete_commands, move_commands = infer_delete_and_move_commands(
+            parse_tab_lines(tabs_before),
+            parse_tab_lines(tabs_after))
+        print('DELETE COMMANDS', delete_commands)
+
+        if delete_commands:
+            api.close_tabs(delete_commands)
+            # raise RuntimeError('DELETE COMMANDS ARE NOT SUPPORTED YET')
+
+        print('MOVE COMMANDS', move_commands)
+        api.move_tabs(move_commands)
 
     def move_tabs(self, args):
         """
@@ -500,44 +388,98 @@ class BrowserAPI(object):
             - insert that tab
         3. continue until no input tabs out of order are left
         """
-        exit_code = 0
+        tabs_before = list(chain.from_iterable(map(self._safe_list_tabs, self._apis)))
+        tabs_after = edit_tabs_in_editor(tabs_before)
+        print('TABS BEFORE', tabs_before)
+        print('TABS AFTER', tabs_after)
+        if tabs_after is None:
+            return
+
         for api in self._apis:
-            try:
-                print('MOVING START')
-                tabs_before = api.list_tabs([])
-                # from pprint import pprint
-                # pprint(tabs_before)
-                tabs_after = edit_tabs_in_editor(tabs_before)
-                print('TABS AFTER', tabs_after)
-                if tabs_after is not None:
-                    delete_commands, move_commands = infer_delete_and_move_commands(
-                        tabs_before, tabs_after)
-                    print('DELETE COMMANDS', delete_commands)
+            self._move_tabs_if_changed(
+                api,
+                api.filter_tabs(tabs_before),
+                api.filter_tabs(tabs_after))
+        print('MOVING END')
 
-                    if delete_commands:
-                        api.close_tabs(api.prefix_tabs(delete_commands))
-                        # raise RuntimeError('DELETE COMMANDS ARE NOT SUPPORTED YET')
 
-                    print('MOVE COMMANDS', move_commands)
-                    api.move_tabs(move_commands)
-                print('MOVING END')
-            except ValueError as e:
-                print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
-                print_exc(file=sys.stderr)
-                exit_code = 1
-            except requests.exceptions.ConnectionError as e:
-                print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
-                print_exc(file=sys.stderr)
-                exit_code = 1
-        return exit_code
+def move_tabs(args):
+    logger.info('Moving tabs')
+    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api.move_tabs(args)
+
+
+def list_tabs(args):
+    logger.info('Listing tabs')
+    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    tabs = api.list_tabs([])
+    print('\n'.join(tabs))
+
+
+def close_tabs():
+    pass
+
+
+def activate_tab():
+    pass
+
+
+def new_search():
+    pass
+
+
+def open_urls():
+    pass
+
+
+def no_command(parser, args):
+    print('No command has been specified')
+    parser.print_help()
+    return 1
+
+
+def parse_args(args):
+    parser = ArgumentParser()
+
+    subparsers = parser.add_subparsers()
+    parser.set_defaults(func=partial(no_command, parser))
+
+    parser_move_tabs = subparsers.add_parser('move')
+    parser_move_tabs.set_defaults(func=move_tabs)
+
+    parser_list_tabs = subparsers.add_parser('list')
+    parser_list_tabs.set_defaults(func=list_tabs)
+
+    parser_close_tabs = subparsers.add_parser('close')
+    parser_close_tabs.set_defaults(func=close_tabs)
+    parser_close_tabs.add_argument('tab_ids', type=str, nargs='+',
+        help='Tab IDs to close')
+
+    parser_activate_tab = subparsers.add_parser('activate')
+    parser_activate_tab.set_defaults(func=activate_tab)
+    parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
+        help='Tab ID to activate')
+
+    parser_new_search = subparsers.add_parser('search')
+    parser_new_search.set_defaults(func=new_search)
+    parser_new_search.add_argument('words', type=str, nargs='+',
+        help='Search query')
+
+    parser_open_urls = subparsers.add_parser('open')
+    parser_open_urls.set_defaults(func=open_urls)
+
+    return parser.parse_args(args)
 
 
 def run_commands(args):
+    args = parse_args(args)
+    return args.func(args)
+
     command = args[0]
     rest = args[1:]
 
     #api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
-    api = BrowserAPI([FirefoxMediatorAPI()])
+    api = BrowserAPI([FirefoxMediatorAPI('f')])
 
     if command == 'move_tabs':
         return api.move_tabs(rest)
@@ -549,6 +491,9 @@ def run_commands(args):
         return api.activate_tab(rest)
     if command == 'new_tab':
         return api.new_tab(rest)
+    if command == 'open_urls':
+        raise NotImplementedError()
+        # return api.new_tab(rest)
     else:
         print('Unknown command: %s' % command)
         return 2
@@ -557,9 +502,10 @@ def run_commands(args):
 
 
 def main():
-    if len(sys.argv) == 1:
-        print('Usage: brotab_client.py <list_tabs | ...>')
-        exit(1)
+    # if len(sys.argv) == 1:
+    #     print('Usage: brotab_client.py <list_tabs | ...>')
+    #     exit(1)
+    # exit(run_commands(sys.argv[1:]))
     exit(run_commands(sys.argv[1:]))
 
 
