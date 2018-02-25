@@ -1,7 +1,29 @@
 /*
 On startup, connect to the "firefox_mediator" app.
 */
-var port = browser.runtime.connectNative("firefox_mediator");
+
+console.log("Detecting browser");
+var port = undefined;
+
+if (typeof browser !== 'undefined') {
+  port = browser.runtime.connectNative("firefox_mediator");
+  console.log("It's Firefox: " + port);
+
+  var listTabs = listTabsFirefox;
+  var moveTabs = moveTabsFirefox;
+
+} else if (typeof chrome !== 'undefined') {
+  port = chrome.runtime.connectNative("firefox_mediator");
+  console.log("It's Chrome/Chromium: " + port);
+
+  var browser = chrome;
+  var listTabs = listTabsChrome;
+  var moveTabs = moveTabsChrome;
+
+} else {
+  console.error("Unknown browser detected");
+}
+
 
 // see https://stackoverflow.com/a/15479354/258421
 function naturalCompare(a, b) {
@@ -37,21 +59,33 @@ function listTabsError(error) {
   console.log(`Error: ${error}`);
 }
 
-function listTabs() {
+function listTabsFirefox() {
   browser.tabs.query({}).then(listTabsSuccess, listTabsError);
+}
+
+function listTabsChrome() {
+  chrome.tabs.query({}, listTabsSuccess);
 }
 
 function closeTabs(tab_ids) {
   browser.tabs.remove(tab_ids);
 }
 
-function moveTabs(move_triplets) {
+function moveTabsFirefox(move_triplets) {
   for (let triplet of move_triplets) {
     const [tabId, windowId, index] = triplet;
     browser.tabs.move(tabId, {index: index, windowId: windowId}).then(
       (tab) => console.log(`Moved: ${tab}`),
       (error) => console.log(`Error moving tab: ${error}`)
     )
+  }
+}
+
+function moveTabsChrome(move_triplets) {
+  for (let triplet of move_triplets) {
+    const [tabId, windowId, index] = triplet;
+    browser.tabs.move(tabId, {index: index, windowId: windowId},
+      (tab) => console.log(`Moved: ${tab}`));
   }
 }
 
@@ -94,6 +128,12 @@ port.onMessage.addListener((command) => {
     activateTab(command['tab_id']);
   }
 });
+
+port.onDisconnect.addListener(function() {
+  console.log("Disconnected");
+});
+
+console.log("Connected to native app");
 
 /*
 On a click on the browser action, send the app a message.
