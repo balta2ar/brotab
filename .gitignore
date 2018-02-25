@@ -1,2 +1,6 @@
 .mypy_cache
 .vscode
+ignore
+dist
+build
+brotab.egg-info

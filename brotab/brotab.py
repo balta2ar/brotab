@@ -532,7 +532,7 @@ class BrowserAPI(object):
         return exit_code
 
 
-def main(args):
+def run_commands(args):
     command = args[0]
     rest = args[1:]
 
@@ -556,8 +556,12 @@ def main(args):
     return 0
 
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) == 1:
         print('Usage: brotab_client.py <list_tabs | ...>')
         exit(1)
-    exit(main(sys.argv[1:]))
+    exit(run_commands(sys.argv[1:]))
+
+
+if __name__ == '__main__':
+    main()
