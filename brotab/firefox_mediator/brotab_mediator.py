@@ -14,9 +14,9 @@ app = flask.Flask(__name__)
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
 logging.basicConfig(
     format=FORMAT,
-    filename='/tmp/firefox_mediator.log',
+    filename='/tmp/brotab_mediator.log',
     level=logging.DEBUG)
-logger = logging.getLogger('firefox_mediator')
+logger = logging.getLogger('brotab_mediator')
 logger.info('Logger has been created')
 
 # try:

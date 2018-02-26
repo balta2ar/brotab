@@ -5,7 +5,7 @@
   "version": "1.0.2",
   "applications": {
     "gecko": {
-      "id": "firefox_mediator@example.org",
+      "id": "brotab_mediator@example.org",
       "strict_min_version": "50.0"
     }
   },

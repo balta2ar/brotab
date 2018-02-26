@@ -31,18 +31,19 @@ Desired modes:
 
 ## Multiple extensions/browsers/native apps
 
-[_] try putting window id into list response
 [_] differentiate browser instances, how?
+[_] support gathering data from multiple mediators
+[+] try putting window id into list response
 
 ## Roadmap
 
 Install/devops
-[_] add setup.py, make sure brotab, bt binary is available (python code)
 [_] put helpers into brotab.sh
 [_] create helpers bt-list, bt-move, etc
-[_] add file with fzf integration: brotab-fzf.zsh
 [_] add integration with rofi
 [_] zsh completion for commands
+[+] add file with fzf integration: brotab-fzf.zsh
+[+] add setup.py, make sure brotab, bt binary is available (python code)
 
 Testing:
 [_] how to setup integration testing? w chromium, firefox

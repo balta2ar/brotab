@@ -6,14 +6,14 @@ console.log("Detecting browser");
 var port = undefined;
 
 if (typeof browser !== 'undefined') {
-  port = browser.runtime.connectNative("firefox_mediator");
+  port = browser.runtime.connectNative("brotab_mediator");
   console.log("It's Firefox: " + port);
 
   var listTabs = listTabsFirefox;
   var moveTabs = moveTabsFirefox;
 
 } else if (typeof chrome !== 'undefined') {
-  port = chrome.runtime.connectNative("firefox_mediator");
+  port = chrome.runtime.connectNative("brotab_mediator");
   console.log("It's Chrome/Chromium: " + port);
 
   var browser = chrome;
