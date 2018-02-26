@@ -50,6 +50,7 @@ News:
 import os
 import sys
 import logging
+from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
 from itertools import chain
@@ -70,6 +71,8 @@ from brotab.tab import parse_tab_lines
 # from pprint import pprint
 
 MAX_NUMBER_OF_TABS = 1000
+MIN_MEDIATOR_PORT = 4625
+MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
 
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
 logging.basicConfig(
@@ -408,6 +411,14 @@ class BrowserAPI(object):
         # print('MOVING END')
 
 
+def create_clients():
+    ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
+    result = [FirefoxMediatorAPI(prefix, port=port)
+              for prefix, port in zip(ascii_lowercase, ports)]
+    logger.info('Created clients: %s', result)
+    return result
+
+
 def move_tabs(args):
     logger.info('Moving tabs')
     api = BrowserAPI([FirefoxMediatorAPI('f')])
@@ -416,7 +427,8 @@ def move_tabs(args):
 
 def list_tabs(args):
     logger.info('Listing tabs')
-    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    # api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api = BrowserAPI(create_clients())
     tabs = api.list_tabs([])
     print('\n'.join(tabs))
 

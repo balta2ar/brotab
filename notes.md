@@ -33,12 +33,15 @@ Desired modes:
 
 [_] differentiate browser instances, how?
 [_] support gathering data from multiple mediators
+    [+] native mediator should try binding to a free port [4625..4635]
+    [_] brotab.py should try a range of ports
+[_] build a unified interface for different browsers in background.js
 [+] try putting window id into list response
 
 ## Roadmap
 
 Install/devops
-[_] put helpers into brotab.sh
+[_] put helpers (colors) into brotab.sh
 [_] create helpers bt-list, bt-move, etc
 [_] add integration with rofi
 [_] zsh completion for commands

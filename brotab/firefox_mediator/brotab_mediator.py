@@ -11,7 +11,7 @@ from werkzeug.exceptions import BadRequest
 
 app = flask.Flask(__name__)
 
-FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
+FORMAT = '%(asctime)-15s %(process)-5d %(levelname)-10s %(message)s'
 logging.basicConfig(
     format=FORMAT,
     filename='/tmp/brotab_mediator.log',
@@ -24,8 +24,9 @@ logger.info('Logger has been created')
 # Python 3.x version
 # Read a message from stdin and decode it.
 
-DEFAULT_HTTP_IFACE = '0.0.0.0'
-DEFAULT_HTTP_PORT = 4625
+DEFAULT_HTTP_IFACE = '127.0.0.1'
+DEFAULT_MIN_HTTP_PORT = 4625
+DEFAULT_MAX_HTTP_PORT = 4625 + 10
 
 
 class StdTransport:
@@ -51,8 +52,8 @@ class StdTransport:
 
     def _encode(self, message):
         encoded_content = json.dumps(message).encode('utf-8')
-        encoded_lenght = struct.pack('@I', len(encoded_content))
-        return {'length': encoded_lenght, 'content': encoded_content}
+        encoded_length = struct.pack('@I', len(encoded_content))
+        return {'length': encoded_length, 'content': encoded_content}
 
 
 class FirefoxRemoteAPI:
@@ -152,9 +153,22 @@ def activate_tab(tab_id):
 #    - /get_active_tab_text
 #
 
-if __name__ == '__main__':
-    logger.info('Starting mediator on %s:%s...',
-                DEFAULT_HTTP_IFACE, DEFAULT_HTTP_PORT)
-    app.run('0.0.0.0', DEFAULT_HTTP_PORT)
+def main():
+    for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):
+        logger.info('Starting mediator on %s:%s...',
+                    DEFAULT_HTTP_IFACE, port)
+        try:
+            app.run(DEFAULT_HTTP_IFACE, port)
+            logger.info('Exiting mediator...')
+            break
+        except OSError as e:
+            logger.info('Cannot bind no port %s: %s', port, e)
 
-    logger.info('Exiting mediator...')
+    else:
+        logger.error(
+            'No TCP ports available for bind in range from %s to %s',
+            DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT)
+
+
+if __name__ == '__main__':
+    main()
