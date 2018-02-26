@@ -257,9 +257,12 @@ class FirefoxMediatorAPI(object):
         return [tab for tab in tabs
                 if tab.startswith(self._prefix)]
 
+    def _split_tabs(self, tabs):
+        return [tab.split('.') for tab in tabs]
+
     def close_tabs(self, args):
         # tabs = ','.join(self.filter_tabs(args))
-        tabs = ','.join(map(str, args))
+        tabs = ','.join(tab_id for _prefix, _window_id, tab_id in self._split_tabs(args))
         self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args):
@@ -268,7 +271,9 @@ class FirefoxMediatorAPI(object):
             return
 
         strWindowTab = args[0]
-        self._get('/activate_tab/%s' % strWindowTab)
+        prefix, window_id, tab_id = strWindowTab.split('.')
+        self._get('/activate_tab/%s' % tab_id)
+        #self._get('/activate_tab/%s' % strWindowTab)
 
     def new_tab(self, args):
         if args[0] != self._prefix:
@@ -390,8 +395,8 @@ class BrowserAPI(object):
         """
         tabs_before = list(chain.from_iterable(map(self._safe_list_tabs, self._apis)))
         tabs_after = edit_tabs_in_editor(tabs_before)
-        print('TABS BEFORE', tabs_before)
-        print('TABS AFTER', tabs_after)
+        # print('TABS BEFORE', tabs_before)
+        # print('TABS AFTER', tabs_after)
         if tabs_after is None:
             return
 
@@ -400,7 +405,7 @@ class BrowserAPI(object):
                 api,
                 api.filter_tabs(tabs_before),
                 api.filter_tabs(tabs_after))
-        print('MOVING END')
+        # print('MOVING END')
 
 
 def move_tabs(args):
@@ -416,12 +421,16 @@ def list_tabs(args):
     print('\n'.join(tabs))
 
 
-def close_tabs():
-    pass
+def close_tabs(args):
+    logger.info('Closing tabs: %s', args)
+    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    tabs = api.close_tabs(args.tab_ids)
 
 
-def activate_tab():
-    pass
+def activate_tab(args):
+    logger.info('Activating tab: %s', args.tab_id)
+    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api.activate_tab(args.tab_id)
 
 
 def new_search():

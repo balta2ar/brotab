@@ -1,10 +1,7 @@
 {
   "name": "firefox_mediator",
   "description": "This mediator exposes interface over TCP to control Firefox's tabs",
-  "path": "$HOME/prg/src/bz/python/brotab/brotab/firefox_mediator/firefox_mediator.py",
+  "path": "$PWD/firefox_mediator.py",
   "type": "stdio",
-  "allowed_origins": [
-    "chrome-extension://fochgkcogjjoljeekcmalinjcpepmedd/"
-  ],
   "allowed_extensions": [ "firefox_mediator@example.org" ]
 }

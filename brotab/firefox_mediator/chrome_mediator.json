@@ -1,0 +1,10 @@
+{
+  "name": "firefox_mediator",
+  "description": "This mediator exposes interface over TCP to control Firefox's tabs",
+  "path": "$PWD/chrome_mediator.py",
+  "type": "stdio",
+  "allowed_extensions": [ "firefox_mediator@example.org" ],
+  "allowed_origins": [
+    "chrome-extension://fochgkcogjjoljeekcmalinjcpepmedd/"
+  ]
+}

@@ -65,7 +65,8 @@ def infer_delete_commands(tabs_before: [Tab], tabs_after: [Tab]):
         tab = tabs_before[index]
         if tab not in after:
             # commands.append(_get_tab_id(tab))
-            commands.append(tab.tab_id)
+            #commands.append(tab.tab_id)
+            commands.append('%s.%s.%s' % (tab.prefix, tab.window_id, tab.tab_id))
     return commands
 
 
@@ -106,7 +107,10 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
 
 def apply_delete_commands(tabs_before: [Tab], delete_commands):
     tabs = tabs_before[:]
-    for tab_id in delete_commands:
+    #for tab_id in delete_commands:
+    for delete_command in delete_commands:
+        prefix, window_id, tab_id = delete_command.split('.')
+        window_id, tab_id = int(window_id), int(tab_id)
         #tab_id = int(command.split()[1])
         del tabs[_get_index_by_tab_id(tab_id, tabs)]
     return tabs
