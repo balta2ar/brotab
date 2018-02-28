@@ -118,9 +118,12 @@ def apply_delete_commands(tabs_before: [Tab], delete_commands):
 
 def apply_move_commands(tabs_before: [Tab], move_commands):
     tabs = tabs_before[:]
-    for tab_id, index_to in move_commands:
+    for tab_id, window_id, index_to in move_commands:
         index_from = _get_index_by_tab_id(tab_id, tabs)
-        tabs.insert(index_to, tabs.pop(index_from))
+        tab = tabs.pop(index_from)
+        # XXX: should we update the window_id?
+        tab.window_id = window_id
+        tabs.insert(index_to, tab)
     return tabs
 
 

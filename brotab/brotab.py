@@ -423,13 +423,12 @@ def create_clients():
 
 def move_tabs(args):
     logger.info('Moving tabs')
-    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api = BrowserAPI(create_clients())
     api.move_tabs(args)
 
 
 def list_tabs(args):
     logger.info('Listing tabs')
-    # api = BrowserAPI([FirefoxMediatorAPI('f')])
     api = BrowserAPI(create_clients())
     tabs = api.list_tabs([])
     print('\n'.join(tabs))

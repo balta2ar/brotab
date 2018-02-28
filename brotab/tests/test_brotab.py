@@ -40,7 +40,7 @@ class TestReconstruct(TestCase):
             'f.0.0\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        self.assertEqual(commands, [(0, 4)])
+        self.assertEqual(commands, [(0, 0, 4)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
@@ -60,7 +60,7 @@ class TestReconstruct(TestCase):
             'f.0.3\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        self.assertEqual(commands, [(4, 0)])
+        self.assertEqual(commands, [(4, 0, 0)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
@@ -88,7 +88,7 @@ class TestReconstruct(TestCase):
             'f.0.8\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        self.assertEqual(commands, [(0, 4)])
+        self.assertEqual(commands, [(0, 0, 4)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
@@ -116,7 +116,7 @@ class TestReconstruct(TestCase):
             'f.0.5\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        self.assertEqual(commands, [(4, 0), (5, 8)])
+        self.assertEqual(commands, [(4, 0, 0), (5, 0, 8)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
@@ -135,7 +135,7 @@ class TestReconstruct(TestCase):
             'f.0.10\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        self.assertEqual(commands, [(10, 3)])
+        self.assertEqual(commands, [(10, 0, 3)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
@@ -204,7 +204,7 @@ class TestInferDeleteMoveCommands(TestCase):
              'f.0.1\ttitle\turl',
              'f.0.2\ttitle\turl'],
             ['f.0.2\ttitle\turl'],
-            [1, 0],
+            ['f.0.1', 'f.0.0'],
             []
         )
 
@@ -215,7 +215,7 @@ class TestInferDeleteMoveCommands(TestCase):
              'f.0.3\ttitle\turl'],
             ['f.0.0\ttitle\turl',
              'f.0.2\ttitle\turl'],
-            [3, 1],
+            ['f.0.3', 'f.0.1'],
             []
         )
 
@@ -232,7 +232,7 @@ class TestInferDeleteMoveCommands(TestCase):
                 'f.0.1\ttitle\turl',
             ],
             [],
-            [(2, 0)]
+            [(2, 0, 0)]
         )
 
         self._eq(
@@ -247,5 +247,5 @@ class TestInferDeleteMoveCommands(TestCase):
                 'f.0.0\ttitle\turl',
             ],
             [],
-            [(2, 0), (1, 1)]
+            [(2, 0, 0), (1, 0, 1)]
         )
