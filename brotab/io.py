@@ -1,6 +1,14 @@
 import os
+import socket
 from tempfile import NamedTemporaryFile
 from subprocess import check_call, CalledProcessError
+
+
+def is_port_accepting_connections(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = s.connect_ex(('127.0.0.1', port))
+    s.close()
+    return result == 0
 
 
 def save_tabs_to_file(tabs, filename):

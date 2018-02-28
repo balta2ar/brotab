@@ -64,6 +64,7 @@ from traceback import print_exc
 import requests
 
 from brotab.io import edit_tabs_in_editor
+from brotab.io import is_port_accepting_connections
 from brotab.operations import infer_delete_and_move_commands
 from brotab.tab import parse_tab_lines
 
@@ -414,7 +415,8 @@ class BrowserAPI(object):
 def create_clients():
     ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
     result = [FirefoxMediatorAPI(prefix, port=port)
-              for prefix, port in zip(ascii_lowercase, ports)]
+              for prefix, port in zip(ascii_lowercase, ports)
+              if is_port_accepting_connections(port)]
     logger.info('Created clients: %s', result)
     return result
 
