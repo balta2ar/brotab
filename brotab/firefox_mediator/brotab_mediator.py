@@ -7,6 +7,7 @@ import sys
 import urllib
 
 import flask
+from flask import request
 from werkzeug.exceptions import BadRequest
 
 app = flask.Flask(__name__)
@@ -85,6 +86,14 @@ class FirefoxRemoteAPI:
         command = {'name': 'move_tabs', 'move_triplets': triplets}
         self._transport.send(command)
 
+    def open_urls(self, urls: [str]):
+        """
+        """
+        logger.info('open urls: %s', urls)
+
+        command = {'name': 'open_urls', 'urls': urls}
+        self._transport.send(command)
+
     def close_tabs(self, tab_ids: str):
         """
         :param tab_ids: Comma-separated list of tab IDs to close.
@@ -120,6 +129,18 @@ def list_tabs():
 @app.route('/move_tabs/<move_triplets>')
 def move_tabs(move_triplets):
     firefox.move_tabs(move_triplets)
+    return 'OK'
+
+
+@app.route('/open_urls', methods=['POST'])
+def open_urls():
+    #firefox.move_tabs(move_triplets)
+    urls = request.files.get('urls')
+    if urls is None:
+        return 'ERROR: Please provide urls file in the request'
+    urls = urls.stream.read().decode('utf8').splitlines()
+    logger.info('Open urls: %s', urls)
+    firefox.open_urls(urls)
     return 'OK'
 
 

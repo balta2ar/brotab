@@ -307,8 +307,19 @@ class FirefoxMediatorAPI(object):
             for tab_id, window_id, new_index in args)
         self._get('/move_tabs/%s' % commands)
 
-    def _get(self, path):
-        return requests.get('http://%s:%s%s' % (self._host, self._port, path))
+    def open_urls(self, args):
+        data = '\n'.join(args)
+        logger.info('FirefoxMediatorAPI: open_urls: %s', data)
+        files = {'urls': data}
+        self._post('/open_urls', files)
+
+    def _get(self, path, data=None):
+        return requests.get('http://%s:%s%s' % (self._host, self._port, path),
+                            data=data)
+
+    def _post(self, path, files=None):
+        return requests.post('http://%s:%s%s' % (self._host, self._port, path),
+                             files=files)
 
 
 class BrowserAPI(object):
@@ -411,6 +422,13 @@ class BrowserAPI(object):
                 api.filter_tabs(tabs_after))
         # print('MOVING END')
 
+    def open_urls(self, args):
+        # Send open urls only to the first client
+        assert len(self._apis) > 0, \
+            'There should be at least one client connected: %s' % self._apis
+        client = self._apis[0]
+        client.open_urls(args)
+
 
 def create_clients():
     ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
@@ -450,8 +468,11 @@ def new_search():
     pass
 
 
-def open_urls():
-    pass
+def open_urls(args):
+    urls = [line.strip() for line in sys.stdin.readlines()]
+    logger.info('Openning URLs from stdin: %s', urls)
+    api = BrowserAPI(create_clients())
+    api.open_urls(urls)
 
 
 def no_command(parser, args):
