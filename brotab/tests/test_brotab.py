@@ -24,7 +24,7 @@ from brotab.tab import parse_tab_lines
 
 
 class TestReconstruct(TestCase):
-    def test_one_move_from_start_to_end(self):
+    def test_move_one_from_start_to_end(self):
         before = parse_tab_lines([
             'f.0.0\ta\turl',
             'f.0.1\ta\turl',
@@ -44,7 +44,7 @@ class TestReconstruct(TestCase):
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
-    def test_one_move_from_end_to_start(self):
+    def test_move_one_from_end_to_start(self):
         before = parse_tab_lines([
             'f.0.0\ta\turl',
             'f.0.1\ta\turl',
@@ -64,7 +64,7 @@ class TestReconstruct(TestCase):
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
-    def test_one_move_from_start_to_center(self):
+    def test_move_one_from_start_to_center(self):
         before = parse_tab_lines([
             'f.0.0\ta\turl',
             'f.0.1\ta\turl',
@@ -136,6 +136,26 @@ class TestReconstruct(TestCase):
         ])
         commands = infer_move_commands(before, after)
         self.assertEqual(commands, [(10, 0, 3)])
+        actual_after = apply_move_commands(before, commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_pair_from_start_to_end(self):
+        before = parse_tab_lines([
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+            'f.0.2\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.4\ta\turl',
+        ])
+        after = parse_tab_lines([
+            'f.0.2\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.4\ta\turl',
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+        ])
+        commands = infer_move_commands(before, after)
+        self.assertEqual(commands, [(0, 0, 4), (1, 0, 4)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 

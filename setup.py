@@ -10,6 +10,7 @@ import sys
 from shutil import rmtree
 
 from setuptools import find_packages, setup, Command
+import pip
 
 # Package meta-data.
 NAME = 'brotab'
@@ -18,10 +19,14 @@ URL = 'https://github.com/balta2ar/brotab'
 EMAIL = 'baltazar.bz@gmail.com'
 AUTHOR = 'Yuri Bochkarev'
 
+
 # What packages are required for this module to be executed?
 REQUIRED = [
     # 'requests', 'maya', 'records',
 ]
+requirements = list(pip.req.parse_requirements(
+    'requirements.txt', session=pip.download.PipSession()))
+REQUIRED = [requirement.name for requirement in requirements]
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
@@ -85,7 +90,8 @@ setup(
     url=URL,
     packages=find_packages(
         where='brotab',
-        exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
+        # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
+        exclude=('firefox_extension', 'firefox_mediator')
     ),
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
