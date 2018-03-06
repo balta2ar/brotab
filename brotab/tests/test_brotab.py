@@ -155,10 +155,77 @@ class TestReconstruct(TestCase):
             'f.0.1\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        self.assertEqual(commands, [(0, 0, 4), (1, 0, 4)])
+        self.assertEqual(commands, [(1, 0, 4), (0, 0, 3)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
 
+    def test_move_pair_from_end_to_start(self):
+        before = parse_tab_lines([
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+            'f.0.2\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.4\ta\turl',
+        ])
+        after = parse_tab_lines([
+            'f.0.3\ta\turl',
+            'f.0.4\ta\turl',
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+            'f.0.2\ta\turl',
+        ])
+        commands = infer_move_commands(before, after)
+        # self.assertEqual(commands, [(1, 0, 4), (0, 0, 3)])
+        actual_after = apply_move_commands(before, commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_several_upwards(self):
+        before = parse_tab_lines([
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+            'f.0.2\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.4\ta\turl',
+            'f.0.5\ta\turl',
+            'f.0.6\ta\turl',
+        ])
+        after = parse_tab_lines([
+            'f.0.1\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.5\ta\turl',
+            'f.0.6\ta\turl',
+            'f.0.0\ta\turl',
+            'f.0.2\ta\turl',
+            'f.0.4\ta\turl',
+        ])
+        commands = infer_move_commands(before, after)
+        # self.assertEqual(commands, [(1, 0, 4), (0, 0, 3)])
+        actual_after = apply_move_commands(before, commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_several_downwards(self):
+        before = parse_tab_lines([
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+            'f.0.2\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.4\ta\turl',
+            'f.0.5\ta\turl',
+            'f.0.6\ta\turl',
+        ])
+        after = parse_tab_lines([
+            'f.0.2\ta\turl',
+            'f.0.4\ta\turl',
+            'f.0.6\ta\turl',
+            'f.0.0\ta\turl',
+            'f.0.1\ta\turl',
+            'f.0.3\ta\turl',
+            'f.0.5\ta\turl',
+        ])
+        commands = infer_move_commands(before, after)
+        # self.assertEqual(commands, [(1, 0, 4), (0, 0, 3)])
+        actual_after = apply_move_commands(before, commands)
+        self.assertEqual(actual_after, after)
 
 # class TestSequence(TestCase):
 #     def test_get_longest_contiguous_increasing_sequence(self):

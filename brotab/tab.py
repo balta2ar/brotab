@@ -24,8 +24,8 @@ class Tab:
     def __hash__(self):
         return hash(self.line)
 
-    # def __repr__(self):
-    #     return self.line
+    def __repr__(self):
+        return self.line
 
     @staticmethod
     def from_line(line):
