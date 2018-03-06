@@ -5,7 +5,10 @@
 # Tab ID completion for bt close
 _fzf_complete_bt() {
   ARGS="$@"
-  if [[ $ARGS == 'bt close'* ]] || [[ $ARGS == 'bt close'* ]] || [[ $ARGS == 'bt close'* ]]; then
+  if [[ $ARGS == 'bt close'* ]] || \
+        [[ $ARGS == 'bt activate'* ]] || \
+        [[ $ARGS == 'bt words'* ]]; \
+  then
     _fzf_complete "-m --no-sort --inline-info --toggle-sort=\`" "$@" < <(
       { bt list }
     )

@@ -31,11 +31,11 @@ Desired modes:
 
 ## Multiple extensions/browsers/native apps
 
-[_] differentiate browser instances, how?
-[_] support gathering data from multiple mediators
+[+] differentiate browser instances, how? use prefixes ('a.', 'b.', ...)
+[+] support gathering data from multiple mediators
     [+] native mediator should try binding to a free port [4625..4635]
-    [_] brotab.py should try a range of ports
-[_] build a unified interface for different browsers in background.js
+    [+] brotab.py should try a range of ports
+[+] build a unified interface for different browsers in background.js
 [+] try putting window id into list response
 
 ## Roadmap

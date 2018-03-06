@@ -2,6 +2,9 @@
 On startup, connect to the "brotab_mediator" app.
 */
 
+const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");'
+
+
 class BrowserTabs {
   constructor(browser) {
     this._browser = browser;
@@ -15,7 +18,7 @@ class BrowserTabs {
     this._browser.tabs.remove(tab_ids);
   }
 
-  move(tabId, moveOptions) {
+  move(tabId, moveOptions, onSuccess) {
     throw new Error('move is not implemented');
   }
 
@@ -25,6 +28,14 @@ class BrowserTabs {
 
   activate(tab_id) {
     this._browser.tabs.update(tab_id, {'active': true});
+  }
+
+  getActive(onSuccess) {
+    throw new Error('getActive is not implemented');
+  }
+
+  getWords(tab_id, onSuccess, onError) {
+    throw new Error('getWords is not implemented');
   }
 }
 
@@ -36,9 +47,10 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  move(tabId, moveOptions) {
+  move(tabId, moveOptions, onSuccess) {
     this._browser.tabs.move(tabId, moveOptions).then(
-      (tab) => console.log(`Moved: ${tab}`),
+      onSuccess,
+      // (tab) => console.log(`Moved: ${tab}`),
       (error) => console.log(`Error moving tab: ${error}`)
     );
   }
@@ -49,6 +61,20 @@ class FirefoxTabs extends BrowserTabs {
       (error) => console.log(`Error: ${error}`)
     );
   }
+
+  getActive(onSuccess) {
+    this._browser.tabs.query({active: true}).then(
+      onSuccess,
+      (error) => console.log(`Error: ${error}`)
+    );
+  }
+
+  getWords(tab_id, onSuccess, onError) {
+    this._browser.tabs.executeScript(tab_id, {code: GET_WORDS_SCRIPT}).then(
+      onSuccess,
+      onError
+    );
+  }
 }
 
 class ChromeTabs extends BrowserTabs {
@@ -56,15 +82,32 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query({}, onSuccess);
   }
 
-  move(tabId, moveOptions) {
-    this._browser.tabs.move(tabId, moveOptions,
-      (tab) => console.log(`Moved: ${tab}`)
-    );
+  move(tabId, moveOptions, onSuccess) {
+    this._browser.tabs.move(tabId, moveOptions, onSuccess);
   }
 
   create(createOptions) {
     this._browser.tabs.create({'url': url},
       (tab) => console.log(`Created new tab: ${tab.id}`)
+    );
+  }
+
+  getActive(onSuccess) {
+    this._browser.tabs.query({active: true}, onSuccess);
+  }
+
+  getWords(tab_id, onSuccess, onError) {
+    this._browser.tabs.executeScript(
+      tab_id, {code: GET_WORDS_SCRIPT},
+      (result) => {
+        // https://stackoverflow.com/a/45603880/258421
+        let lastError = chrome.runtime.lastError;
+        if (lastError) {
+          onError(lastError);
+        } else {
+          onSuccess(result);
+        }
+      }
     );
   }
 }
@@ -131,11 +174,21 @@ function listTabs() {
   browserTabs.list(listTabsOnSuccess);
 }
 
+// function moveTabs(move_triplets) {
+//   for (let triplet of move_triplets) {
+//     const [tabId, windowId, index] = triplet;
+//     browserTabs.move(tabId, {index: index, windowId: windowId});
+//   }
+// }
+
 function moveTabs(move_triplets) {
-  for (let triplet of move_triplets) {
-    const [tabId, windowId, index] = triplet;
-    browserTabs.move(tabId, {index: index, windowId: windowId});
+  if (move_triplets.length == 0) {
+    return
   }
+
+  const [tabId, windowId, index] = move_triplets[0];
+  browserTabs.move(tabId, {index: index, windowId: windowId},
+    (tab) => moveTabs(move_triplets.slice(1)));
 }
 
 function closeTabs(tab_ids) {
@@ -154,6 +207,42 @@ function createTab(url) {
 
 function activateTab(tab_id) {
   browserTabs.activate(tab_id);
+}
+
+function getWordsFromTabs(tabs) {
+  var promises = [];
+  console.log(`Getting words from tabs: ${tabs}`);
+
+  for (let tab of tabs) {
+    var promise = new Promise(
+      (resolve, reject) => browserTabs.getWords(tab.id,
+        (words) => {
+          console.log(`Got ${words.length} words from another tab`);
+          resolve(words);
+        },
+        (error) => {
+          console.log(`Could not get words from tab: ${error}`);
+          resolve([]);
+        })
+    );
+    promises.push(promise);
+  }
+  Promise.all(promises).then(
+    (all_words) => {
+      const result = Array.prototype.concat(...all_words);
+      console.log(`Total number of words: ${result.length}`);
+      port.postMessage(result);
+    }
+  )
+}
+
+function getWords(tab_id) {
+  if (tab_id == null) {
+    browserTabs.getActive(getWordsFromTabs);
+  } else {
+    browserTabs.getWords(tab_id,
+      (words) => port.postMessage(words));
+  }
 }
 
 /*
@@ -190,6 +279,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'activate_tab') {
     console.log('Activating tab:', command['tab_id']);
     activateTab(command['tab_id']);
+  }
+
+  else if (command['name'] == 'get_words') {
+    console.log('Getting words from tab:', command['tab_id']);
+    getWords(command['tab_id']);
   }
 });
 

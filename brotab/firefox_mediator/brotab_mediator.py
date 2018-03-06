@@ -115,6 +115,12 @@ class FirefoxRemoteAPI:
         command = {'name': 'activate_tab', 'tab_id': tab_id}
         self._transport.send(command)
 
+    def get_words(self, tab_id):
+        logger.info('getting tab words: %s', tab_id)
+        command = {'name': 'get_words', 'tab_id': tab_id}
+        self._transport.send(command)
+        return self._transport.recv()
+
 
 firefox = FirefoxRemoteAPI()
 logger.info('FirefoxRemoteAPI has been created')
@@ -160,6 +166,13 @@ def new_tab(query):
 def activate_tab(tab_id):
     firefox.activate_tab(tab_id)
     return 'OK'
+
+@app.route('/get_words')
+@app.route('/get_words/<int:tab_id>')
+def get_words(tab_id=None):
+    words = firefox.get_words(tab_id)
+    logger.info('words for tab_id %s: %s', tab_id, words)
+    return '\n'.join(words)
 
 
 # TODO:

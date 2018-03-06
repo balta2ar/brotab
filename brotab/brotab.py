@@ -67,6 +67,8 @@ from brotab.io import edit_tabs_in_editor
 from brotab.io import is_port_accepting_connections
 from brotab.operations import infer_delete_and_move_commands
 from brotab.tab import parse_tab_lines
+from brotab.utils import split_tab_ids
+from brotab.io import read_stdin
 
 
 # from pprint import pprint
@@ -313,6 +315,22 @@ class FirefoxMediatorAPI(object):
         files = {'urls': data}
         self._post('/open_urls', files)
 
+    def get_words(self, tab_ids):
+        words = set()
+
+        for tab_id in tab_ids:
+            prefix, _window_id, tab_id = tab_id.split('.')
+            if prefix + '.' != self._prefix:
+                continue
+
+            logger.info('FirefoxMediatorAPI: get_words: %s', tab_id)
+            words |= set(self._get('/get_words/%s' % tab_id).text.splitlines())
+
+        if not tab_ids:
+            words = set(self._get('/get_words').text.splitlines())
+
+        return sorted(list(words))
+
     def _get(self, path, data=None):
         return requests.get('http://%s:%s%s' % (self._host, self._port, path),
                             data=data)
@@ -327,9 +345,9 @@ class BrowserAPI(object):
         self._apis = apis
 
     def close_tabs(self, args):
-        if len(args) == 0:
-            print('Usage: brotab_client.py close_tabs <#tab ...>')
-            return 2
+        # if len(args) == 0:
+        #     print('Usage: brotab_client.py close_tabs <#tab ...>')
+        #     return 2
 
         for api in self._apis:
             api.close_tabs(args)
@@ -429,6 +447,12 @@ class BrowserAPI(object):
         client = self._apis[0]
         client.open_urls(args)
 
+    def get_words(self, tab_ids):
+        words = set()
+        for api in self._apis:
+            words |= set(api.get_words(tab_ids))
+        return sorted(list(words))
+
 
 def create_clients():
     ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
@@ -446,6 +470,10 @@ def move_tabs(args):
 
 
 def list_tabs(args):
+    """
+    Use this to show duplicates:
+        bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close
+    """
     logger.info('Listing tabs')
     api = BrowserAPI(create_clients())
     tabs = api.list_tabs([])
@@ -453,14 +481,24 @@ def list_tabs(args):
 
 
 def close_tabs(args):
-    logger.info('Closing tabs: %s', args)
-    api = BrowserAPI([FirefoxMediatorAPI('f')])
-    tabs = api.close_tabs(args.tab_ids)
+    #urls = [line.strip() for line in sys.stdin.readlines()]
+
+    # Try stdin if arguments are empty
+    tab_ids = args.tab_ids
+    #print(read_stdin())
+    if len(args.tab_ids) == 0:
+        tab_ids = split_tab_ids(read_stdin().strip())
+
+    logger.info('Closing tabs: %s', tab_ids)
+    #api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api = BrowserAPI(create_clients())
+    tabs = api.close_tabs(tab_ids)
 
 
 def activate_tab(args):
     logger.info('Activating tab: %s', args.tab_id)
-    api = BrowserAPI([FirefoxMediatorAPI('f')])
+    #api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api = BrowserAPI(create_clients())
     api.activate_tab(args.tab_id)
 
 
@@ -473,6 +511,20 @@ def open_urls(args):
     logger.info('Openning URLs from stdin: %s', urls)
     api = BrowserAPI(create_clients())
     api.open_urls(urls)
+
+
+def get_words(args):
+    # return tab.execute({javascript: "
+    # [...new Set(document.body.innerText.match(/\w+/g))].sort().join('\n');
+    # "})
+    logger.info('Get words from tabs: %s', args.tab_ids)
+    api = BrowserAPI(create_clients())
+    words = api.get_words(args.tab_ids)
+    print('\n'.join(words))
+
+
+def executejs(args):
+    pass
 
 
 def no_command(parser, args):
@@ -495,7 +547,7 @@ def parse_args(args):
 
     parser_close_tabs = subparsers.add_parser('close')
     parser_close_tabs.set_defaults(func=close_tabs)
-    parser_close_tabs.add_argument('tab_ids', type=str, nargs='+',
+    parser_close_tabs.add_argument('tab_ids', type=str, nargs='*',
         help='Tab IDs to close')
 
     parser_activate_tab = subparsers.add_parser('activate')
@@ -510,6 +562,11 @@ def parse_args(args):
 
     parser_open_urls = subparsers.add_parser('open')
     parser_open_urls.set_defaults(func=open_urls)
+
+    parser_get_words = subparsers.add_parser('words')
+    parser_get_words.set_defaults(func=get_words)
+    parser_get_words.add_argument('tab_ids', type=str, nargs='*',
+        help='Tab IDs to get words from')
 
     return parser.parse_args(args)
 

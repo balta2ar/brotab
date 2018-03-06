@@ -98,6 +98,7 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
         get_longest_increasing_subsequence(reordered_indices))
 
     commands = []
+    # TODO: this does not work when moving more than one item at once
     for new_index, old_index in enumerate(reordered_indices):
         if old_index not in correctly_ordered_new_indices:
             tab = tabs_before[old_index]

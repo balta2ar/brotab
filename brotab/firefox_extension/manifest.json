@@ -12,5 +12,5 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "permissions": ["nativeMessaging", "tabs"]
+  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>"]
 }

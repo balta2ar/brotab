@@ -1,4 +1,6 @@
 import os
+import sys
+import select
 import socket
 from tempfile import NamedTemporaryFile
 from subprocess import check_call, CalledProcessError
@@ -30,3 +32,9 @@ def edit_tabs_in_editor(tabs_before):
             return tabs_after
         except CalledProcessError:
             return None
+
+
+def read_stdin():
+    if select.select([sys.stdin,], [], [], 1.0)[0]:
+        return sys.stdin.read()
+    return ''
