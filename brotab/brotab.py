@@ -398,6 +398,12 @@ class BrowserAPI(object):
         # if tabs_after is None:
             # return
 
+        # from pprint import pprint
+        # print('_move_tabs_if_changed tabs_before')
+        # pprint(tabs_before)
+        # print('_move_tabs_if_changed tabs_after')
+        # pprint(tabs_after)
+
         delete_commands, move_commands = infer_delete_and_move_commands(
             parse_tab_lines(tabs_before),
             parse_tab_lines(tabs_after))
@@ -449,8 +455,12 @@ class BrowserAPI(object):
 
     def get_words(self, tab_ids):
         words = set()
+        import time
         for api in self._apis:
+            start = time.time()
             words |= set(api.get_words(tab_ids))
+            delta = time.time() - start
+            #print('DELTA', delta, file=sys.stderr)
         return sorted(list(words))
 
 
@@ -517,10 +527,25 @@ def get_words(args):
     # return tab.execute({javascript: "
     # [...new Set(document.body.innerText.match(/\w+/g))].sort().join('\n');
     # "})
+    import time
+    start = time.time()
     logger.info('Get words from tabs: %s', args.tab_ids)
     api = BrowserAPI(create_clients())
     words = api.get_words(args.tab_ids)
     print('\n'.join(words))
+    delta = time.time() - start
+    #print('DELTA TOTAL', delta, file=sys.stderr)
+
+
+def show_duplicates(args):
+    # I'm not using uniq here because it's not easy to get duplicates
+    # only by a single column. awk is much easier in this regard.
+    #print('bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close')
+    print("Show duplicates by Title:")
+    print("bt list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bt close")
+    print("")
+    print("Show duplicates by URL:")
+    print("bt list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bt close")
 
 
 def executejs(args):
@@ -567,6 +592,9 @@ def parse_args(args):
     parser_get_words.set_defaults(func=get_words)
     parser_get_words.add_argument('tab_ids', type=str, nargs='*',
         help='Tab IDs to get words from')
+
+    parser_show_duplicates = subparsers.add_parser('dup')
+    parser_show_duplicates.set_defaults(func=show_duplicates)
 
     return parser.parse_args(args)
 

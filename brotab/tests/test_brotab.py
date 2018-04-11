@@ -3,6 +3,7 @@ Run:
 
     python3 -m unittest test_brotab
     pytest brotab
+    pytest tests/test_brotab.py -k move_pair
 
 """
 from unittest import TestCase
@@ -11,7 +12,7 @@ from unittest import TestCase
 from brotab.operations import infer_delete_and_move_commands
 # from brotab import get_longest_contiguous_increasing_sequence
 from brotab.operations import get_longest_increasing_subsequence
-from brotab.operations import infer_move_commands
+from brotab.operations import infer_move_commands, infer_delete_and_move_commands
 from brotab.operations import apply_move_commands
 from brotab.tab import parse_tab_lines
 
@@ -21,6 +22,11 @@ from brotab.tab import parse_tab_lines
 #         seq = [1, 3, 0, 5, 6, 4, 7, 2, 0]
 #         result = get_longest_increasing_subsequence(seq)
 #         self.assertEqual([1, 3, 5, 6, 7], result)
+
+
+def slurp_lines(filename):
+    with open(filename) as file_:
+        return [line.strip() for line in file_.readlines()]
 
 
 class TestReconstruct(TestCase):
@@ -223,9 +229,103 @@ class TestReconstruct(TestCase):
             'f.0.5\ta\turl',
         ])
         commands = infer_move_commands(before, after)
-        # self.assertEqual(commands, [(1, 0, 4), (0, 0, 3)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
+
+    def test_move_one_to_another_existing_window_same_index(self):
+        before = parse_tab_lines([
+            'f.0.0\ta\turl',
+            'f.1.1\ta\turl',
+        ])
+        after = parse_tab_lines([
+            'f.1.0\ta\turl',
+            'f.1.1\ta\turl',
+        ])
+        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        self.assertGreater(len(move_commands), 0)
+        actual_after = apply_move_commands(before, move_commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_one_to_another_existing_window_below(self):
+        before = parse_tab_lines([
+            'f.0.0\ta1\turl1',
+            'f.1.1\ta2\turl2',
+            'f.1.2\ta3\turl3',
+        ])
+        after = parse_tab_lines([
+            'f.1.1\ta2\turl2',
+            'f.1.2\ta3\turl3',
+            'f.1.0\ta1\turl1',
+        ])
+        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        self.assertGreater(len(move_commands), 0)
+        actual_after = apply_move_commands(before, move_commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_one_to_another_existing_window_above(self):
+        before = parse_tab_lines([
+            'f.0.0\ta1\turl1',
+            'f.1.1\ta2\turl2',
+            'f.1.2\ta3\turl3',
+        ])
+        after = parse_tab_lines([
+            'f.0.2\ta3\turl3',
+            'f.0.0\ta1\turl1',
+            'f.1.1\ta2\turl2',
+        ])
+        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        self.assertGreater(len(move_commands), 0)
+        actual_after = apply_move_commands(before, move_commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_one_to_another_existing_window_above_2(self):
+        before = parse_tab_lines([
+            'f.0.0\ta1\turl1',
+            'f.0.1\ta2\turl2',
+            'f.1.2\ta3\turl3',
+            'f.1.3\ta4\turl4',
+        ])
+        after = parse_tab_lines([
+            'f.0.0\ta1\turl1',
+            'f.0.1\ta2\turl2',
+            'f.0.3\ta4\turl4',
+            'f.1.2\ta3\turl3',
+        ])
+        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        self.assertGreater(len(move_commands), 0)
+        actual_after = apply_move_commands(before, move_commands)
+        self.assertEqual(actual_after, after)
+
+    def test_move_one_to_another_existing_window_several_mix(self):
+        before = parse_tab_lines([
+            'f.0.0\ta1\turl1',
+            'f.0.1\ta2\turl2',
+            'f.0.2\ta3\turl3',
+            'f.1.3\ta3\turl4',
+            'f.1.4\ta3\turl5',
+            'f.1.5\ta3\turl6',
+        ])
+        after = parse_tab_lines([
+            'f.0.5\ta3\turl6',
+            'f.0.2\ta3\turl3',
+            'f.1.3\ta3\turl4',
+            'f.1.4\ta3\turl5',
+            'f.1.0\ta1\turl1',
+            'f.1.1\ta2\turl2',
+        ])
+        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        self.assertGreater(len(move_commands), 0)
+        actual_after = apply_move_commands(before, move_commands)
+        self.assertEqual(actual_after, after)
+
+    # def test_move_one_to_another_existing_window_fixture_test1(self):
+    #     before = parse_tab_lines(slurp_lines('tests/fixtures/move_to_another_window_test1_before.txt'))
+    #     after = parse_tab_lines(slurp_lines('tests/fixtures/move_to_another_window_test1_after.txt'))
+    #     delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+    #     print('COMMANDS', move_commands)
+    #     self.assertGreater(len(move_commands), 0)
+    #     actual_after = apply_move_commands(before, move_commands)
+    #     self.assertEqual(actual_after, after)
 
 # class TestSequence(TestCase):
 #     def test_get_longest_contiguous_increasing_sequence(self):

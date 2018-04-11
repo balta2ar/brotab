@@ -10,12 +10,15 @@ class Tab:
         self.title = title
         self.url = url
 
-        self.line = '{prefix}.{window_id}.{tab_id}\t{title}\t{url}'.format(
-            prefix=prefix,
-            window_id=window_id,
-            tab_id=tab_id,
-            title=title,
-            url=url
+
+    @property
+    def line(self):
+        return '{prefix}.{window_id}.{tab_id}\t{title}\t{url}'.format(
+            prefix=self.prefix,
+            window_id=self.window_id,
+            tab_id=self.tab_id,
+            title=self.title,
+            url=self.url
         )
 
     def __eq__(self, other):
