@@ -187,12 +187,26 @@ def get_words(tab_id=None):
 #    - /get_active_tab_text
 #
 
+
+def disable_click_echo():
+    """Stupid flask started using click which unconditionally prints stupid
+    messages"""
+    def numb_echo(*args, **kwargs):
+        pass
+
+    import click
+    click.echo = numb_echo
+    click.secho = numb_echo
+
+
 def main():
+    disable_click_echo()
+
     for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):
         logger.info('Starting mediator on %s:%s...',
                     DEFAULT_HTTP_IFACE, port)
         try:
-            app.run(DEFAULT_HTTP_IFACE, port)
+            app.run(DEFAULT_HTTP_IFACE, port, debug=False)
             logger.info('Exiting mediator...')
             break
         except OSError as e:
