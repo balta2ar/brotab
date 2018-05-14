@@ -556,7 +556,7 @@ def parse_args(args):
         'clients',
         help='''
         display available browser clients (mediators), their prefixes and
-        addresse (host:port)
+        address (host:port)
         ''')
     parser_show_clients.set_defaults(func=show_clients)
 
