@@ -115,7 +115,8 @@ class FirefoxMediatorAPI(object):
 
     def close_tabs(self, args):
         # tabs = ','.join(self.filter_tabs(args))
-        tabs = ','.join(tab_id for _prefix, _window_id, tab_id in self._split_tabs(args))
+        tabs = ','.join(tab_id for _prefix, _window_id,
+                        tab_id in self._split_tabs(args))
         self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args):
@@ -143,7 +144,7 @@ class FirefoxMediatorAPI(object):
         result = self._get('/list_tabs')
         lines = []
         for line in result.text.splitlines()[:num_tabs]:
-        #for line in result.text.split('\n')[:num_tabs]:
+            # for line in result.text.split('\n')[:num_tabs]:
             # line = '%s%s' % (self._prefix, line)
             # print(line)
             lines.append(line)
@@ -230,7 +231,7 @@ class BrowserAPI(object):
                 print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
                 # exit_code = 1
         return tabs
-        #return exit_code
+        # return exit_code
 
     def _safe_list_tabs(self, api):
         try:
@@ -279,7 +280,8 @@ class BrowserAPI(object):
             - insert that tab
         3. continue until no input tabs out of order are left
         """
-        tabs_before = list(chain.from_iterable(map(self._safe_list_tabs, self._apis)))
+        tabs_before = list(chain.from_iterable(
+            map(self._safe_list_tabs, self._apis)))
         tabs_after = edit_tabs_in_editor(tabs_before)
         if tabs_after is None:
             return
@@ -345,7 +347,7 @@ def close_tabs(args):
 
     # Try stdin if arguments are empty
     tab_ids = args.tab_ids
-    #print(read_stdin())
+    # print(read_stdin())
     if len(args.tab_ids) == 0:
         tab_ids = split_tab_ids(read_stdin().strip())
 
@@ -406,10 +408,12 @@ def show_duplicates(args):
     # only by a single column. awk is much easier in this regard.
     #print('bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close')
     print("Show duplicates by Title:")
-    print("bt list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bt close")
+    print(
+        "bt list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bt close")
     print("")
     print("Show duplicates by URL:")
-    print("bt list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bt close")
+    print(
+        "bt list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bt close")
 
 
 def _get_window_id(tab):
