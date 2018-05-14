@@ -8,7 +8,7 @@ import urllib
 
 import flask
 from flask import request
-from werkzeug.exceptions import BadRequest
+# from werkzeug.exceptions import BadRequest
 
 app = flask.Flask(__name__)
 
@@ -43,10 +43,10 @@ class StdTransport:
         self._out.flush()
 
     def recv(self):
-        rawLength = self._in.read(4)
-        if len(rawLength) == 0:
+        raw_rength = self._in.read(4)
+        if len(raw_rength) == 0:
             sys.exit(0)
-        message_length = struct.unpack('@I', rawLength)[0]
+        message_length = struct.unpack('@I', raw_rength)[0]
         message = self._in.read(message_length).decode('utf-8')
         logger.info('RECEIVED: %s', message)
         return json.loads(message)
@@ -167,6 +167,7 @@ def activate_tab(tab_id):
     firefox.activate_tab(tab_id)
     return 'OK'
 
+
 @app.route('/get_words')
 @app.route('/get_words/<int:tab_id>')
 def get_words(tab_id=None):
@@ -186,6 +187,7 @@ def get_words(tab_id=None):
 #    - /get_tab_text
 #    - /get_active_tab_text
 #
+# TODO: fix bug when the number of tabs > 1100
 
 
 def disable_click_echo():

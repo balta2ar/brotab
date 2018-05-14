@@ -250,6 +250,9 @@ class FirefoxMediatorAPI(object):
         self._host = host
         self._port = port
 
+    def __str__(self):
+        return '%s\t%s:%s' % (self._prefix, self._host, self._port)
+
     def prefix_tabs(self, tabs):
         return ['%s%s' % (self._prefix, tab) for tab in tabs]
 
@@ -567,6 +570,12 @@ def show_windows(args):
     _print_available_windows(tabs)
 
 
+def show_clients(args):
+    logger.info('Showing clients')
+    for client in create_clients():
+        print(client)
+
+
 def executejs(args):
     pass
 
@@ -617,6 +626,9 @@ def parse_args(args):
 
     parser_show_windows = subparsers.add_parser('windows')
     parser_show_windows.set_defaults(func=show_windows)
+
+    parser_show_clients = subparsers.add_parser('clients')
+    parser_show_clients.set_defaults(func=show_clients)
 
     return parser.parse_args(args)
 
