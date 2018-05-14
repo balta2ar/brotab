@@ -452,49 +452,112 @@ def no_command(parser, args):
 
 
 def parse_args(args):
-    parser = ArgumentParser()
+    parser = ArgumentParser(
+        description='''
+        bt (brotab = Browser Tabs) is a command-line tool that helps you manage
+        browser tabs. It can help you list, close, reorder, open and activate
+        your tabs.
+        ''')
 
     subparsers = parser.add_subparsers()
     parser.set_defaults(func=partial(no_command, parser))
 
-    parser_move_tabs = subparsers.add_parser('move')
+    parser_move_tabs = subparsers.add_parser(
+        'move',
+        help='''
+        move tabs around. This command lists available tabs and runs
+        the editor. In the editor you can 1) reorder tabs -- tabs will
+        be moved in the browser 2) delete tabs -- tabs will be closed
+        3) change window ID of the tabs -- tabs will be moved to
+        specified windows
+        ''')
     parser_move_tabs.set_defaults(func=move_tabs)
 
-    parser_list_tabs = subparsers.add_parser('list')
+    parser_list_tabs = subparsers.add_parser(
+        'list',
+        help='''
+        list available tabs. The command will request all available clients
+        (browser plugins, mediators), and will display browser tabs in the
+        following format:
+        "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
+        ''')
     parser_list_tabs.set_defaults(func=list_tabs)
 
-    parser_close_tabs = subparsers.add_parser('close')
+    parser_close_tabs = subparsers.add_parser(
+        'close',
+        help='''
+        close specified tab IDs. Tab IDs should be in the following format:
+        "<prefix>.<window_id>.<tab_id>". You can use "list" command to obtain
+        tab IDs (first column)
+        ''')
     parser_close_tabs.set_defaults(func=close_tabs)
     parser_close_tabs.add_argument('tab_ids', type=str, nargs='*',
                                    help='Tab IDs to close')
 
-    parser_activate_tab = subparsers.add_parser('activate')
+    parser_activate_tab = subparsers.add_parser(
+        'activate',
+        help='''
+        activate given tab ID. Tab ID should be in the following format:
+        "<prefix>.<window_id>.<tab_id>"
+        ''')
     parser_activate_tab.set_defaults(func=activate_tab)
     parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
                                      help='Tab ID to activate')
 
-    parser_new_search = subparsers.add_parser('search')
+    parser_new_search = subparsers.add_parser(
+        'search',
+        help='''
+        Not implemented yet.
+        ''')
     parser_new_search.set_defaults(func=new_search)
     parser_new_search.add_argument('words', type=str, nargs='+',
                                    help='Search query')
 
-    parser_open_urls = subparsers.add_parser('open')
+    parser_open_urls = subparsers.add_parser(
+        'open',
+        help='''
+        open URLs from the stdin (one URL per line). One positional argument is
+        required: <prefix>.<window_id> OR <client>. If window_id is not
+        specified, URL will be opened in the active window of the specifed
+        client
+        ''')
     parser_open_urls.set_defaults(func=open_urls)
-    parser_open_urls.add_argument('prefix_window_id', type=str,
-                                  help='Client prefix and window id, e.g. b.20')
+    parser_open_urls.add_argument(
+        'prefix_window_id', type=str,
+        help='Client prefix and window id, e.g. b.20')
 
-    parser_get_words = subparsers.add_parser('words')
+    parser_get_words = subparsers.add_parser(
+        'words',
+        help='''
+        show sorted unique words from all active tabs of all clients. This is
+        a helper for webcomplete deoplete plugin that helps complete words
+        from the browser
+        ''')
     parser_get_words.set_defaults(func=get_words)
     parser_get_words.add_argument('tab_ids', type=str, nargs='*',
                                   help='Tab IDs to get words from')
 
-    parser_show_duplicates = subparsers.add_parser('dup')
+    parser_show_duplicates = subparsers.add_parser(
+        'dup',
+        help='''
+        display reminder on how to show duplicate tabs using command-line tools
+        ''')
     parser_show_duplicates.set_defaults(func=show_duplicates)
 
-    parser_show_windows = subparsers.add_parser('windows')
+    parser_show_windows = subparsers.add_parser(
+        'windows',
+        help='''
+        display available prefixes and window IDs, along with the number of
+        tabs in every window
+        ''')
     parser_show_windows.set_defaults(func=show_windows)
 
-    parser_show_clients = subparsers.add_parser('clients')
+    parser_show_clients = subparsers.add_parser(
+        'clients',
+        help='''
+        display available browser clients (mediators), their prefixes and
+        addresse (host:port)
+        ''')
     parser_show_clients.set_defaults(func=show_clients)
 
     return parser.parse_args(args)
@@ -502,7 +565,10 @@ def parse_args(args):
 
 def run_commands(args):
     args = parse_args(args)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except BrokenPipeError:
+        return 0
 
 
 def main():
