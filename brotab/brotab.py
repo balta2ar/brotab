@@ -53,7 +53,7 @@ import logging
 from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
-from itertools import chain
+from itertools import chain, groupby
 from getpass import getuser
 from json import loads
 from telnetlib import Telnet
@@ -548,6 +548,25 @@ def show_duplicates(args):
     print("bt list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bt close")
 
 
+def _get_window_id(tab):
+    ids, _title, _url = tab.split('\t')
+    client_id, window_id, tab_id = ids.split('.')
+    return '%s.%s' % (client_id, window_id)
+
+
+def _print_available_windows(tabs):
+    for key, group in groupby(sorted(tabs), _get_window_id):
+        group = list(group)
+        print('%s\t%s' % (key, len(group)))
+
+
+def show_windows(args):
+    logger.info('Showing windows')
+    api = BrowserAPI(create_clients())
+    tabs = api.list_tabs([])
+    _print_available_windows(tabs)
+
+
 def executejs(args):
     pass
 
@@ -573,17 +592,17 @@ def parse_args(args):
     parser_close_tabs = subparsers.add_parser('close')
     parser_close_tabs.set_defaults(func=close_tabs)
     parser_close_tabs.add_argument('tab_ids', type=str, nargs='*',
-        help='Tab IDs to close')
+                                   help='Tab IDs to close')
 
     parser_activate_tab = subparsers.add_parser('activate')
     parser_activate_tab.set_defaults(func=activate_tab)
     parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
-        help='Tab ID to activate')
+                                     help='Tab ID to activate')
 
     parser_new_search = subparsers.add_parser('search')
     parser_new_search.set_defaults(func=new_search)
     parser_new_search.add_argument('words', type=str, nargs='+',
-        help='Search query')
+                                   help='Search query')
 
     parser_open_urls = subparsers.add_parser('open')
     parser_open_urls.set_defaults(func=open_urls)
@@ -591,10 +610,13 @@ def parse_args(args):
     parser_get_words = subparsers.add_parser('words')
     parser_get_words.set_defaults(func=get_words)
     parser_get_words.add_argument('tab_ids', type=str, nargs='*',
-        help='Tab IDs to get words from')
+                                  help='Tab IDs to get words from')
 
     parser_show_duplicates = subparsers.add_parser('dup')
     parser_show_duplicates.set_defaults(func=show_duplicates)
+
+    parser_show_windows = subparsers.add_parser('windows')
+    parser_show_windows.set_defaults(func=show_windows)
 
     return parser.parse_args(args)
 
@@ -603,30 +625,30 @@ def run_commands(args):
     args = parse_args(args)
     return args.func(args)
 
-    command = args[0]
-    rest = args[1:]
-
-    #api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
-    api = BrowserAPI([FirefoxMediatorAPI('f')])
-
-    if command == 'move_tabs':
-        return api.move_tabs(rest)
-    if command == 'list_tabs':
-        return api.list_tabs(rest)
-    if command == 'close_tabs':
-        return api.close_tabs(rest)
-    if command == 'activate_tab':
-        return api.activate_tab(rest)
-    if command == 'new_tab':
-        return api.new_tab(rest)
-    if command == 'open_urls':
-        raise NotImplementedError()
-        # return api.new_tab(rest)
-    else:
-        print('Unknown command: %s' % command)
-        return 2
-
-    return 0
+    # command = args[0]
+    # rest = args[1:]
+    #
+    # #api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
+    # api = BrowserAPI([FirefoxMediatorAPI('f')])
+    #
+    # if command == 'move_tabs':
+    #     return api.move_tabs(rest)
+    # if command == 'list_tabs':
+    #     return api.list_tabs(rest)
+    # if command == 'close_tabs':
+    #     return api.close_tabs(rest)
+    # if command == 'activate_tab':
+    #     return api.activate_tab(rest)
+    # if command == 'new_tab':
+    #     return api.new_tab(rest)
+    # if command == 'open_urls':
+    #     raise NotImplementedError()
+    #     # return api.new_tab(rest)
+    # else:
+    #     print('Unknown command: %s' % command)
+    #     return 2
+    #
+    # return 0
 
 
 def main():
