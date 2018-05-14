@@ -86,162 +86,6 @@ logger = logging.getLogger('brotab')
 logger.info('Logger has been created')
 
 
-class ChromeAPI(object):
-    BROWSER_PREFIX = 'c.'
-
-    def __init__(self, host='localhost', port=9222):
-        self._host = host
-        self._port = port
-
-    def _get(self, path):
-        return requests.get('http://%s:%s%s' % (self._host, self._port, path))
-
-    def filter_tabs(self, tabs):
-        return [tab[len(ChromeAPI.BROWSER_PREFIX):] for tab in tabs
-                if tab.startswith(ChromeAPI.BROWSER_PREFIX)]
-
-    def _list_tabs(self, num_tabs):
-        response = self._get('/json')
-        result = loads(response.text)
-        result = [tab for tab in result if tab['type'] == 'page']
-        return result[:num_tabs]
-
-    def close_tabs(self, args):
-        current_tabs = self._list_tabs(MAX_NUMBER_OF_TABS)
-        for tab in self.filter_tabs(args):
-            tab_id = current_tabs[int(tab)]['id']
-            self._get('/json/close/%s' % tab_id)
-
-    def activate_tab(self, args):
-        args = self.filter_tabs(args)
-        if len(args) == 0:
-            return
-
-        tab = args[0]
-        current_tabs = self._list_tabs(MAX_NUMBER_OF_TABS)
-        tab_id = current_tabs[int(tab)]['id']
-        self._get('/json/activate/%s' % tab_id)
-
-    def new_tab(self, args):
-        if args[0] != ChromeAPI.BROWSER_PREFIX:
-            return
-
-        query = ' '.join(args[1:])
-        url = "https://www.google.com/search?q=%s" % quote_plus(query)
-        self._get('/json/new?%s' % url)
-
-    def list_tabs(self, args):
-        num_tabs = MAX_NUMBER_OF_TABS
-        if len(args) > 0:
-            num_tabs = int(args[0])
-
-        lines = []
-        for i, tab in enumerate(self._list_tabs(num_tabs)):
-            line = '%s%s\t%s\t%s' % (ChromeAPI.BROWSER_PREFIX, i,
-                                     tab['title'], tab['url'])
-            print(line)
-            lines.append(line)
-        return lines
-
-
-class Mozrepl(object):
-    LOAD_CODE = 'repl.load("file:///home/%s/rc.arch/bz/.config/mozrepl/mozrepl.js");' % getuser()
-
-    def __init__(self, ip="127.0.0.1", port=4242):
-        self.ip = ip
-        self.port = port
-        self.prompt = b"repl>"
-
-    def __enter__(self):
-        self.t = Telnet(self.ip, self.port)
-
-        while True:
-            index, match, text = self.t.expect([r'.*\n',  # match greeting line
-                                                r'repl\d+>'],  # match repl line
-                                               1)
-            if text.startswith('repl'):
-                self.prompt = text
-                self.t.read_very_eager()
-                break
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.t.close()
-        del self.t
-
-    def js(self, command):
-        command = '%s %s' % (Mozrepl.LOAD_CODE, command)
-        # print('executing', command)
-        self.t.write(('%s\n' % command).encode('utf8'))
-        result = self.t.read_until(self.prompt).decode('utf8')
-        result = result.splitlines()[0]
-        result = result[1:-1]
-        # print(result)
-        return result
-
-
-# class FirefoxAPI(object):
-#     """
-#     This API uses mozrepl plugin which does not work since Firefox 55. Thus
-#     this API is deprecated and is not used.
-#     """
-#     BROWSER_PREFIX = 'f.'
-#
-#     def filter_tabs(self, tabs):
-#         return [tab[len(FirefoxAPI.BROWSER_PREFIX):] for tab in tabs
-#                 if tab.startswith(FirefoxAPI.BROWSER_PREFIX)]
-#
-#     def close_tabs(self, args):
-#         with Mozrepl() as mozrepl:
-#             tabs = ' '.join(self.filter_tabs(args))
-#             result = mozrepl.js('close_tabs("%s");' % tabs)
-#             result = loads(result)
-#
-#     def activate_tab(self, args):
-#         args = self.filter_tabs(args)
-#         if len(args) == 0:
-#             return
-#
-#         strWindowTab = args[0]
-#         with Mozrepl() as mozrepl:
-#             result = mozrepl.js('activate_tab("%s");' % strWindowTab)
-#             result = loads(result)
-#
-#     def new_tab(self, args):
-#         if args[0] != FirefoxAPI.BROWSER_PREFIX:
-#             return 2
-#
-#         query = ' '.join(args[1:])
-#         with Mozrepl() as mozrepl:
-#             result = mozrepl.js(
-#                 'new_tab("https://www.google.com/search?q=%s", true);' % quote_plus(query))
-#             result = loads(result)
-#
-#     def list_tabs(self, args):
-#         num_tabs = MAX_NUMBER_OF_TABS
-#         if len(args) > 0:
-#             num_tabs = int(args[0])
-#
-#         with Mozrepl() as mozrepl:
-#             result = loads(mozrepl.js('list_tabs(%d);' % num_tabs))
-#             lines = []
-#             for tab in result:
-#                 line = '%s%s.%s\t%s\t%s\n' % (FirefoxAPI.BROWSER_PREFIX,
-#                                               tab['windowId'], tab['tabId'],
-#                                               tab['title'], tab['url'])
-#                 line = line.encode('utf8')
-#                 lines.append(line)
-#             sys.stdout.writelines(lines)
-#         return lines
-#
-#     def move_tabs(self, args):
-#         args = self.filter_tabs(args)
-#         if len(args) == 0:
-#             return
-#
-#         pass
-
-
 class FirefoxMediatorAPI(object):
     # BROWSER_PREFIX = 'f.'
 
@@ -412,13 +256,11 @@ class BrowserAPI(object):
         delete_commands, move_commands = infer_delete_and_move_commands(
             parse_tab_lines(tabs_before),
             parse_tab_lines(tabs_after))
-        print('DELETE COMMANDS', delete_commands)
 
         if delete_commands:
             api.close_tabs(delete_commands)
             # raise RuntimeError('DELETE COMMANDS ARE NOT SUPPORTED YET')
 
-        print('MOVE COMMANDS', move_commands)
         api.move_tabs(move_commands)
 
     def move_tabs(self, args):
@@ -439,8 +281,6 @@ class BrowserAPI(object):
         """
         tabs_before = list(chain.from_iterable(map(self._safe_list_tabs, self._apis)))
         tabs_after = edit_tabs_in_editor(tabs_before)
-        # print('TABS BEFORE', tabs_before)
-        # print('TABS AFTER', tabs_after)
         if tabs_after is None:
             return
 
@@ -449,7 +289,6 @@ class BrowserAPI(object):
                 api,
                 api.filter_tabs(tabs_before),
                 api.filter_tabs(tabs_after))
-        # print('MOVING END')
 
     def _get_api_by_prefix(self, prefix):
         for api in self._apis:
@@ -661,37 +500,8 @@ def run_commands(args):
     args = parse_args(args)
     return args.func(args)
 
-    # command = args[0]
-    # rest = args[1:]
-    #
-    # #api = BrowserAPI([FirefoxMediatorAPI(), ChromeAPI()])
-    # api = BrowserAPI([FirefoxMediatorAPI('f')])
-    #
-    # if command == 'move_tabs':
-    #     return api.move_tabs(rest)
-    # if command == 'list_tabs':
-    #     return api.list_tabs(rest)
-    # if command == 'close_tabs':
-    #     return api.close_tabs(rest)
-    # if command == 'activate_tab':
-    #     return api.activate_tab(rest)
-    # if command == 'new_tab':
-    #     return api.new_tab(rest)
-    # if command == 'open_urls':
-    #     raise NotImplementedError()
-    #     # return api.new_tab(rest)
-    # else:
-    #     print('Unknown command: %s' % command)
-    #     return 2
-    #
-    # return 0
-
 
 def main():
-    # if len(sys.argv) == 1:
-    #     print('Usage: brotab_client.py <list_tabs | ...>')
-    #     exit(1)
-    # exit(run_commands(sys.argv[1:]))
     exit(run_commands(sys.argv[1:]))
 
 
