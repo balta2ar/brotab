@@ -3,12 +3,6 @@
   "manifest_version": 2,
   "name": "BroTab",
   "version": "1.0.2",
-  "applications": {
-    "gecko": {
-      "id": "brotab_mediator@example.org",
-      "strict_min_version": "50.0"
-    }
-  },
   "background": {
     "scripts": ["background.js"]
   },

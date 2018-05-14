@@ -312,10 +312,12 @@ class FirefoxMediatorAPI(object):
             for tab_id, window_id, new_index in args)
         self._get('/move_tabs/%s' % commands)
 
-    def open_urls(self, args):
-        data = '\n'.join(args)
+    def open_urls(self, urls, window_id=None):
+        data = '\n'.join(urls)
         logger.info('FirefoxMediatorAPI: open_urls: %s', data)
         files = {'urls': data}
+        if window_id is not None:
+            files['window_id'] = window_id
         self._post('/open_urls', files)
 
     def get_words(self, tab_ids):
@@ -449,12 +451,18 @@ class BrowserAPI(object):
                 api.filter_tabs(tabs_after))
         # print('MOVING END')
 
-    def open_urls(self, args):
-        # Send open urls only to the first client
+    def _get_api_by_prefix(self, prefix):
+        for api in self._apis:
+            if api._prefix == prefix:
+                return api
+        raise ValueError('No such client with prefix "%s"' % prefix)
+
+    def open_urls(self, urls, prefix, window_id=None):
         assert len(self._apis) > 0, \
             'There should be at least one client connected: %s' % self._apis
-        client = self._apis[0]
-        client.open_urls(args)
+        # client = self._apis[0]
+        client = self._get_api_by_prefix(prefix)
+        client.open_urls(urls, window_id)
 
     def get_words(self, tab_ids):
         words = set()
@@ -520,10 +528,24 @@ def new_search():
 
 
 def open_urls(args):
+    """
+    curl -X POST 'http://localhost:4626/open_urls' -F 'urls=@urls.txt'
+    curl -X POST 'http://localhost:4627/open_urls' -F 'urls=@urls.txt' -F 'window_id=749'
+
+    where urls.txt containe one url per line (not JSON)
+    """
+    prefix, window_id = None, None
+    try:
+        prefix, window_id = args.prefix_window_id.split('.')
+        prefix += '.'
+    except ValueError:
+        prefix = args.prefix_window_id
+
     urls = [line.strip() for line in sys.stdin.readlines()]
-    logger.info('Openning URLs from stdin: %s', urls)
+    logger.info('Openning URLs from stdin, prefix "%s", window_id "%s": %s',
+                prefix, window_id, urls)
     api = BrowserAPI(create_clients())
-    api.open_urls(urls)
+    api.open_urls(urls, prefix, window_id)
 
 
 def get_words(args):
@@ -615,6 +637,8 @@ def parse_args(args):
 
     parser_open_urls = subparsers.add_parser('open')
     parser_open_urls.set_defaults(func=open_urls)
+    parser_open_urls.add_argument('prefix_window_id', type=str,
+                                  help='Client prefix and window id, e.g. b.20')
 
     parser_get_words = subparsers.add_parser('words')
     parser_get_words.set_defaults(func=get_words)

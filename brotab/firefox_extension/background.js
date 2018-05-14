@@ -56,7 +56,7 @@ class FirefoxTabs extends BrowserTabs {
   }
 
   create(createOptions) {
-    this._browser.tabs.create({'url': url}).then(
+    this._browser.tabs.create(createOptions).then(
       (tab) => console.log(`Created new tab: ${tab.id}`),
       (error) => console.log(`Error: ${error}`)
     );
@@ -87,7 +87,7 @@ class ChromeTabs extends BrowserTabs {
   }
 
   create(createOptions) {
-    this._browser.tabs.create({'url': url},
+    this._browser.tabs.create(createOptions,
       (tab) => console.log(`Created new tab: ${tab.id}`)
     );
   }
@@ -195,9 +195,9 @@ function closeTabs(tab_ids) {
   browserTabs.close(tab_ids);
 }
 
-function openUrls(urls) {
+function openUrls(urls, window_id) {
   for (let url of urls) {
-    browserTabs.create({'url': url});
+    browserTabs.create({'url': url, windowId: window_id});
   }
 }
 
@@ -267,8 +267,8 @@ port.onMessage.addListener((command) => {
   }
 
   else if (command['name'] == 'open_urls') {
-    console.log('Opening URLs:', command['urls']);
-    openUrls(command['urls']);
+    console.log('Opening URLs:', command['urls'], command['window_id']);
+    openUrls(command['urls'], command['window_id']);
   }
 
   else if (command['name'] == 'new_tab') {
