@@ -47,12 +47,12 @@ class StdTransport:
         if len(raw_rength) == 0:
             sys.exit(0)
         message_length = struct.unpack('@I', raw_rength)[0]
-        message = self._in.read(message_length).decode('utf-8')
-        logger.info('RECEIVED: %s', message)
+        message = self._in.read(message_length).decode('utf8')
+        logger.info('RECEIVED: %s', message.encode('utf8'))
         return json.loads(message)
 
     def _encode(self, message):
-        encoded_content = json.dumps(message).encode('utf-8')
+        encoded_content = json.dumps(message).encode('utf8')
         encoded_length = struct.pack('@I', len(encoded_content))
         return {'length': encoded_length, 'content': encoded_content}
 

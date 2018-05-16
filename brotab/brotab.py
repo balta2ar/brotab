@@ -339,7 +339,12 @@ def list_tabs(args):
     logger.info('Listing tabs')
     api = BrowserAPI(create_clients())
     tabs = api.list_tabs([])
-    print('\n'.join(tabs))
+    #print('\n'.join([tab.encode('utf8') for tab in tabs]))
+    #print(u'\n'.join(tabs).encode('utf8'))
+    #print(u'\n'.join(tabs))
+
+    message = '\n'.join(tabs) + '\n'
+    sys.stdout.buffer.write(message.encode('utf8'))
 
 
 def close_tabs(args):
@@ -362,6 +367,13 @@ def activate_tab(args):
     #api = BrowserAPI([FirefoxMediatorAPI('f')])
     api = BrowserAPI(create_clients())
     api.activate_tab(args.tab_id)
+
+
+def show_active_tab(args):
+    logger.info('Showing active tabs: %s', args)
+    #api = BrowserAPI([FirefoxMediatorAPI('f')])
+    api = BrowserAPI(create_clients())
+    #api.activate_tab(args.tab_id)
 
 
 def new_search():
@@ -504,6 +516,15 @@ def parse_args(args):
     parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
                                      help='Tab ID to activate')
 
+    parser_active_tab = subparsers.add_parser(
+        'active',
+        help='''
+        display active tab for each client/window in the following format:
+        "<prefix>.<window_id>.<tab_id>"
+        ''')
+    parser_active_tab.set_defaults(func=show_active_tab)
+    parser_active_tab.add_argument('tab_id', type=str, nargs=1,
+                                   help='Show active tabs in clients/windows')
     parser_new_search = subparsers.add_parser(
         'search',
         help='''
