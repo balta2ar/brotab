@@ -5,6 +5,9 @@ import logging
 import struct
 import sys
 import urllib
+import socket
+import signal
+import requests
 
 import flask
 from flask import request
@@ -28,6 +31,7 @@ logger.info('Logger has been created')
 DEFAULT_HTTP_IFACE = '127.0.0.1'
 DEFAULT_MIN_HTTP_PORT = 4625
 DEFAULT_MAX_HTTP_PORT = 4625 + 10
+actual_port = None
 
 
 class StdTransport:
@@ -126,6 +130,17 @@ firefox = FirefoxRemoteAPI()
 logger.info('FirefoxRemoteAPI has been created')
 
 
+@app.route('/shutdown')
+def shutdown():
+    # Taken from: https://stackoverflow.com/a/17053522/258421
+    logger.info('Shutting down the server...')
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return 'OK'
+
+
 @app.route('/list_tabs')
 def list_tabs():
     tabs = firefox.list_tabs()
@@ -188,6 +203,16 @@ def get_words(tab_id=None):
 #    - /get_active_tab_text
 #
 # TODO: fix bug when the number of tabs > 1100
+# TODO: read stdin continuously in a separate thraed,
+#       detect if it's closed, shutdown the server, and exit.
+#       make sure this threaded reader and server reader are mutually exclusive.
+# TODO: all commands should be synchronous and should only terminate after
+#       the action has been actually executed in the browser.
+
+
+def signal_pipe(e):
+    logger.info('Pipe has been closed...')
+    requests.get('http://%s:%s/shutdown' % (DEFAULT_HTTP_IFACE, actual_port))
 
 
 def disable_click_echo():
@@ -201,18 +226,32 @@ def disable_click_echo():
     click.secho = numb_echo
 
 
+def monkeypatch_socket_bind():
+    """Allow port reuse by default"""
+    socket.socket._bind = socket.socket.bind
+    def my_socket_bind(self, *args, **kwargs):
+        logger.info('Custom bind called: %s, %s', args, kwargs)
+        self.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return socket.socket._bind(self, *args, **kwargs)
+    socket.socket.bind = my_socket_bind
+
+
 def main():
+    signal.signal(signal.SIGPIPE, signal_pipe)
+    monkeypatch_socket_bind()
     disable_click_echo()
 
+    global actual_port
     for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):
         logger.info('Starting mediator on %s:%s...',
                     DEFAULT_HTTP_IFACE, port)
+        actual_port = port
         try:
             app.run(DEFAULT_HTTP_IFACE, port, debug=False)
             logger.info('Exiting mediator...')
             break
         except OSError as e:
-            logger.info('Cannot bind no port %s: %s', port, e)
+            logger.info('Cannot bind on port %s: %s', port, e)
 
     else:
         logger.error(
@@ -222,3 +261,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
