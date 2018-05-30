@@ -340,8 +340,8 @@ def list_tabs(args):
     api = BrowserAPI(create_clients())
     tabs = api.list_tabs([])
     #print('\n'.join([tab.encode('utf8') for tab in tabs]))
-    #print(u'\n'.join(tabs).encode('utf8'))
-    #print(u'\n'.join(tabs))
+    # print(u'\n'.join(tabs).encode('utf8'))
+    # print(u'\n'.join(tabs))
 
     message = '\n'.join(tabs) + '\n'
     sys.stdout.buffer.write(message.encode('utf8'))
@@ -373,7 +373,7 @@ def show_active_tab(args):
     logger.info('Showing active tabs: %s', args)
     #api = BrowserAPI([FirefoxMediatorAPI('f')])
     api = BrowserAPI(create_clients())
-    #api.activate_tab(args.tab_id)
+    # api.activate_tab(args.tab_id)
 
 
 def new_search():

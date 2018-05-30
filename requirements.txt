@@ -1,6 +1,5 @@
 flask
 requests
 pytest
-delegator.py
 psutil
 ipython

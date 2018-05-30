@@ -3,11 +3,13 @@
 import json
 import logging
 import struct
+import os
 import sys
 import urllib
 import socket
 import signal
 import requests
+from typing import List
 
 import flask
 from flask import request
@@ -30,7 +32,7 @@ logger.info('Logger has been created')
 
 DEFAULT_HTTP_IFACE = '127.0.0.1'
 DEFAULT_MIN_HTTP_PORT = 4625
-DEFAULT_MAX_HTTP_PORT = 4625 + 10
+DEFAULT_MAX_HTTP_PORT = DEFAULT_MIN_HTTP_PORT + 10
 actual_port = None
 
 
@@ -90,7 +92,7 @@ class FirefoxRemoteAPI:
         command = {'name': 'move_tabs', 'move_triplets': triplets}
         self._transport.send(command)
 
-    def open_urls(self, urls: [str]):
+    def open_urls(self, urls: List[str]):
         """
         """
         logger.info('open urls: %s', urls)
@@ -155,7 +157,7 @@ def move_tabs(move_triplets):
 
 @app.route('/open_urls', methods=['POST'])
 def open_urls():
-    #firefox.move_tabs(move_triplets)
+    # firefox.move_tabs(move_triplets)
     urls = request.files.get('urls')
     if urls is None:
         return 'ERROR: Please provide urls file in the request'
@@ -229,6 +231,7 @@ def disable_click_echo():
 def monkeypatch_socket_bind():
     """Allow port reuse by default"""
     socket.socket._bind = socket.socket.bind
+
     def my_socket_bind(self, *args, **kwargs):
         logger.info('Custom bind called: %s, %s', args, kwargs)
         self.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -240,6 +243,8 @@ def main():
     signal.signal(signal.SIGPIPE, signal_pipe)
     monkeypatch_socket_bind()
     disable_click_echo()
+
+    logger.info('ENV: %s', os.environ)
 
     global actual_port
     for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):
@@ -261,4 +266,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

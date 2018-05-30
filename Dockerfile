@@ -29,7 +29,7 @@ RUN npm install --global web-ext --unsafe
 
 RUN easy_install pip
 RUN pip3 install flask httpie
-RUN pip3 install -r /brotab/requirements.txt
+# RUN pip3 install -r /brotab/requirements.txt
 #RUN cd /brotab && pip3 install -e .
 
 ADD xvfb-chromium /usr/bin/xvfb-chromium

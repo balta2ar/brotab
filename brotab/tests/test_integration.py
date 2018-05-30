@@ -5,21 +5,22 @@ import pytest
 import threading
 from unittest import TestCase
 
-#import delegator
 from subprocess import check_output, Popen
 
 from brotab.tests.utils import wait_net_service
-from brotab.tests.utils import kill_by_substring
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+
+from brotab.mediator.brotab_mediator import DEFAULT_MIN_HTTP_PORT
 
 
 def run(cmd):
     return check_output(cmd, shell=True).decode('utf-8').splitlines()
 
 
-TIMEOUT = 5
+TIMEOUT = 15
+ECHO_SERVER_PORT = 8087
 
 
 class EchoRequestHandler(BaseHTTPRequestHandler):
@@ -46,11 +47,12 @@ class EchoRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(reply)))
         self.end_headers()
         self.wfile.write(reply)
-        #self.wfile.close()
+        # self.wfile.close()
 
 
 ECHO_SERVER_HOST = 'localhost'
 ECHO_SERVER_PORT = 9000
+
 
 class EchoServer:
     def __init__(self):
@@ -59,7 +61,8 @@ class EchoServer:
 
     def run(self, host=ECHO_SERVER_HOST, port=ECHO_SERVER_PORT):
         self._server = HTTPServer((host, port), EchoRequestHandler)
-        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+        self._thread = threading.Thread(
+            target=self._server.serve_forever, daemon=True)
         self._thread.start()
 
     def stop(self):
@@ -84,43 +87,57 @@ class BtWrapper:
             EchoServer.url('tab1'), window_id))
 
 
+class Browser:
+    CMD = ''
+    CWD = ''
+    PROFILE = ''
+
+    def __init__(self):
+        print('CMD', self.CMD, 'CWD', self.CWD)
+        # Used a trick from here: https://stackoverflow.com/a/22582602/258421
+        os.makedirs('/dev/shm/%s' % self.PROFILE, exist_ok=True)
+        self._browser = Popen(self.CMD, shell=True,
+                              cwd=self.CWD, preexec_fn=os.setsid)
+        print('PID', self._browser.pid)
+        wait_net_service('localhost', DEFAULT_MIN_HTTP_PORT, TIMEOUT)
+
+    def stop(self):
+        os.killpg(os.getpgid(self._browser.pid), signal.SIGTERM)
+        self._browser.wait(TIMEOUT)
+
+    @property
+    def pid(self):
+        return self._browser.pid
+
+
+class Firefox(Browser):
+    CMD = 'xvfb-run web-ext run --no-reload -p /dev/shm/firefox'
+    CWD = '/brotab/brotab/extension/firefox'
+    PROFILE = 'firefox'
+
+
+class Chromium(Browser):
+    CMD = ('xvfb-run chromium-browser --no-sandbox '
+           '--no-first-run --disable-gpu '
+           '--load-extension=/brotab/brotab/extension/chrome ')
+    #    '--user-data-dir=/dev/shm/chromium')
+    CWD = '/brotab/brotab/extension/chrome'
+    PROFILE = 'chromium'
+
+
 class TestChromium(TestCase):
     def setUp(self):
-        # xvfb-run chromium-browser --no-sandbox --no-first-run --disable-gpu --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
-        #self._chrome = delegator.run(
+        self._echo_server = EchoServer()
+        self._echo_server.run()
+        self.addCleanup(self._echo_server.stop)
 
-        self._fake_server = EchoServer()
-        self._fake_server.run()
-
-        # cmd = ('xvfb-run chromium-browser --no-sandbox --no-first-run '
-        #        '--disable-gpu '
-        #        '--load-extension=/brotab/brotab/extension/chrome')
-        cmd = ('xvfb-run web-ext run')
-        #cwd = None
-        cwd = '/brotab/brotab/extension/firefox'
-        print('CMD', cmd, 'CWD', cwd)
-        # Used a trick from here: https://stackoverflow.com/a/22582602/258421
-        self._chrome = Popen(cmd, shell=True, cwd=cwd, preexec_fn=os.setsid)
-        print('PID', self._chrome.pid)
-        #wait_net_service('localhost', 10222, 5)
-        wait_net_service('localhost', 4625, 5)
-        print('SETUP DONE:', self._chrome.pid)
+        # self._browser = Chromium()
+        self._browser = Firefox()
+        self.addCleanup(self._browser.stop)
+        print('SETUP DONE:', self._browser.pid)
 
     def tearDown(self):
-        print('CHROME', self._chrome)
-        # This is supposed to be run in Docker only
-        # kill_by_substring('xvfb')
-        # kill_by_substring('brotab')
-        # psutil.Process(11970).children(recursive=True)
-        # self._chrome.kill()
-        # self._chrome.send('SIGTERM', signal=True)
-
-        #self._chrome.terminate()
-        #self._chrome.kill()
-        os.killpg(os.getpgid(self._chrome.pid), signal.SIGTERM)
-        self._chrome.wait(TIMEOUT)
-
-        self._fake_server.stop()
+        print('CHROME', self._browser)
         print('BLOCK DONE')
 
     # def test_smoke(self):
@@ -141,4 +158,4 @@ class TestChromium(TestCase):
 
 if __name__ == '__main__':
     server = EchoServer()
-    server.run('0.0.0.0', 8087)
+    server.run('0.0.0.0', ECHO_SERVER_HOST)

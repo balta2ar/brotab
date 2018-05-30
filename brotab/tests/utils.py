@@ -14,6 +14,10 @@ def kill_by_substring(substring):
             proc.kill()
 
 
+class TimeoutException(Exception):
+    pass
+
+
 # http://code.activestate.com/recipes/576655-wait-for-network-service-to-appear/
 def wait_net_service(server, port, timeout=None):
     """ Wait for network service to appear
@@ -32,22 +36,25 @@ def wait_net_service(server, port, timeout=None):
             if timeout:
                 next_timeout = end - now()
                 if next_timeout < 0:
-                    return False
+                    raise TimeoutError('Timed out: %s' % timeout)
+                    # return False
                 else:
-            	    s.settimeout(next_timeout)
+                    s.settimeout(next_timeout)
 
             s.connect((server, port))
 
         except socket.timeout as err:
             # this exception occurs only if timeout is set
             if timeout:
-                return False
+                raise TimeoutError('Timed out: %s' % timeout)
+                # return False
 
         except socket.error as err:
             # catch timeout exception from underlying network library
             # this one is different from socket.timeout
-            if type(err.args) != tuple: # or err[0] != errno.ETIMEDOUT:
+            if type(err.args) != tuple:  # or err[0] != errno.ETIMEDOUT:
                 raise
         else:
             s.close()
-            return True
+            return
+            # return True
