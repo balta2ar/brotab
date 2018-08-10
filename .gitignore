@@ -6,3 +6,5 @@ ignore
 dist
 build
 brotab.egg-info
+target
+brotab/node_modules
