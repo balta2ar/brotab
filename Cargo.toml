@@ -1,0 +1,10 @@
+[package]
+name = "brotab"
+version = "0.1.0"
+authors = ["Yuri Bochkarev <baltazar.bz@gmail.com>"]
+
+[dependencies]
+reqwest = "0.8.7"
+# crossbeam = "0.4.1"
+clap = "2.32.0"
+
