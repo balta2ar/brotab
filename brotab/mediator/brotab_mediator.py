@@ -127,6 +127,12 @@ class FirefoxRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
+    def get_text(self):
+        logger.info('getting text')
+        command = {'name': 'get_text'}
+        self._transport.send(command)
+        return self._transport.recv()
+
 
 firefox = FirefoxRemoteAPI()
 logger.info('FirefoxRemoteAPI has been created')
@@ -191,6 +197,12 @@ def get_words(tab_id=None):
     words = firefox.get_words(tab_id)
     logger.info('words for tab_id %s: %s', tab_id, words)
     return '\n'.join(words)
+
+
+@app.route('/get_text')
+def get_text():
+    lines = firefox.get_text()
+    return '\n'.join(lines)
 
 
 # TODO:

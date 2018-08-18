@@ -54,6 +54,7 @@ Testing:
 
 ## Product features
 
+[_] full-text search using extenal configured service (e.g. solr)
 [_] all current operations should be supported on multiple browsers at a time
 [_] move should work with multiple browsers and multiple windows
 [_] ability to move within window of the same browser

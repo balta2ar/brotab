@@ -69,6 +69,8 @@ from brotab.operations import infer_delete_and_move_commands
 from brotab.tab import parse_tab_lines
 from brotab.utils import split_tab_ids
 from brotab.io import read_stdin
+from brotab.search.query import query
+from brotab.search.index import index
 
 
 # from pprint import pprint
@@ -180,6 +182,17 @@ class FirefoxMediatorAPI(object):
             words = set(self._get('/get_words').text.splitlines())
 
         return sorted(list(words))
+
+    def get_text(self, args):
+        num_tabs = MAX_NUMBER_OF_TABS
+        if len(args) > 0:
+            num_tabs = int(args[0])
+
+        result = self._get('/get_text')
+        lines = []
+        for line in result.text.splitlines()[:num_tabs]:
+            lines.append(line)
+        return self.prefix_tabs(lines)
 
     def _get(self, path, data=None):
         return requests.get('http://%s:%s%s' % (self._host, self._port, path),
@@ -315,6 +328,17 @@ class BrowserAPI(object):
             #print('DELTA', delta, file=sys.stderr)
         return sorted(list(words))
 
+    def get_text(self, args):
+        tabs = []
+        for api in self._apis:
+            try:
+                tabs.extend(api.get_text(args))
+            except ValueError as e:
+                print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
+            except requests.exceptions.ConnectionError as e:
+                print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
+        return tabs
+
 
 def create_clients():
     ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
@@ -376,8 +400,20 @@ def show_active_tab(args):
     # api.activate_tab(args.tab_id)
 
 
-def new_search():
-    pass
+def search_tabs(args):
+    results = query(args.sqlite, args.query)
+    for result in query(args.sqlite, args.query):
+        print('\t'.join([result.tab_id, result.title, result.snippet]))
+
+
+def index_tabs(args):
+    if args.tsv is None:
+        args.tsv = '/tmp/tabs.tsv'
+        logger.info(
+            'index_tabs: retrieving tabs from browser into file %s', args.tsv)
+        get_text(args)
+
+    index(args.sqlite, args.tsv)
 
 
 def open_urls(args):
@@ -413,6 +449,18 @@ def get_words(args):
     print('\n'.join(words))
     delta = time.time() - start
     #print('DELTA TOTAL', delta, file=sys.stderr)
+
+
+def get_text(args):
+    logger.info('Get text from tabs')
+    api = BrowserAPI(create_clients())
+    tabs = api.get_text([])
+    message = '\n'.join(tabs) + '\n'
+    if args.tsv is None:
+        sys.stdout.buffer.write(message.encode('utf8'))
+    else:
+        with open(args.tsv, 'w') as file_:
+            file_.write(message)
 
 
 def show_duplicates(args):
@@ -523,16 +571,27 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id>"
         ''')
     parser_active_tab.set_defaults(func=show_active_tab)
-    parser_active_tab.add_argument('tab_id', type=str, nargs=1,
-                                   help='Show active tabs in clients/windows')
-    parser_new_search = subparsers.add_parser(
+
+    parser_search_tabs = subparsers.add_parser(
         'search',
         help='''
-        Not implemented yet.
+        Search across your indexed tabs using sqlite fts5 plugin.
         ''')
-    parser_new_search.set_defaults(func=new_search)
-    parser_new_search.add_argument('words', type=str, nargs='+',
-                                   help='Search query')
+    parser_search_tabs.set_defaults(func=search_tabs)
+    parser_search_tabs.add_argument('--sqlite', type=str, default='/tmp/tabs.sqlite',
+                                    help='sqlite DB filename')
+    parser_search_tabs.add_argument('query', type=str, help='Search query')
+
+    parser_index_tabs = subparsers.add_parser(
+        'index',
+        help='''
+        Index the text from browser's tabs. Text is put into sqlite fts5 table.
+        ''')
+    parser_index_tabs.set_defaults(func=index_tabs)
+    parser_index_tabs.add_argument('--sqlite', type=str, default='/tmp/tabs.sqlite',
+                                   help='sqlite DB filename')
+    parser_index_tabs.add_argument('--tsv', type=str, default=None,
+                                   help='get text from tabs and index the results')
 
     parser_open_urls = subparsers.add_parser(
         'open',
@@ -557,6 +616,15 @@ def parse_args(args):
     parser_get_words.set_defaults(func=get_words)
     parser_get_words.add_argument('tab_ids', type=str, nargs='*',
                                   help='Tab IDs to get words from')
+
+    parser_get_text = subparsers.add_parser(
+        'text',
+        help='''
+        show text form all tabs
+        ''')
+    parser_get_text.set_defaults(func=get_text)
+    parser_get_text.add_argument('--tsv', type=str, default=None,
+                                 help='tsv file to save results to')
 
     parser_show_duplicates = subparsers.add_parser(
         'dup',

@@ -2,7 +2,8 @@
 On startup, connect to the "brotab_mediator" app.
 */
 
-const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");'
+const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");';
+const GET_TEXT_SCRIPT = 'document.body.innerText.replace(/\\n|\\r|\\t/g, " ");';
 
 
 class BrowserTabs {
@@ -10,7 +11,7 @@ class BrowserTabs {
     this._browser = browser;
   }
 
-  list(onSuccess) {
+  list(queryInfo, onSuccess) {
     throw new Error('list is not implemented');
   }
 
@@ -34,14 +35,14 @@ class BrowserTabs {
     throw new Error('getActive is not implemented');
   }
 
-  getWords(tab_id, onSuccess, onError) {
-    throw new Error('getWords is not implemented');
+  runScript(tab_id, script, payload, onSuccess, onError) {
+    throw new Error('runScript is not implemented');
   }
 }
 
 class FirefoxTabs extends BrowserTabs {
-  list(onSuccess) {
-    this._browser.tabs.query({}).then(
+  list(queryInfo, onSuccess) {
+    this._browser.tabs.query(queryInfo).then(
       onSuccess,
       (error) => console.log(`Error listing tabs: ${error}`)
     );
@@ -69,17 +70,17 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  getWords(tab_id, onSuccess, onError) {
-    this._browser.tabs.executeScript(tab_id, {code: GET_WORDS_SCRIPT}).then(
-      onSuccess,
-      onError
+  runScript(tab_id, script, payload, onSuccess, onError) {
+    this._browser.tabs.executeScript(tab_id, {code: script}).then(
+      (result) => onSuccess(result, payload),
+      (result) => onError(result, payload)
     );
   }
 }
 
 class ChromeTabs extends BrowserTabs {
-  list(onSuccess) {
-    this._browser.tabs.query({}, onSuccess);
+  list(queryInfo, onSuccess) {
+    this._browser.tabs.query(queryInfo, onSuccess);
   }
 
   move(tabId, moveOptions, onSuccess) {
@@ -96,16 +97,16 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query({active: true}, onSuccess);
   }
 
-  getWords(tab_id, onSuccess, onError) {
+  runScript(tab_id, script, payload, onSuccess, onError) {
     this._browser.tabs.executeScript(
-      tab_id, {code: GET_WORDS_SCRIPT},
+      tab_id, {code: script},
       (result) => {
         // https://stackoverflow.com/a/45603880/258421
         let lastError = chrome.runtime.lastError;
         if (lastError) {
-          onError(lastError);
+          onError(lastError, payload);
         } else {
-          onSuccess(result);
+          onSuccess(result, payload);
         }
       }
     );
@@ -171,7 +172,7 @@ function listTabsOnSuccess(tabs) {
 }
 
 function listTabs() {
-  browserTabs.list(listTabsOnSuccess);
+  browserTabs.list({}, listTabsOnSuccess);
 }
 
 // function moveTabs(move_triplets) {
@@ -215,15 +216,16 @@ function getWordsFromTabs(tabs) {
 
   for (let tab of tabs) {
     var promise = new Promise(
-      (resolve, reject) => browserTabs.getWords(tab.id,
-        (words) => {
+      (resolve, reject) => browserTabs.runScript(tab.id, GET_WORDS_SCRIPT, null,
+        (words, _payload) => {
           console.log(`Got ${words.length} words from another tab`);
           resolve(words);
         },
-        (error) => {
+        (error, _payload) => {
           console.log(`Could not get words from tab: ${error}`);
           resolve([]);
-        })
+        }
+      )
     );
     promises.push(promise);
   }
@@ -238,12 +240,75 @@ function getWordsFromTabs(tabs) {
 
 function getWords(tab_id) {
   if (tab_id == null) {
+    console.log(`Getting words for active tab`);
     browserTabs.getActive(getWordsFromTabs);
   } else {
-    browserTabs.getWords(tab_id,
-      (words) => port.postMessage(words));
+    console.log(`Getting words, running a script`);
+    browserTabs.runScript(tab_id, GET_WORDS_SCRIPT, null,
+      (words, _payload) => port.postMessage(words));
   }
 }
+
+function getTextFromTabs(tabs, onSuccess) {
+  var promises = [];
+  console.log(`Getting text from tabs: ${tabs.length}`);
+
+  lines = [];
+  for (let tab of tabs) {
+    // console.log(`Processing tab ${tab.id}`);
+    var promise = new Promise(
+      (resolve, reject) => browserTabs.runScript(tab.id, GET_TEXT_SCRIPT, tab,
+        (text, current_tab) => {
+          // let as_text = JSON.stringify(text);
+          // I don't know why, but an array of one item is sent here, so I take
+          // the first item.
+          text = text[0];
+          console.log(`Got ${text.length} chars of text from another tab: ${current_tab.id}`);
+          resolve({tab: current_tab, text: text});
+        },
+        (error, current_tab) => {
+          console.log(`Could not get text from tab: ${error}: ${current_tab.id}`);
+          resolve({tab: current_tab, text: ''});
+        }
+      )
+    );
+    promises.push(promise);
+  }
+
+  // console.log(`Awaiting text promises`);
+  Promise.all(promises).then(onSuccess);
+  // console.log(`getTextFromTabs done`);
+}
+
+function getTextOnRunScriptSuccess(all_results) {
+  console.log(`Ready`);
+  console.log(`Text promises are ready: ${all_results.length}`);
+  // console.log(`All results: ${JSON.stringify(all_results)}`);
+  lines = [];
+  for (let result of all_results) {
+    // console.log(`result: ${result}`);
+    tab = result['tab'];
+    text = result['text'];
+    // console.log(`Result: ${tab.id}, ${text.length}`);
+    let line = tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url + "\t" + text;
+    lines.push(line);
+  }
+  // lines = lines.sort(naturalCompare);
+  console.log(`Total number of lines of text: ${lines.length}`);
+  port.postMessage(lines);
+}
+
+function getTextOnListSuccess(tabs) {
+  lines = [];
+  // Make sure tabs are sorted by their index within a window
+  tabs.sort(compareWindowIdTabId);
+  getTextFromTabs(tabs, getTextOnRunScriptSuccess);
+}
+
+function getText() {
+  browserTabs.list({'discarded': false}, getTextOnListSuccess);
+}
+
 
 /*
 Listen for messages from the app.
@@ -284,6 +349,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'get_words') {
     console.log('Getting words from tab:', command['tab_id']);
     getWords(command['tab_id']);
+  }
+
+  else if (command['name'] == 'get_text') {
+    console.log('Getting texts from all tabs');
+    getText();
   }
 });
 
