@@ -14,20 +14,36 @@ QueryResult = namedtuple('QueryResult', 'tab_id title snippet')
 def query(sqlite_filename, user_query,
           text_column_index=3,
           max_tokens=30,
-          max_results=5):
-    logger.info('sqlite db %s query "%s"', sqlite_filename, user_query)
+          max_results=10,
+          marker_start='<b>',
+          marker_end='</b>',
+          marker_cut='...'):
+    logger.info('Executing sqlite db %s query "%s"',
+                sqlite_filename, user_query)
     conn = sqlite3.connect(sqlite_filename)
     cursor = conn.cursor()
     query = f"""
-    select rank, tab_id, title, snippet(tabs, {text_column_index}, '<b>', '</b>', '...', {max_tokens}) body
+    select
+        rank,
+        tab_id,
+        title,
+        snippet(tabs,
+                {text_column_index},
+                '{marker_start}',
+                '{marker_end}',
+                '{marker_cut}',
+                {max_tokens}) body
     from tabs where tabs match ? order by rank limit {max_results};
 """
     # print('query: ', query)
     results = []
-    for (_rank, tab_id, title, snippet) in cursor.execute(query, (user_query,)):
-        # print(row)
-        # print('\t'.join([tab_id, title, snippet]))
-        results.append(QueryResult(tab_id, title, snippet))
+    try:
+        for (_rank, tab_id, title, snippet) in cursor.execute(query, (user_query,)):
+            # print(row)
+            # print('\t'.join([tab_id, title, snippet]))
+            results.append(QueryResult(tab_id, title, snippet))
+    except sqlite3.OperationalError as e:
+        logger.exception('Error: %s', e)
 
     conn.close()
     return results
