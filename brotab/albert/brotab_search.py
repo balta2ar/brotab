@@ -18,7 +18,7 @@ __dependencies__ = []
 iconPath = iconLookup("preferences-system-network")
 
 SQL_DB_FILENAME = '/tmp/tabs.sqlite'
-QUERY_DELAY = 0.4
+QUERY_DELAY = 0.3
 
 
 def handleQuery(query):
