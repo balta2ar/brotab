@@ -2,7 +2,9 @@
 
 """The extension searches your indexed browser tabs' contents."""
 
+import os
 import time
+import subprocess
 
 from albertv0 import *
 
@@ -18,20 +20,40 @@ __dependencies__ = []
 iconPath = iconLookup("preferences-system-network")
 
 SQL_DB_FILENAME = '/tmp/tabs.sqlite'
+SQL_DB_TTL_SECONDS = 5 * 60
 QUERY_DELAY = 0.3
 
 
+def refresh_index():
+    info('Brotab: refreshing index')
+    subprocess.Popen(['bt', 'index'])
+
+
+def need_refresh_index():
+    if not os.path.isfile(SQL_DB_FILENAME):
+        return True
+
+    mtime = os.stat(SQL_DB_FILENAME).st_mtime
+    return time.time() - mtime > SQL_DB_TTL_SECONDS
+
+
 def handleQuery(query):
+    # it's not our query
     if not query.isTriggered:
         return None
 
+    # query is empty
     user_query = query.string.strip()
     if not user_query:
         return None
 
+    # slight delay to avoid too many pointless lookups
     time.sleep(QUERY_DELAY)
     if not query.isValid:
         return None
+
+    if need_refresh_index():
+        refresh_index()
 
     items = []
 
