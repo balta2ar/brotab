@@ -1,56 +1,98 @@
 extern crate clap;
 extern crate reqwest;
+extern crate tempfile;
+
+mod net;
 
 // use std::io;
 use std::env;
 use std::io::Read;
-use std::net::{SocketAddr, TcpStream};
 use std::thread;
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::process::Command;
+use std::fs::File;
+use std::io::Write;
 
 use clap::{App, Arg, SubCommand};
 
+use net::get_available_ports;
+
 static ASCII_LOWERCASE: &'static str = "abcdefghijklmnopqrstuvwxyz";
 
-fn can_connect(port: u16) -> bool {
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    TcpStream::connect_timeout(&addr, Duration::from_millis(50)).is_ok()
+
+/// Create clients for all available ports
+fn create_clients() -> Vec<BrowserClient> {
+    get_available_ports().iter().map(|x| BrowserClient::new(*x)).collect()
 }
 
-fn get_available_ports() -> Vec<u16> {
-    // Check first 10 ports starting from 4625
-    (4625..).take(10).filter(|&x| can_connect(x)).collect()
+struct BrowserClient {
+    port: u16
 }
 
-fn list_tabs(port: u16) -> String {
-    let url = format!("http://localhost:{}/list_tabs", port);
-    let mut response = reqwest::get(url.as_str()).expect("Request failed");
-    // println!("status: {}", response.status());
+impl BrowserClient {
+    fn new(port: u16) -> BrowserClient {
+        BrowserClient{ port: port }
+    }
 
-    // for header in response.headers().iter() {
-    //     println!("header: {}: {}", header.name(), header.value_string());
-    // }
+    fn list_tabs(&self) -> String {
+        let url = format!("http://localhost:{}/list_tabs", self.port);
+        let mut response = reqwest::get(url.as_str()).expect("Request failed");
 
-    let mut buf = String::new();
-    response
-        .read_to_string(&mut buf)
-        .expect("Cannot read response");
+        let mut buf = String::new();
+        response
+            .read_to_string(&mut buf)
+            .expect("Cannot read response");
 
-    buf
+        buf
+    }
 }
 
+fn get_editor_command() -> String {
+    env::var("EDITOR").unwrap_or("nvim".to_string())
+}
+
+fn edit_text_in_editor(text: &String) -> Option<String> {
+    // let mut tmpfile: File = tempfile::tempfile().unwrap();
+
+    let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
+    write!(tmpfile, "{}", "before");
+    let path = tmpfile.path().to_str().unwrap();
+    println!("{}", path);
+
+    let output = Command::new(get_editor_command()).arg(path).status().expect("Could not run
+                                                                              nvim");
+    if output.success() {
+        let mut file = File::open(path).unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents);
+        return Some(contents);
+
+        //return Some(String::from_utf8_lossy(&output.stdout).to_string())
+
+        // return Some("".to_string())
+    } else {
+        println!("Editor quit with non zero exit code");
+        return None
+    }
+}
+
+fn bt_move() {
+    let clients = create_clients();
+    let before_tabs = clients[0].list_tabs();
+    // println!("TABS: {}", before_tabs);
+    if let Some(after_tabs) = edit_text_in_editor(&before_tabs) {
+        println!("AFTER: {}", after_tabs);
+    }
+}
+
+/// Ask all mediators to provide a list of their tabs and print them
 fn bt_list() {
-    // println!("bt list");
-
-    // for port in get_available_ports() {
-    //     let buf = list_tabs(port);
-    //     println!("response: {}", buf.len());
-    // }
-
     let mut children: Vec<JoinHandle<_>> = vec![];
     for port in get_available_ports() {
-        children.push(std::thread::spawn(move || -> String { list_tabs(port) }));
+        children.push(std::thread::spawn(move || -> String {
+            let client = BrowserClient::new(port);
+            client.list_tabs()
+        }));
     }
     for (ch, child) in ASCII_LOWERCASE.chars().zip(children) {
         let unprefixed: String = child.join().unwrap();
@@ -60,12 +102,10 @@ fn bt_list() {
             .collect::<Vec<_>>()
             .join("\n");
         println!("{}", prefixed);
-        // println!("response: {}", buf.len());
     }
-
-    // println!("bt list done");
 }
 
+/// List all available mediators (browser clients)
 fn bt_clients() {
     // let checked_ports: Vec<_> = (0..10)
     //     .map(|x| x + 4625)
@@ -106,6 +146,10 @@ fn main() {
             .about("List all available tabs")
         )
         .subcommand(
+            SubCommand::with_name("move")
+            .about("Move tabs around using your favorite editor")
+        )
+        .subcommand(
             SubCommand::with_name("clients")
             .about("List all available browser clients (mediators)")
         )
@@ -113,6 +157,7 @@ fn main() {
 
     match matches.subcommand() {
         ("list", Some(_m)) => bt_list(),
+        ("move", Some(_m)) => bt_move(),
         ("clients", Some(_m)) => bt_clients(),
         _ => println!("No command or unknown specified. Get help using --help."),
     }

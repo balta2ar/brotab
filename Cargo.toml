@@ -7,4 +7,5 @@ authors = ["Yuri Bochkarev <baltazar.bz@gmail.com>"]
 reqwest = "0.8.7"
 # crossbeam = "0.4.1"
 clap = "2.32.0"
+tempfile = "3.0.3"
 
