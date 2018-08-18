@@ -35,6 +35,17 @@ def handleQuery(query):
 
     items = []
 
+    tokens = user_query.split()
+    if tokens and tokens[0] == 'index':
+        items.append(Item(
+            id=__prettyname__,
+            text='Reindex browser tabs',
+            subtext='> bt index',
+            actions=[
+                ProcAction('Activate', ['bt', 'index'])
+            ]
+        ))
+
     info('query %s' % user_query)
     query_results = brotab_query(
         SQL_DB_FILENAME, user_query, max_tokens=20, max_results=10, marker_cut='')
