@@ -22,7 +22,7 @@ def query(sqlite_filename, user_query,
                 sqlite_filename, user_query)
     conn = sqlite3.connect(sqlite_filename)
     cursor = conn.cursor()
-    query = f"""
+    query = """
     select
         rank,
         tab_id,
@@ -34,7 +34,7 @@ def query(sqlite_filename, user_query,
                 '{marker_cut}',
                 {max_tokens}) body
     from tabs where tabs match ? order by rank limit {max_results};
-"""
+""".format_map(locals())
     # print('query: ', query)
     results = []
     try:

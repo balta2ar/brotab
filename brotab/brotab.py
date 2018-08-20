@@ -47,18 +47,13 @@ News:
 
 """
 
-import os
 import sys
 import logging
 from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
 from itertools import chain, groupby
-from getpass import getuser
-from json import loads
-from telnetlib import Telnet
 # from json import dumps
-from urllib.parse import quote_plus
 from traceback import print_exc
 
 import requests
@@ -332,7 +327,11 @@ class BrowserAPI(object):
         tabs = []
         for api in self._apis:
             try:
+                import time
+                start = time.time()
                 tabs.extend(api.get_text(args))
+                delta = time.time() - start
+                logger.info('get text (single client) took %s', delta)
             except ValueError as e:
                 print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
             except requests.exceptions.ConnectionError as e:
@@ -401,7 +400,6 @@ def show_active_tab(args):
 
 
 def search_tabs(args):
-    results = query(args.sqlite, args.query)
     for result in query(args.sqlite, args.query):
         print('\t'.join([result.tab_id, result.title, result.snippet]))
 
@@ -411,9 +409,16 @@ def index_tabs(args):
         args.tsv = '/tmp/tabs.tsv'
         logger.info(
             'index_tabs: retrieving tabs from browser into file %s', args.tsv)
+        import time
+        start = time.time()
         get_text(args)
+        delta = time.time() - start
+        logger.info('getting text took %s', delta)
 
+    start = time.time()
     index(args.sqlite, args.tsv)
+    delta = time.time() - start
+    logger.info('sqlite create took %s', delta)
 
 
 def open_urls(args):
