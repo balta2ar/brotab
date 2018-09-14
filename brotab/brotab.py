@@ -47,8 +47,10 @@ News:
 
 """
 
+import os
 import re
 import sys
+import shutil
 import logging
 from string import ascii_lowercase
 from argparse import ArgumentParser
@@ -529,6 +531,33 @@ def show_clients(args):
         print(client)
 
 
+def install_mediator(args):
+    logger.info('Installing mediators')
+    bt_mediator_path = shutil.which('bt_mediator')
+
+    native_app_manifests = [
+        ('mediator/firefox_mediator.json',
+         '~/.mozilla/native-messaging-hosts/brotab_mediator.json'),
+        # ('mediator/chromium_mediator.json',
+        #  '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
+        # ('mediator/chromium_mediator.json',
+        #  '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+    ]
+
+    from pkg_resources import resource_string
+    for filename, destination in native_app_manifests:
+        destination = os.path.expanduser(os.path.expandvars(destination))
+        template = resource_string(__name__, filename).decode('utf8')
+        manifest = template.replace(r'$PWD/brotab_mediator.py',
+                                    bt_mediator_path)
+        logger.info('Installing template %s into %s', filename, destination)
+        print('Installing mediator manifest %s' % destination)
+
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        with open(destination, 'w') as file_:
+            file_.write(manifest)
+
+
 def executejs(args):
     pass
 
@@ -678,6 +707,13 @@ def parse_args(args):
         address (host:port)
         ''')
     parser_show_clients.set_defaults(func=show_clients)
+
+    parser_install_mediator = subparsers.add_parser(
+        'install',
+        help='''
+        configure browser settings to use bt mediator (native messaging app)
+        ''')
+    parser_install_mediator.set_defaults(func=install_mediator)
 
     return parser.parse_args(args)
 

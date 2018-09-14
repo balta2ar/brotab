@@ -80,6 +80,14 @@ class UploadCommand(Command):
         sys.exit()
 
 
+packages = find_packages(
+    # where='brotab',
+    # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
+    exclude=('tests', 'firefox_extension', 'firefox_mediator')
+)
+print('>>', packages)
+
+
 # Where the magic happens:
 setup(
     name=NAME,
@@ -89,11 +97,16 @@ setup(
     author=AUTHOR,
     author_email=EMAIL,
     url=URL,
-    packages=find_packages(
-        where='brotab',
-        # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
-        exclude=('firefox_extension', 'firefox_mediator')
-    ),
+    packages=packages,
+    # packages=find_packages(
+    #     where='brotab',
+    #     # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
+    #     exclude=('tests', 'firefox_extension', 'firefox_mediator')
+    # ),
+    data_files=[
+        ('config', ['brotab/mediator/chromium_mediator.json',
+                    'brotab/mediator/firefox_mediator.json']),
+    ],
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
 
@@ -101,6 +114,7 @@ setup(
         'console_scripts': [
             'brotab=brotab.brotab:main',
             'bt=brotab.brotab:main',
+            'bt_mediator=brotab.mediator.brotab_mediator:main',
         ],
     },
     install_requires=REQUIRED,
