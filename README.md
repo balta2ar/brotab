@@ -12,40 +12,49 @@ bt (brotab = Browser Tabs) is a command-line tool that helps you manage browser 
 help you list, close, reorder, open and activate your tabs.
 
 positional arguments:
-  {move,list,close,activate,search,open,words,dup,windows,clients}
-    move                move tabs around. This command lists available tabs and runs the
-                        editor. In the editor you can 1) reorder tabs -- tabs will be moved
-                        in the browser 2) delete tabs -- tabs will be closed 3) change window
-                        ID of the tabs -- tabs will be moved to specified windows
-    list                list available tabs. The command will request all available clients
-                        (browser plugins, mediators), and will display browser tabs in the
-                        following format: "<prefix>.<window_id>.<tab_id><Tab>Page
-                        title<Tab>URL"
-    close               close specified tab IDs. Tab IDs should be in the following format:
-                        "<prefix>.<window_id>.<tab_id>". You can use "list" command to obtain
-                        tab IDs (first column)
-    activate            activate given tab ID. Tab ID should be in the following format:
-                        "<prefix>.<window_id>.<tab_id>"
-    search              Not implemented yet.
-    open                open URLs from the stdin (one URL per line). One positional argument
-                        is required: <prefix>.<window_id> OR <client>. If window_id is not
-                        specified, URL will be opened in the active window of the specifed
-                        client
-    words               show sorted unique words from all active tabs of all clients. This is
-                        a helper for webcomplete deoplete plugin that helps complete words
-                        from the browser
-    dup                 display reminder on how to show duplicate tabs using command-line
-                        tools
-    windows             display available prefixes and window IDs, along with the number of
-                        tabs in every window
-    clients             display available browser clients (mediators), their prefixes and
-                        address (host:port)
+  {move,list,close,activate,active,search,index,open,words,text,dup,windows,clients,install}
+    move                move tabs around. This command lists available tabs and runs
+                        the editor. In the editor you can 1) reorder tabs -- tabs
+                        will be moved in the browser 2) delete tabs -- tabs will be
+                        closed 3) change window ID of the tabs -- tabs will be moved
+                        to specified windows
+    list                list available tabs. The command will request all available
+                        clients (browser plugins, mediators), and will display
+                        browser tabs in the following format:
+                        "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
+    close               close specified tab IDs. Tab IDs should be in the following
+                        format: "<prefix>.<window_id>.<tab_id>". You can use "list"
+                        command to obtain tab IDs (first column)
+    activate            activate given tab ID. Tab ID should be in the following
+                        format: "<prefix>.<window_id>.<tab_id>"
+    active              display active tab for each client/window in the following
+                        format: "<prefix>.<window_id>.<tab_id>"
+    search              Search across your indexed tabs using sqlite fts5 plugin.
+    index               Index the text from browser's tabs. Text is put into sqlite
+                        fts5 table.
+    open                open URLs from the stdin (one URL per line). One positional
+                        argument is required: <prefix>.<window_id> OR <client>. If
+                        window_id is not specified, URL will be opened in the active
+                        window of the specifed client
+    words               show sorted unique words from all active tabs of all
+                        clients. This is a helper for webcomplete deoplete plugin
+                        that helps complete words from the browser
+    text                show text form all tabs
+    dup                 display reminder on how to show duplicate tabs using
+                        command-line tools
+    windows             display available prefixes and window IDs, along with the
+                        number of tabs in every window
+    clients             display available browser clients (mediators), their
+                        prefixes and address (host:port), native app PIDs, and
+                        browser names
+    install             configure browser settings to use bt mediator (native
+                        messaging app)
 
 optional arguments:
   -h, --help            show this help message and exit
 ```
 
-## Demo
+## Demo [TBD]
 
 Features to show:
 
@@ -67,6 +76,14 @@ Features to show:
 * show duplicate tabs and close them
 
 
+## Installation
+
+1. Install command-line client: `pip install brotab`
+1. Install native app manifests: `bt install`
+1. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/
+1. Enjoy! (try `bt clients`, `bt windows`, `bt list`, `bt words`)
+
+
 ## Testing extension
 
 To perform integration tests for the extension, chromium and firefox have
@@ -83,4 +100,6 @@ https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_w
 Yuri Bochkarev
 
 ## License
+
+MIT
 

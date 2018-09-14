@@ -38,8 +38,15 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.rst' is present in your MANIFEST.in file!
-with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = '\n' + f.read()
+# with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+#     long_description = '\n' + f.read()
+
+try:
+    import pypandoc
+    long_description = pypandoc.convert_file("README.md", "rst")
+except ImportError:
+    print('WARNING: description is empty, consider installing pypandoc: pip install --user pypandoc')
+    long_description = ''
 
 # Load the package's __version__.py module as a dictionary.
 about = {}

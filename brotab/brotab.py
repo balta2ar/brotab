@@ -557,6 +557,8 @@ def install_mediator(args):
         with open(destination, 'w') as file_:
             file_.write(manifest)
 
+    print('Link to Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/')
+
 
 def executejs(args):
     pass
@@ -704,7 +706,7 @@ def parse_args(args):
         'clients',
         help='''
         display available browser clients (mediators), their prefixes and
-        address (host:port)
+        address (host:port), native app PIDs, and browser names
         ''')
     parser_show_clients.set_defaults(func=show_clients)
 
