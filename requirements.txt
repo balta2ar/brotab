@@ -2,4 +2,3 @@ flask
 requests
 pytest
 psutil
-ipython
