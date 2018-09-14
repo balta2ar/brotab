@@ -70,7 +70,7 @@ def handleQuery(query):
 
     info('query %s' % user_query)
     query_results = brotab_query(
-        SQL_DB_FILENAME, user_query, max_tokens=20, max_results=10, marker_cut='')
+        SQL_DB_FILENAME, user_query, max_tokens=20, max_results=100, marker_cut='')
     info('brotab search: %s results' % len(query_results))
     for query_result in query_results:
         items.append(Item(

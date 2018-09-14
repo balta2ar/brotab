@@ -47,6 +47,7 @@ News:
 
 """
 
+import re
 import sys
 import logging
 from string import ascii_lowercase
@@ -418,6 +419,7 @@ def search_tabs(args):
 def index_tabs(args):
     if args.tsv is None:
         args.tsv = '/tmp/tabs.tsv'
+        args.cleanup = True
         logger.info(
             'index_tabs: retrieving tabs from browser into file %s', args.tsv)
         import time
@@ -471,6 +473,16 @@ def get_text(args):
     logger.info('Get text from tabs')
     api = BrowserAPI(create_clients())
     tabs = api.get_text([])
+
+    if args.cleanup:
+        pattern = re.compile(r'\s+')
+        old_tabs = tabs
+        tabs = []
+        for line in old_tabs:
+            tab_id, title, url, text = line.split('\t')
+            text = re.sub(pattern, ' ', text)
+            tabs.append('\t'.join([tab_id, title, url, text]))
+
     message = '\n'.join(tabs) + '\n'
     if args.tsv is None:
         sys.stdout.buffer.write(message.encode('utf8'))
@@ -641,6 +653,8 @@ def parse_args(args):
     parser_get_text.set_defaults(func=get_text)
     parser_get_text.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
+    parser_get_text.add_argument('--cleanup', action='store_true', default=False,
+                                 help='force removal of extra whitespace')
 
     parser_show_duplicates = subparsers.add_parser(
         'dup',

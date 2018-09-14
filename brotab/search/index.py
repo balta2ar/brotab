@@ -23,7 +23,8 @@ def index(sqlite_filename, tsv_filename):
     with suppress(sqlite3.OperationalError):
         cursor.execute('drop table tabs;')
     cursor.execute(
-        'create virtual table tabs using fts5(tab_id, title, url, body);')
+        'create virtual table tabs using fts5('
+        '    tab_id, title, url, body, tokenize="porter unicode61");')
     cursor.executemany('insert into tabs values (?, ?, ?, ?)', lines)
     conn.commit()
     conn.close()
