@@ -90,9 +90,12 @@ class FirefoxMediatorAPI(object):
         self._prefix = '%s.' % prefix
         self._host = host
         self._port = port
+        self._pid = self._get_pid()
+        self._browser = self._get_browser()
 
     def __str__(self):
-        return '%s\t%s:%s' % (self._prefix, self._host, self._port)
+        return '%s\t%s:%s\t%s\t%s' % (
+            self._prefix, self._host, self._port, self._pid, self._browser)
 
     def prefix_tabs(self, tabs):
         return ['%s%s' % (self._prefix, tab) for tab in tabs]
@@ -109,6 +112,14 @@ class FirefoxMediatorAPI(object):
 
     def _split_tabs(self, tabs):
         return [tab.split('.') for tab in tabs]
+
+    def _get_pid(self):
+        """Get process ID from the mediator."""
+        return int(self._get('/get_pid').text)
+
+    def _get_browser(self):
+        """Get browser name from the mediator."""
+        return self._get('/get_browser').text
 
     def close_tabs(self, args):
         # tabs = ','.join(self.filter_tabs(args))

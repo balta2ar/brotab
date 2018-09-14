@@ -38,6 +38,10 @@ class BrowserTabs {
   runScript(tab_id, script, payload, onSuccess, onError) {
     throw new Error('runScript is not implemented');
   }
+
+  getBrowserName() {
+    throw new Error('getBrowserName is not implemented');
+  }
 }
 
 class FirefoxTabs extends BrowserTabs {
@@ -76,6 +80,10 @@ class FirefoxTabs extends BrowserTabs {
       (result) => onError(result, payload)
     );
   }
+
+  getBrowserName() {
+      return "firefox";
+  }
 }
 
 class ChromeTabs extends BrowserTabs {
@@ -110,6 +118,10 @@ class ChromeTabs extends BrowserTabs {
         }
       }
     );
+  }
+
+  getBrowserName() {
+      return "chrome/chromium";
   }
 }
 
@@ -309,6 +321,9 @@ function getText() {
   browserTabs.list({'discarded': false}, getTextOnListSuccess);
 }
 
+function getBrowserName() {
+  port.postMessage(browserTabs.getBrowserName());
+}
 
 /*
 Listen for messages from the app.
@@ -354,6 +369,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'get_text') {
     console.log('Getting texts from all tabs');
     getText();
+  }
+
+  else if (command['name'] == 'get_browser') {
+    console.log('Getting browser name');
+    getBrowserName();
   }
 });
 
