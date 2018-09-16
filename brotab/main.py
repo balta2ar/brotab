@@ -49,6 +49,7 @@ News:
 
 import os
 import re
+import io
 import sys
 import shutil
 import logging
@@ -56,17 +57,18 @@ from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
 from itertools import chain, groupby
-# from json import dumps
 from traceback import print_exc
+from urllib.request import Request, urlopen
+from urllib.error import URLError
 
-import requests
-
-from brotab.io import edit_tabs_in_editor
-from brotab.io import is_port_accepting_connections
+from brotab.inout import edit_tabs_in_editor
+from brotab.inout import is_port_accepting_connections
+from brotab.inout import read_stdin
+from brotab.inout import MultiPartForm
+from brotab.parallel import call_parallel
 from brotab.operations import infer_delete_and_move_commands
 from brotab.tab import parse_tab_lines
 from brotab.utils import split_tab_ids
-from brotab.io import read_stdin
 from brotab.search.query import query
 from brotab.search.index import index
 
@@ -76,6 +78,7 @@ from brotab.search.index import index
 MAX_NUMBER_OF_TABS = 1000
 MIN_MEDIATOR_PORT = 4625
 MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
+HTTP_TIMEOUT = 2.0
 
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
 logging.basicConfig(
@@ -118,11 +121,11 @@ class FirefoxMediatorAPI(object):
 
     def _get_pid(self):
         """Get process ID from the mediator."""
-        return int(self._get('/get_pid').text)
+        return int(self._get('/get_pid'))
 
     def _get_browser(self):
         """Get browser name from the mediator."""
-        return self._get('/get_browser').text
+        return self._get('/get_browser')
 
     def close_tabs(self, args):
         # tabs = ','.join(self.filter_tabs(args))
@@ -154,12 +157,27 @@ class FirefoxMediatorAPI(object):
 
         result = self._get('/list_tabs')
         lines = []
-        for line in result.text.splitlines()[:num_tabs]:
-            # for line in result.text.split('\n')[:num_tabs]:
+        for line in result.splitlines()[:num_tabs]:
+            # for line in result.split('\n')[:num_tabs]:
             # line = '%s%s' % (self._prefix, line)
             # print(line)
             lines.append(line)
         return self.prefix_tabs(lines)
+
+    def list_tabs_safe(self, args, print_error=False):
+        args = args or []
+        tabs = []
+        try:
+            tabs = self.list_tabs(args)
+        except ValueError as e:
+            print("Cannot decode JSON: %s: %s" % (self, e), file=sys.stderr)
+            if print_error:
+                print_exc(file=sys.stderr)
+        except URLError as e:
+            print("Cannot access API %s: %s" % (self, e), file=sys.stderr)
+            if print_error:
+                print_exc(file=sys.stderr)
+        return tabs
 
     def move_tabs(self, args):
         logger.info('SENDING MOVE COMMANDS: %s', args)
@@ -185,10 +203,10 @@ class FirefoxMediatorAPI(object):
                 continue
 
             logger.info('FirefoxMediatorAPI: get_words: %s', tab_id)
-            words |= set(self._get('/get_words/%s' % tab_id).text.splitlines())
+            words |= set(self._get('/get_words/%s' % tab_id).splitlines())
 
         if not tab_ids:
-            words = set(self._get('/get_words').text.splitlines())
+            words = set(self._get('/get_words').splitlines())
 
         return sorted(list(words))
 
@@ -199,17 +217,33 @@ class FirefoxMediatorAPI(object):
 
         result = self._get('/get_text')
         lines = []
-        for line in result.text.splitlines()[:num_tabs]:
+        for line in result.splitlines()[:num_tabs]:
             lines.append(line)
         return self.prefix_tabs(lines)
 
     def _get(self, path, data=None):
-        return requests.get('http://%s:%s%s' % (self._host, self._port, path),
-                            data=data)
+        url = 'http://%s:%s%s' % (self._host, self._port, path)
+        if data is not None:
+            data = data.encode('utf8')
+        request = Request(url=url, data=data, method='GET')
+
+        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
+            return response.read().decode('utf8')
 
     def _post(self, path, files=None):
-        return requests.post('http://%s:%s%s' % (self._host, self._port, path),
-                             files=files)
+        url = 'http://%s:%s%s' % (self._host, self._port, path)
+        form = MultiPartForm()
+        for filename, content in files.items():
+            form.add_file(filename, filename,
+                          io.BytesIO(content.encode('utf8')))
+
+        data = bytes(form)
+        request = Request(url=url, data=data, method='POST')
+        request.add_header('Content-Type', form.get_content_type())
+        request.add_header('Content-Length', len(data))
+
+        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
+            return response.read().decode('utf8')
 
 
 class BrowserAPI(object):
@@ -240,42 +274,13 @@ class BrowserAPI(object):
         for api in self._apis:
             api.new_tab(args)
 
-    def list_tabs(self, args):
-        # exit_code = 0
-        tabs = []
-        for api in self._apis:
-            try:
-                tabs.extend(api.list_tabs(args))
-            except ValueError as e:
-                print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
-                # exit_code = 1
-            except requests.exceptions.ConnectionError as e:
-                print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
-                # exit_code = 1
+    def list_tabs(self, args, print_error=False):
+        functions = [partial(api.list_tabs_safe, args, print_error)
+                     for api in self._apis]
+        tabs = sum(call_parallel(functions), [])
         return tabs
-        # return exit_code
-
-    def _safe_list_tabs(self, api):
-        try:
-            return api.list_tabs([])
-        except ValueError as e:
-            print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
-            print_exc(file=sys.stderr)
-        except requests.exceptions.ConnectionError as e:
-            print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
-            print_exc(file=sys.stderr)
-        return []
 
     def _move_tabs_if_changed(self, api, tabs_before, tabs_after):
-        # if tabs_after is None:
-            # return
-
-        # from pprint import pprint
-        # print('_move_tabs_if_changed tabs_before')
-        # pprint(tabs_before)
-        # print('_move_tabs_if_changed tabs_after')
-        # pprint(tabs_after)
-
         delete_commands, move_commands = infer_delete_and_move_commands(
             parse_tab_lines(tabs_before),
             parse_tab_lines(tabs_after))
@@ -302,8 +307,7 @@ class BrowserAPI(object):
             - insert that tab
         3. continue until no input tabs out of order are left
         """
-        tabs_before = list(chain.from_iterable(
-            map(self._safe_list_tabs, self._apis)))
+        tabs_before = self.list_tabs(args, print_error=True)
         tabs_after = edit_tabs_in_editor(tabs_before)
         if tabs_after is None:
             return
@@ -348,7 +352,7 @@ class BrowserAPI(object):
                 logger.info('get text (single client) took %s', delta)
             except ValueError as e:
                 print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
-            except requests.exceptions.ConnectionError as e:
+            except URLError as e:
                 print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
         return tabs
 
@@ -722,10 +726,12 @@ def parse_args(args):
 
 def run_commands(args):
     args = parse_args(args)
+    result = 0
     try:
-        return args.func(args)
+        result = args.func(args)
     except BrokenPipeError:
-        return 0
+        pass
+    return result
 
 
 def main():
