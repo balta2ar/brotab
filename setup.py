@@ -12,6 +12,10 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 import pip
 
+# Save ~200ms on script startup time
+# See https://github.com/ninjaaron/fast-entry_points
+import fastentrypoints
+
 # Package meta-data.
 NAME = 'brotab'
 DESCRIPTION = "Control your browser's tabs from the command line"
@@ -119,8 +123,8 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'brotab=brotab.brotab:main',
-            'bt=brotab.brotab:main',
+            'brotab=brotab.main:main',
+            'bt=brotab.main:main',
             'bt_mediator=brotab.mediator.brotab_mediator:main',
         ],
     },
