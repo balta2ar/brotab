@@ -1,10 +1,10 @@
 {
   "name": "brotab_mediator",
-  "description": "This mediator exposes interface over TCP to control Firefox's tabs",
+  "description": "This mediator exposes interface over TCP to control browser's tabs",
   "path": "$PWD/brotab_mediator.py",
   "type": "stdio",
   "allowed_extensions": [ "brotab_mediator@example.org" ],
   "allowed_origins": [
-    "chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/"
+    "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/"
   ]
 }

@@ -223,6 +223,7 @@ class FirefoxMediatorAPI(object):
 
     def _get(self, path, data=None):
         url = 'http://%s:%s%s' % (self._host, self._port, path)
+        logger.info('GET %s' % url)
         if data is not None:
             data = data.encode('utf8')
         request = Request(url=url, data=data, method='GET')
@@ -232,6 +233,7 @@ class FirefoxMediatorAPI(object):
 
     def _post(self, path, files=None):
         url = 'http://%s:%s%s' % (self._host, self._port, path)
+        logger.info('POST %s' % url)
         form = MultiPartForm()
         for filename, content in files.items():
             form.add_file(filename, filename,
@@ -287,9 +289,9 @@ class BrowserAPI(object):
 
         if delete_commands:
             api.close_tabs(delete_commands)
-            # raise RuntimeError('DELETE COMMANDS ARE NOT SUPPORTED YET')
 
-        api.move_tabs(move_commands)
+        if move_commands:
+            api.move_tabs(move_commands)
 
     def move_tabs(self, args):
         """
@@ -369,7 +371,7 @@ def create_clients():
 def move_tabs(args):
     logger.info('Moving tabs')
     api = BrowserAPI(create_clients())
-    api.move_tabs(args)
+    api.move_tabs([])
 
 
 def list_tabs(args):
@@ -542,10 +544,10 @@ def install_mediator(args):
     native_app_manifests = [
         ('mediator/firefox_mediator.json',
          '~/.mozilla/native-messaging-hosts/brotab_mediator.json'),
-        # ('mediator/chromium_mediator.json',
-        #  '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
-        # ('mediator/chromium_mediator.json',
-        #  '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+        ('mediator/chromium_mediator.json',
+         '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
+        ('mediator/chromium_mediator.json',
+         '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
     ]
 
     from pkg_resources import resource_string
@@ -562,6 +564,7 @@ def install_mediator(args):
             file_.write(manifest)
 
     print('Link to Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/')
+    print('Link to Chrome (Chromium) extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
 
 
 def executejs(args):
