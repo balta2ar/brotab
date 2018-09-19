@@ -97,6 +97,7 @@ class Browser:
                               cwd=self.CWD, preexec_fn=os.setsid)
         print('PID', self._browser.pid)
         wait_net_service('localhost', DEFAULT_MIN_HTTP_PORT, TIMEOUT)
+        print('init done PID', self._browser.pid)
 
     def stop(self):
         os.killpg(os.getpgid(self._browser.pid), signal.SIGTERM)
@@ -116,13 +117,13 @@ class Firefox(Browser):
 class Chromium(Browser):
     CMD = ('xvfb-run chromium-browser --no-sandbox '
            '--no-first-run --disable-gpu '
-           '--load-extension=/brotab/brotab/extension/chrome ')
+           '--load-extension=/brotab/brotab/extension/chrome_tests ')
     #    '--user-data-dir=/dev/shm/chromium')
     CWD = '/brotab/brotab/extension/chrome'
     PROFILE = 'chromium'
 
 
-@pytest.mark.skip
+# @pytest.mark.skip
 class TestChromium(TestCase):
     def setUp(self):
         self._echo_server = EchoServer()

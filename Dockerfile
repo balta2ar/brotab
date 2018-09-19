@@ -49,7 +49,12 @@ WORKDIR /brotab
 # cd /brotab && pip3 install -e . && cd /brotab/brotab/firefox_mediator && make install
 # chromium-browser --headless --no-sandbox --no-first-run --remote-debugging-port=10222 --remote-debugging-address=0.0.0.0 --load-extension=/brotab/brotab/firefox_extension
 # cat ~/.config/chromium/NativeMessagingHosts/brotab_mediator.json
-# py.test brotab/tests/test_integration.py
+# py.test brotab/tests/test_integration.py -s
+
+# How to run integration tests:
+# pip3 install -e .
+# bt install --tests
+# py.test brotab/tests/test_integration.py -s
 
 # docker run -it --rm -v "$(pwd):/brotab" -p 127.0.0.1:10222:9222 brotab
 # docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 brotab

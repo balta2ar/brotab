@@ -253,6 +253,7 @@ class MultipleMediatorsAPI(object):
     """
     This API is designed to work with multiple mediators.
     """
+
     def __init__(self, apis):
         self._apis = apis
 
@@ -554,6 +555,12 @@ def install_mediator(args):
          '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
     ]
 
+    if args.tests:
+        native_app_manifests.append(
+            ('mediator/chromium_mediator_tests.json',
+             '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
+        )
+
     from pkg_resources import resource_string
     for filename, destination in native_app_manifests:
         destination = os.path.expanduser(os.path.expandvars(destination))
@@ -695,7 +702,8 @@ def parse_args(args):
     parser_get_text.set_defaults(func=get_text)
     parser_get_text.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
-    parser_get_text.add_argument('--cleanup', action='store_true', default=False,
+    parser_get_text.add_argument('--cleanup', action='store_true',
+                                 default=False,
                                  help='force removal of extra whitespace')
 
     parser_show_duplicates = subparsers.add_parser(
@@ -726,6 +734,10 @@ def parse_args(args):
         help='''
         configure browser settings to use bt mediator (native messaging app)
         ''')
+    parser_install_mediator.add_argument('--tests', action='store_true',
+                                         default=False,
+                                         help='install testing version of '
+                                         'manifest for chromium')
     parser_install_mediator.set_defaults(func=install_mediator)
 
     return parser.parse_args(args)
