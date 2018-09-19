@@ -13,7 +13,6 @@ from typing import List
 
 import flask
 from flask import request
-# from werkzeug.exceptions import BadRequest
 
 app = flask.Flask(__name__)
 
@@ -24,11 +23,6 @@ logging.basicConfig(
     level=logging.DEBUG)
 logger = logging.getLogger('brotab_mediator')
 logger.info('Logger has been created')
-
-# try:
-
-# Python 3.x version
-# Read a message from stdin and decode it.
 
 DEFAULT_HTTP_IFACE = '127.0.0.1'
 DEFAULT_MIN_HTTP_PORT = 4625
@@ -63,10 +57,10 @@ class StdTransport:
         return {'length': encoded_length, 'content': encoded_content}
 
 
-class FirefoxRemoteAPI:
+class BrowserRemoteAPI:
     """
-    Communicates with Firefox using stdin/stdout. This mediator is supposed
-    to be run by Firefox after request by the helper extension.
+    Communicates with a browser using stdin/stdout. This mediator is supposed
+    to be run by the browser after a request from the helper extension.
     """
 
     def __init__(self):
@@ -86,8 +80,6 @@ class FirefoxRemoteAPI:
 
         triplets = [list(map(int, triplet.split(' ')))
                     for triplet in move_triplets.split(',')]
-        # if len(triplets) != 3:
-        #     raise BadRequest('Invalid input for command move_tabs: %s' % triplets)
         logger.info('moving tab ids: %s', triplets)
         command = {'name': 'move_tabs', 'move_triplets': triplets}
         self._transport.send(command)
@@ -139,8 +131,9 @@ class FirefoxRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-firefox = FirefoxRemoteAPI()
-logger.info('FirefoxRemoteAPI has been created')
+
+browser = BrowserRemoteAPI()
+logger.info('BrowserRemoteAPI has been created')
 
 
 @app.route('/shutdown')
@@ -156,57 +149,56 @@ def shutdown():
 
 @app.route('/list_tabs')
 def list_tabs():
-    tabs = firefox.list_tabs()
+    tabs = browser.list_tabs()
     return '\n'.join(tabs)
 
 
 @app.route('/move_tabs/<move_triplets>')
 def move_tabs(move_triplets):
-    firefox.move_tabs(move_triplets)
+    browser.move_tabs(move_triplets)
     return 'OK'
 
 
 @app.route('/open_urls', methods=['POST'])
 def open_urls():
-    # firefox.move_tabs(move_triplets)
     urls = request.files.get('urls')
     if urls is None:
         return 'ERROR: Please provide urls file in the request'
     urls = urls.stream.read().decode('utf8').splitlines()
     logger.info('Open urls: %s', urls)
-    firefox.open_urls(urls)
+    browser.open_urls(urls)
     return 'OK'
 
 
 @app.route('/close_tabs/<tab_ids>')
 def close_tabs(tab_ids):
-    firefox.close_tabs(tab_ids)
+    browser.close_tabs(tab_ids)
     return 'OK'
 
 
 @app.route('/new_tab/<query>')
 def new_tab(query):
-    firefox.new_tab(query)
+    browser.new_tab(query)
     return 'OK'
 
 
 @app.route('/activate_tab/<int:tab_id>')
 def activate_tab(tab_id):
-    firefox.activate_tab(tab_id)
+    browser.activate_tab(tab_id)
     return 'OK'
 
 
 @app.route('/get_words')
 @app.route('/get_words/<int:tab_id>')
 def get_words(tab_id=None):
-    words = firefox.get_words(tab_id)
+    words = browser.get_words(tab_id)
     logger.info('words for tab_id %s: %s', tab_id, words)
     return '\n'.join(words)
 
 
 @app.route('/get_text')
 def get_text():
-    lines = firefox.get_text()
+    lines = browser.get_text()
     return '\n'.join(lines)
 
 
@@ -217,7 +209,7 @@ def get_pid():
 
 @app.route('/get_browser')
 def get_browser():
-    return firefox.get_browser()
+    return browser.get_browser()
 
 
 # TODO:
@@ -270,8 +262,6 @@ def main():
     signal.signal(signal.SIGPIPE, signal_pipe)
     monkeypatch_socket_bind()
     disable_click_echo()
-
-    logger.info('ENV: %s', os.environ)
 
     global actual_port
     for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):

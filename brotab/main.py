@@ -73,8 +73,6 @@ from brotab.search.query import query
 from brotab.search.index import index
 
 
-# from pprint import pprint
-
 MAX_NUMBER_OF_TABS = 1000
 MIN_MEDIATOR_PORT = 4625
 MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
@@ -89,7 +87,10 @@ logger = logging.getLogger('brotab')
 logger.info('Logger has been created')
 
 
-class FirefoxMediatorAPI(object):
+class SingleMediatorAPI(object):
+    """
+    This API is designed to work with a single mediator.
+    """
     # BROWSER_PREFIX = 'f.'
 
     def __init__(self, prefix, host='localhost', port=4625):
@@ -188,7 +189,7 @@ class FirefoxMediatorAPI(object):
 
     def open_urls(self, urls, window_id=None):
         data = '\n'.join(urls)
-        logger.info('FirefoxMediatorAPI: open_urls: %s', data)
+        logger.info('SingleMediatorAPI: open_urls: %s', data)
         files = {'urls': data}
         if window_id is not None:
             files['window_id'] = window_id
@@ -202,7 +203,7 @@ class FirefoxMediatorAPI(object):
             if prefix + '.' != self._prefix:
                 continue
 
-            logger.info('FirefoxMediatorAPI: get_words: %s', tab_id)
+            logger.info('SingleMediatorAPI: get_words: %s', tab_id)
             words |= set(self._get('/get_words/%s' % tab_id).splitlines())
 
         if not tab_ids:
@@ -248,7 +249,10 @@ class FirefoxMediatorAPI(object):
             return response.read().decode('utf8')
 
 
-class BrowserAPI(object):
+class MultipleMediatorsAPI(object):
+    """
+    This API is designed to work with multiple mediators.
+    """
     def __init__(self, apis):
         self._apis = apis
 
@@ -361,7 +365,7 @@ class BrowserAPI(object):
 
 def create_clients():
     ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
-    result = [FirefoxMediatorAPI(prefix, port=port)
+    result = [SingleMediatorAPI(prefix, port=port)
               for prefix, port in zip(ascii_lowercase, ports)
               if is_port_accepting_connections(port)]
     logger.info('Created clients: %s', result)
@@ -370,7 +374,7 @@ def create_clients():
 
 def move_tabs(args):
     logger.info('Moving tabs')
-    api = BrowserAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients())
     api.move_tabs([])
 
 
@@ -380,7 +384,7 @@ def list_tabs(args):
         bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close
     """
     logger.info('Listing tabs')
-    api = BrowserAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients())
     tabs = api.list_tabs([])
     #print('\n'.join([tab.encode('utf8') for tab in tabs]))
     # print(u'\n'.join(tabs).encode('utf8'))
@@ -400,22 +404,22 @@ def close_tabs(args):
         tab_ids = split_tab_ids(read_stdin().strip())
 
     logger.info('Closing tabs: %s', tab_ids)
-    #api = BrowserAPI([FirefoxMediatorAPI('f')])
-    api = BrowserAPI(create_clients())
+    #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
+    api = MultipleMediatorsAPI(create_clients())
     tabs = api.close_tabs(tab_ids)
 
 
 def activate_tab(args):
     logger.info('Activating tab: %s', args.tab_id)
-    #api = BrowserAPI([FirefoxMediatorAPI('f')])
-    api = BrowserAPI(create_clients())
+    #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
+    api = MultipleMediatorsAPI(create_clients())
     api.activate_tab(args.tab_id)
 
 
 def show_active_tab(args):
     logger.info('Showing active tabs: %s', args)
-    #api = BrowserAPI([FirefoxMediatorAPI('f')])
-    api = BrowserAPI(create_clients())
+    #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
+    api = MultipleMediatorsAPI(create_clients())
     # api.activate_tab(args.tab_id)
 
 
@@ -459,7 +463,7 @@ def open_urls(args):
     urls = [line.strip() for line in sys.stdin.readlines()]
     logger.info('Openning URLs from stdin, prefix "%s", window_id "%s": %s',
                 prefix, window_id, urls)
-    api = BrowserAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients())
     api.open_urls(urls, prefix, window_id)
 
 
@@ -470,7 +474,7 @@ def get_words(args):
     import time
     start = time.time()
     logger.info('Get words from tabs: %s', args.tab_ids)
-    api = BrowserAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients())
     words = api.get_words(args.tab_ids)
     print('\n'.join(words))
     delta = time.time() - start
@@ -479,7 +483,7 @@ def get_words(args):
 
 def get_text(args):
     logger.info('Get text from tabs')
-    api = BrowserAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients())
     tabs = api.get_text([])
 
     if args.cleanup:
@@ -526,7 +530,7 @@ def _print_available_windows(tabs):
 
 def show_windows(args):
     logger.info('Showing windows')
-    api = BrowserAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients())
     tabs = api.list_tabs([])
     _print_available_windows(tabs)
 

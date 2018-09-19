@@ -1,8 +1,10 @@
+"""
+This module contains helpers that query the indexed database of text from a
+browser.
+"""
 
 import argparse
-import csv
 import sqlite3
-import string
 import logging
 from collections import namedtuple
 
@@ -35,12 +37,9 @@ def query(sqlite_filename, user_query,
                 {max_tokens}) body
     from tabs where tabs match ? order by rank limit {max_results};
 """.format_map(locals())
-    # print('query: ', query)
     results = []
     try:
         for (_rank, tab_id, title, snippet) in cursor.execute(query, (user_query,)):
-            # print(row)
-            # print('\t'.join([tab_id, title, snippet]))
             results.append(QueryResult(tab_id, title, snippet))
     except sqlite3.OperationalError as e:
         logger.exception('Error: %s', e)
@@ -54,7 +53,6 @@ def main():
     parser.add_argument('sqlite', help='sqlite DB filename')
     parser.add_argument('query', help='sqlite query')
     args = parser.parse_args()
-    print(args)
 
     for result in query(args.sqlite, args.query):
         print('\t'.join([result.tab_id, result.title, result.snippet]))

@@ -1,8 +1,10 @@
+"""
+This module contains helpers to work with an index of text from a browser.
+"""
 
 import argparse
 import csv
 import sqlite3
-import string
 import logging
 from contextlib import suppress
 

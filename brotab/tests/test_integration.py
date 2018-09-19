@@ -1,17 +1,14 @@
 import os
-import time
 import signal
-import pytest
 import threading
-from unittest import TestCase
-
 from subprocess import check_output, Popen
-
-from brotab.tests.utils import wait_net_service
-
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
+from unittest import TestCase
+import pytest
 
+
+from brotab.tests.utils import wait_net_service
 from brotab.mediator.brotab_mediator import DEFAULT_MIN_HTTP_PORT
 
 
@@ -76,7 +73,7 @@ class EchoServer:
             ECHO_SERVER_HOST, ECHO_SERVER_PORT, title, body)
 
 
-class BtWrapper:
+class BtCommandWrapper:
     @staticmethod
     def list():
         return run('bt list')
@@ -125,6 +122,7 @@ class Chromium(Browser):
     PROFILE = 'chromium'
 
 
+@pytest.mark.skip
 class TestChromium(TestCase):
     def setUp(self):
         self._echo_server = EchoServer()
@@ -146,11 +144,11 @@ class TestChromium(TestCase):
     def test_open_single(self):
         print('SINGLE START')
 
-        tabs = BtWrapper.list()
+        tabs = BtCommandWrapper.list()
         assert 'tab1' not in ''.join(tabs)
-        BtWrapper.open('a.1', EchoServer.url('tab1'))
+        BtCommandWrapper.open('a.1', EchoServer.url('tab1'))
 
-        tabs = BtWrapper.list()
+        tabs = BtCommandWrapper.list()
         assert 'tab1' in ''.join(tabs)
 
         print('SINGLE END')

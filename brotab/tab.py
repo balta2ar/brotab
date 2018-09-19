@@ -1,5 +1,3 @@
-# from operator import attrgetter
-# from itertools import groupby
 
 
 class Tab:
@@ -9,7 +7,6 @@ class Tab:
         self.tab_id = tab_id
         self.title = title
         self.url = url
-
 
     @property
     def line(self):
