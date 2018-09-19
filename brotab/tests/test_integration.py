@@ -52,6 +52,10 @@ ECHO_SERVER_PORT = 9000
 
 
 class EchoServer:
+    """
+    This EchoServer is used to customize page title and content using URL
+    parameters.
+    """
     def __init__(self):
         self._thread = None
         self._server = None

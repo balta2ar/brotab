@@ -284,6 +284,8 @@ class MultipleMediatorsAPI(object):
     def list_tabs(self, args, print_error=False):
         functions = [partial(api.list_tabs_safe, args, print_error)
                      for api in self._apis]
+        if not functions:
+            return []
         tabs = sum(call_parallel(functions), [])
         return tabs
 
