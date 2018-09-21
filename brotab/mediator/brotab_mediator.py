@@ -113,6 +113,12 @@ class BrowserRemoteAPI:
         command = {'name': 'activate_tab', 'tab_id': tab_id}
         self._transport.send(command)
 
+    def get_active_tab(self) -> str:
+        logger.info('getting active tab')
+        command = {'name': 'get_active_tab'}
+        self._transport.send(command)
+        return self._transport.recv()
+
     def get_words(self, tab_id):
         logger.info('getting tab words: %s', tab_id)
         command = {'name': 'get_words', 'tab_id': tab_id}
@@ -186,6 +192,11 @@ def new_tab(query):
 def activate_tab(tab_id):
     browser.activate_tab(tab_id)
     return 'OK'
+
+
+@app.route('/get_active_tab')
+def get_active_tab():
+    return browser.get_active_tab()
 
 
 @app.route('/get_words')

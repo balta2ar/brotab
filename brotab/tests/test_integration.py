@@ -10,6 +10,7 @@ import pytest
 
 from brotab.tests.utils import wait_net_service
 from brotab.mediator.brotab_mediator import DEFAULT_MIN_HTTP_PORT
+from brotab.tab import parse_tab_lines
 
 
 def run(cmd):
@@ -34,7 +35,7 @@ class EchoRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         title = self._get_str_arg(self.path, 'title')
         body = self._get_str_arg(self.path, 'body')
-        print('TITLE', title, 'BODY', body)
+        print('EchoServer received TITLE "%s" BODY "%s"' % (title, body))
 
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -84,8 +85,11 @@ class BtCommandWrapper:
 
     @staticmethod
     def open(window_id, url):
-        return run('echo "%s" | bt open %s' % (
-            EchoServer.url('tab1'), window_id))
+        return run('echo "%s" | bt open %s' % (url, window_id))
+
+    @staticmethod
+    def active():
+        return run('bt active')
 
 
 class Browser:
@@ -113,7 +117,7 @@ class Browser:
 
 
 class Firefox(Browser):
-    CMD = 'xvfb-run web-ext run --no-reload -p /dev/shm/firefox'
+    CMD = 'xvfb-run web-ext run --verbose --bc --no-reload -p /dev/shm/firefox'
     CWD = '/brotab/brotab/extension/firefox'
     PROFILE = 'firefox'
 
@@ -158,7 +162,18 @@ class TestChromium(TestCase):
 
         print('SINGLE END')
 
+    def test_active_tabs(self):
+        BtCommandWrapper.open('a.1', EchoServer.url('tab1'))
+        BtCommandWrapper.open('a.2', EchoServer.url('tab2'))
+        BtCommandWrapper.open('a.3', EchoServer.url('tab3'))
+        active = BtCommandWrapper.active()
+        print('ACTIVE', active)
+        print('LIST', BtCommandWrapper.list())
+
 
 if __name__ == '__main__':
     server = EchoServer()
-    server.run('0.0.0.0', ECHO_SERVER_HOST)
+    server.run(ECHO_SERVER_HOST, ECHO_SERVER_PORT)
+    print('Running EchoServer at %s:%s. Press Enter to terminate' % (
+        ECHO_SERVER_HOST, ECHO_SERVER_PORT))
+    input()

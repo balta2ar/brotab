@@ -1,0 +1,310 @@
+import io
+import sys
+import logging
+from traceback import print_exc
+from urllib.error import URLError
+from urllib.request import Request, urlopen
+from functools import partial
+
+from brotab.inout import edit_tabs_in_editor
+from brotab.inout import MultiPartForm
+from brotab.parallel import call_parallel
+from brotab.operations import infer_delete_and_move_commands
+from brotab.tab import parse_tab_lines
+
+
+logger = logging.getLogger('brotab')
+
+HTTP_TIMEOUT = 2.0
+MAX_NUMBER_OF_TABS = 1000
+
+
+class SingleMediatorAPI(object):
+    """
+    This API is designed to work with a single mediator.
+    """
+    # BROWSER_PREFIX = 'f.'
+
+    def __init__(self, prefix, host='localhost', port=4625):
+        self._prefix = '%s.' % prefix
+        self._host = host
+        self._port = port
+        self._pid = self._get_pid()
+        self._browser = self._get_browser()
+
+    def __str__(self):
+        return '%s\t%s:%s\t%s\t%s' % (
+            self._prefix, self._host, self._port, self._pid, self._browser)
+
+    def prefix_tab(self, tab):
+        return '%s%s' % (self._prefix, tab)
+
+    def prefix_tabs(self, tabs):
+        return list(map(self.prefix_tab, tabs))
+
+    def unprefix_tabs(self, tabs):
+        N = len(self._prefix)
+        return [tab[N:]
+                if tab.startswith(self._prefix)
+                else tab for tab in tabs]
+
+    def filter_tabs(self, tabs):
+        # N = len(self._prefix)
+        # return [tab[N:] for tab in tabs
+        return [tab for tab in tabs
+                if tab.startswith(self._prefix)]
+
+    def _split_tabs(self, tabs):
+        return [tab.split('.') for tab in tabs]
+
+    def _get_pid(self):
+        """Get process ID from the mediator."""
+        return int(self._get('/get_pid'))
+
+    def _get_browser(self):
+        """Get browser name from the mediator."""
+        return self._get('/get_browser')
+
+    def close_tabs(self, args):
+        # tabs = ','.join(self.filter_tabs(args))
+        tabs = ','.join(tab_id for _prefix, _window_id,
+                        tab_id in self._split_tabs(args))
+        self._get('/close_tabs/%s' % tabs)
+
+    def activate_tab(self, args):
+        # args = self.filter_tabs(args)
+        if len(args) == 0:
+            return
+
+        strWindowTab = args[0]
+        prefix, window_id, tab_id = strWindowTab.split('.')
+        self._get('/activate_tab/%s' % tab_id)
+        #self._get('/activate_tab/%s' % strWindowTab)
+
+    def get_active_tab(self, args) -> str:
+        return self.prefix_tab(self._get('/get_active_tab'))
+
+    def new_tab(self, args):
+        if args[0] != self._prefix:
+            return 2
+
+        query = ' '.join(args[1:])
+        self._get('/new_tab/%s' % query)
+
+    def list_tabs(self, args):
+        num_tabs = MAX_NUMBER_OF_TABS
+        if len(args) > 0:
+            num_tabs = int(args[0])
+
+        result = self._get('/list_tabs')
+        lines = []
+        for line in result.splitlines()[:num_tabs]:
+            # for line in result.split('\n')[:num_tabs]:
+            # line = '%s%s' % (self._prefix, line)
+            # print(line)
+            lines.append(line)
+        return self.prefix_tabs(lines)
+
+    def list_tabs_safe(self, args, print_error=False):
+        args = args or []
+        tabs = []
+        try:
+            tabs = self.list_tabs(args)
+        except ValueError as e:
+            print("Cannot decode JSON: %s: %s" % (self, e), file=sys.stderr)
+            if print_error:
+                print_exc(file=sys.stderr)
+        except URLError as e:
+            print("Cannot access API %s: %s" % (self, e), file=sys.stderr)
+            if print_error:
+                print_exc(file=sys.stderr)
+        return tabs
+
+    def move_tabs(self, args):
+        logger.info('SENDING MOVE COMMANDS: %s', args)
+        commands = ','.join(
+            '%s %s %s' % (tab_id, window_id, new_index)
+            for tab_id, window_id, new_index in args)
+        self._get('/move_tabs/%s' % commands)
+
+    def open_urls(self, urls, window_id=None):
+        data = '\n'.join(urls)
+        logger.info('SingleMediatorAPI: open_urls: %s', data)
+        files = {'urls': data}
+        if window_id is not None:
+            files['window_id'] = window_id
+        self._post('/open_urls', files)
+
+    def get_words(self, tab_ids):
+        words = set()
+
+        for tab_id in tab_ids:
+            prefix, _window_id, tab_id = tab_id.split('.')
+            if prefix + '.' != self._prefix:
+                continue
+
+            logger.info('SingleMediatorAPI: get_words: %s', tab_id)
+            words |= set(self._get('/get_words/%s' % tab_id).splitlines())
+
+        if not tab_ids:
+            words = set(self._get('/get_words').splitlines())
+
+        return sorted(list(words))
+
+    def get_text(self, args):
+        num_tabs = MAX_NUMBER_OF_TABS
+        if len(args) > 0:
+            num_tabs = int(args[0])
+
+        result = self._get('/get_text')
+        lines = []
+        for line in result.splitlines()[:num_tabs]:
+            lines.append(line)
+        return self.prefix_tabs(lines)
+
+    def _get(self, path, data=None):
+        url = 'http://%s:%s%s' % (self._host, self._port, path)
+        logger.info('GET %s' % url)
+        if data is not None:
+            data = data.encode('utf8')
+        request = Request(url=url, data=data, method='GET')
+
+        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
+            return response.read().decode('utf8')
+
+    def _post(self, path, files=None):
+        url = 'http://%s:%s%s' % (self._host, self._port, path)
+        logger.info('POST %s' % url)
+        form = MultiPartForm()
+        for filename, content in files.items():
+            form.add_file(filename, filename,
+                          io.BytesIO(content.encode('utf8')))
+
+        data = bytes(form)
+        request = Request(url=url, data=data, method='POST')
+        request.add_header('Content-Type', form.get_content_type())
+        request.add_header('Content-Length', len(data))
+
+        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
+            return response.read().decode('utf8')
+
+
+class MultipleMediatorsAPI(object):
+    """
+    This API is designed to work with multiple mediators.
+    """
+
+    def __init__(self, apis):
+        self._apis = apis
+
+    def close_tabs(self, args):
+        # if len(args) == 0:
+        #     print('Usage: brotab_client.py close_tabs <#tab ...>')
+        #     return 2
+
+        for api in self._apis:
+            api.close_tabs(args)
+
+    def activate_tab(self, args):
+        if len(args) == 0:
+            print('Usage: brotab_client.py activate_tab <#tab>')
+            return 2
+
+        for api in self._apis:
+            api.activate_tab(args)
+
+    def get_active_tabs(self, args):
+        return [api.get_active_tab(args) for api in self._apis]
+
+    def new_tab(self, args):
+        if len(args) <= 1:
+            print('Usage: brotab_client.py new_tab <f.|c.> <search query>')
+            return 2
+
+        for api in self._apis:
+            api.new_tab(args)
+
+    def list_tabs(self, args, print_error=False):
+        functions = [partial(api.list_tabs_safe, args, print_error)
+                     for api in self._apis]
+        if not functions:
+            return []
+        tabs = sum(call_parallel(functions), [])
+        return tabs
+
+    def _move_tabs_if_changed(self, api, tabs_before, tabs_after):
+        delete_commands, move_commands = infer_delete_and_move_commands(
+            parse_tab_lines(tabs_before),
+            parse_tab_lines(tabs_after))
+
+        if delete_commands:
+            api.close_tabs(delete_commands)
+
+        if move_commands:
+            api.move_tabs(move_commands)
+
+    def move_tabs(self, args):
+        """
+        This command allows to close tabs and move them around.
+
+        It lists current tabs, opens an editor, and when editor is done, it
+        detects which tabs where deleted and which where moved. It closes/
+        removes tabs, and moves the rest accordingly.
+
+        Alg:
+        1. find maximum sequence of ordered tabs in the output
+        2. take another tab from the input,
+            - find a position in the output where to put that new tab,
+              using binary search
+            - insert that tab
+        3. continue until no input tabs out of order are left
+        """
+        tabs_before = self.list_tabs(args, print_error=True)
+        tabs_after = edit_tabs_in_editor(tabs_before)
+        if tabs_after is None:
+            return
+
+        for api in self._apis:
+            self._move_tabs_if_changed(
+                api,
+                api.filter_tabs(tabs_before),
+                api.filter_tabs(tabs_after))
+
+    def _get_api_by_prefix(self, prefix):
+        for api in self._apis:
+            if api._prefix == prefix:
+                return api
+        raise ValueError('No such client with prefix "%s"' % prefix)
+
+    def open_urls(self, urls, prefix, window_id=None):
+        assert len(self._apis) > 0, \
+            'There should be at least one client connected: %s' % self._apis
+        # client = self._apis[0]
+        client = self._get_api_by_prefix(prefix)
+        client.open_urls(urls, window_id)
+
+    def get_words(self, tab_ids):
+        words = set()
+        import time
+        for api in self._apis:
+            start = time.time()
+            words |= set(api.get_words(tab_ids))
+            delta = time.time() - start
+            #print('DELTA', delta, file=sys.stderr)
+        return sorted(list(words))
+
+    def get_text(self, args):
+        tabs = []
+        for api in self._apis:
+            try:
+                import time
+                start = time.time()
+                tabs.extend(api.get_text(args))
+                delta = time.time() - start
+                logger.info('get text (single client) took %s', delta)
+            except ValueError as e:
+                print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
+            except URLError as e:
+                print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
+        return tabs
+

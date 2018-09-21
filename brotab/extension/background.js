@@ -222,6 +222,15 @@ function activateTab(tab_id) {
   browserTabs.activate(tab_id);
 }
 
+function getActiveTab() {
+  browserTabs.getActive(tabs => {
+      let tab = tabs[0];
+      result = tab.windowId + "." + tab.id;
+      console.log(`Active tab: ${result}`);
+      port.postMessage(result);
+  });
+}
+
 function getWordsFromTabs(tabs) {
   var promises = [];
   console.log(`Getting words from tabs: ${tabs}`);
@@ -359,6 +368,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'activate_tab') {
     console.log('Activating tab:', command['tab_id']);
     activateTab(command['tab_id']);
+  }
+
+  else if (command['name'] == 'get_active_tab') {
+    console.log('Getting active tab');
+    getActiveTab();
   }
 
   else if (command['name'] == 'get_words') {

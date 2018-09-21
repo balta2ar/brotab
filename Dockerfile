@@ -55,6 +55,7 @@ WORKDIR /brotab
 # pip3 install -e .
 # bt install --tests
 # py.test brotab/tests/test_integration.py -s
+# py.test brotab/tests/test_integration.py -k test_active_tabs -s
 
 # docker run -it --rm -v "$(pwd):/brotab" -p 127.0.0.1:10222:9222 brotab
 # docker run -it --rm -v "$(pwd):/brotab" -p 10222:9222 brotab
