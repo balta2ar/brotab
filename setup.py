@@ -31,7 +31,7 @@ REQUIRED = [
 # requirements = list(pip.req.parse_requirements(
 #     'requirements.txt', session=pip.download.PipSession()))
 # REQUIRED = [requirement.name for requirement in requirements]
-REQUIRED = [line.strip() for line in open('requirements.txt').readlines()]
+REQUIRED = [line.strip() for line in open('requirements/base.txt').readlines()]
 
 # The rest you shouldn't have to touch too much :)
 # ------------------------------------------------
