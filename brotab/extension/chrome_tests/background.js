@@ -15,15 +15,15 @@ class BrowserTabs {
     throw new Error('list is not implemented');
   }
 
-  close(tab_ids) {
-    this._browser.tabs.remove(tab_ids);
+  close(tab_ids, onSuccess) {
+    throw new Error('close is not implemented');
   }
 
   move(tabId, moveOptions, onSuccess) {
     throw new Error('move is not implemented');
   }
 
-  create(createOptions) {
+  create(createOptions, onSuccess) {
     throw new Error('create is not implemented');
   }
 
@@ -52,6 +52,13 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
+  close(tab_ids, onSuccess) {
+    this._browser.tabs.remove(tab_ids).then(
+      onSuccess,
+      (error) => console.log(`Error removing tab: ${error}`)
+    );
+  }
+
   move(tabId, moveOptions, onSuccess) {
     this._browser.tabs.move(tabId, moveOptions).then(
       onSuccess,
@@ -60,9 +67,9 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  create(createOptions) {
+  create(createOptions, onSuccess) {
     this._browser.tabs.create(createOptions).then(
-      (tab) => console.log(`Created new tab: ${tab.id}`),
+      onSuccess,
       (error) => console.log(`Error: ${error}`)
     );
   }
@@ -91,14 +98,16 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query(queryInfo, onSuccess);
   }
 
+  close(tab_ids, onSuccess) {
+    this._browser.tabs.remove(tab_ids, onSuccess);
+  }
+
   move(tabId, moveOptions, onSuccess) {
     this._browser.tabs.move(tabId, moveOptions, onSuccess);
   }
 
-  create(createOptions) {
-    this._browser.tabs.create(createOptions,
-      (tab) => console.log(`Created new tab: ${tab.id}`)
-    );
+  create(createOptions, onSuccess) {
+    this._browser.tabs.create(createOptions, onSuccess);
   }
 
   getActive(onSuccess) {
@@ -129,6 +138,7 @@ class ChromeTabs extends BrowserTabs {
 console.log("Detecting browser");
 var port = undefined;
 var tabs = undefined;
+var browserTabs = undefined;
 const NATIVE_APP_NAME = 'brotab_mediator';
 
 if (typeof browser !== 'undefined') {
@@ -171,11 +181,11 @@ function compareWindowIdTabId(tabA, tabB) {
 }
 
 function listTabsOnSuccess(tabs) {
-  lines = [];
+  var lines = [];
   // Make sure tabs are sorted by their index within a window
   tabs.sort(compareWindowIdTabId);
   for (let tab of tabs) {
-    line = + tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url;
+    var line = + tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url;
     console.log(line);
     lines.push(line);
   }
@@ -195,31 +205,59 @@ function listTabs() {
 // }
 
 function moveTabs(move_triplets) {
+  // move_triplets is a tuple of (tab_id, window_id, new_index)
   if (move_triplets.length == 0) {
+    // this post is only required to make bt move command synchronous. mediator
+    // is waiting for any reply
+    port.postMessage('OK');
     return
   }
 
+  // we request a move of a single tab and when it happens, we call ourselves
+  // again with the remaining tabs (first omitted)
   const [tabId, windowId, index] = move_triplets[0];
   browserTabs.move(tabId, {index: index, windowId: windowId},
-    (tab) => moveTabs(move_triplets.slice(1)));
+    (tab) => moveTabs(move_triplets.slice(1))
+  );
 }
 
 function closeTabs(tab_ids) {
-  browserTabs.close(tab_ids);
+  browserTabs.close(tab_ids, () => port.postMessage('OK'));
 }
 
 function openUrls(urls, window_id) {
-  for (let url of urls) {
-    browserTabs.create({'url': url, windowId: window_id});
+  if (urls.length == 0) {
+    console.log('Opening urls done');
+    port.postMessage('OK');
+    return;
   }
+
+  const url = urls[0];
+  console.log(`Opening another one url ${url}`);
+  browserTabs.create({'url': url, windowId: window_id},
+    (tab) => openUrls(urls.slice(1), window_id)
+  );
 }
 
 function createTab(url) {
-  browserTabs.create({'url': url});
+  browserTabs.create({'url': url},
+    (tab) => {
+      console.log(`Created new tab: ${tab.id}`);
+      port.postMessage('OK');
+  });
 }
 
 function activateTab(tab_id) {
   browserTabs.activate(tab_id);
+}
+
+function getActiveTab() {
+  browserTabs.getActive(tabs => {
+      let tab = tabs[0];
+      var result = tab.windowId + "." + tab.id;
+      console.log(`Active tab: ${result}`);
+      port.postMessage(result);
+  });
 }
 
 function getWordsFromTabs(tabs) {
@@ -359,6 +397,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'activate_tab') {
     console.log('Activating tab:', command['tab_id']);
     activateTab(command['tab_id']);
+  }
+
+  else if (command['name'] == 'get_active_tab') {
+    console.log('Getting active tab');
+    getActiveTab();
   }
 
   else if (command['name'] == 'get_words') {

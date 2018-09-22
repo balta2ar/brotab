@@ -5,10 +5,10 @@ import logging
 import struct
 import os
 import sys
-import urllib
 import socket
 import signal
 import requests
+from urllib.parse import quote_plus, unquote_plus
 from typing import List
 
 import flask
@@ -83,14 +83,21 @@ class BrowserRemoteAPI:
         logger.info('moving tab ids: %s', triplets)
         command = {'name': 'move_tabs', 'move_triplets': triplets}
         self._transport.send(command)
+        return self._transport.recv()
 
-    def open_urls(self, urls: List[str]):
+    def open_urls(self, urls: List[str], window_id=None):
         """
+        Open specified list of URLs in a window, specified by window_id.
+
+        If window_id is None, currently active window is used.
         """
         logger.info('open urls: %s', urls)
 
         command = {'name': 'open_urls', 'urls': urls}
+        if window_id is not None:
+            command['window_id'] = window_id
         self._transport.send(command)
+        return self._transport.recv()
 
     def close_tabs(self, tab_ids: str):
         """
@@ -100,13 +107,14 @@ class BrowserRemoteAPI:
         logger.info('closing tab ids: %s', int_tab_ids)
         command = {'name': 'close_tabs', 'tab_ids': int_tab_ids}
         self._transport.send(command)
+        return self._transport.recv()
 
     def new_tab(self, query):
-        url = "https://www.google.com/search?q=%s" % urllib.parse.quote_plus(
-            query)
+        url = "https://www.google.com/search?q=%s" % quote_plus(query)
         logger.info('opening url: %s', url)
         command = {'name': 'new_tab', 'url': url}
         self._transport.send(command)
+        return self._transport.recv()
 
     def activate_tab(self, tab_id):
         logger.info('activating tab id: %s', tab_id)
@@ -161,31 +169,28 @@ def list_tabs():
 
 @app.route('/move_tabs/<move_triplets>')
 def move_tabs(move_triplets):
-    browser.move_tabs(move_triplets)
-    return 'OK'
+    return browser.move_tabs(unquote_plus(move_triplets))
 
 
 @app.route('/open_urls', methods=['POST'])
-def open_urls():
+@app.route('/open_urls/<int:window_id>', methods=['POST'])
+def open_urls(window_id=None):
     urls = request.files.get('urls')
     if urls is None:
         return 'ERROR: Please provide urls file in the request'
     urls = urls.stream.read().decode('utf8').splitlines()
-    logger.info('Open urls: %s', urls)
-    browser.open_urls(urls)
-    return 'OK'
+    logger.info('Open urls (window_id = %s): %s', window_id, urls)
+    return browser.open_urls(urls, window_id)
 
 
 @app.route('/close_tabs/<tab_ids>')
 def close_tabs(tab_ids):
-    browser.close_tabs(tab_ids)
-    return 'OK'
+    return browser.close_tabs(tab_ids)
 
 
 @app.route('/new_tab/<query>')
 def new_tab(query):
-    browser.new_tab(query)
-    return 'OK'
+    return browser.new_tab(query)
 
 
 @app.route('/activate_tab/<int:tab_id>')

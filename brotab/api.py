@@ -4,6 +4,7 @@ import logging
 from traceback import print_exc
 from urllib.error import URLError
 from urllib.request import Request, urlopen
+from urllib.parse import quote_plus
 from functools import partial
 
 from brotab.inout import edit_tabs_in_editor
@@ -15,7 +16,7 @@ from brotab.tab import parse_tab_lines
 
 logger = logging.getLogger('brotab')
 
-HTTP_TIMEOUT = 2.0
+HTTP_TIMEOUT = 5.0
 MAX_NUMBER_OF_TABS = 1000
 
 
@@ -69,7 +70,7 @@ class SingleMediatorAPI(object):
         # tabs = ','.join(self.filter_tabs(args))
         tabs = ','.join(tab_id for _prefix, _window_id,
                         tab_id in self._split_tabs(args))
-        self._get('/close_tabs/%s' % tabs)
+        return self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args):
         # args = self.filter_tabs(args)
@@ -84,12 +85,11 @@ class SingleMediatorAPI(object):
     def get_active_tab(self, args) -> str:
         return self.prefix_tab(self._get('/get_active_tab'))
 
-    def new_tab(self, args):
-        if args[0] != self._prefix:
-            return 2
-
-        query = ' '.join(args[1:])
-        self._get('/new_tab/%s' % query)
+    # def new_tab(self, prefix, search_query):
+    #     if prefix != self._prefix:
+    #         return 2
+    #
+    #     self._get('/new_tab/%s' % search_query)
 
     def list_tabs(self, args):
         num_tabs = MAX_NUMBER_OF_TABS
@@ -125,15 +125,16 @@ class SingleMediatorAPI(object):
         commands = ','.join(
             '%s %s %s' % (tab_id, window_id, new_index)
             for tab_id, window_id, new_index in args)
-        self._get('/move_tabs/%s' % commands)
+        return self._get('/move_tabs/%s' % quote_plus(commands))
 
     def open_urls(self, urls, window_id=None):
         data = '\n'.join(urls)
         logger.info('SingleMediatorAPI: open_urls: %s', data)
         files = {'urls': data}
-        if window_id is not None:
-            files['window_id'] = window_id
-        self._post('/open_urls', files)
+        self._post('/open_urls'
+                   if window_id is None
+                   else ('/open_urls/%s' % window_id),
+                   files)
 
     def get_words(self, tab_ids):
         words = set()
@@ -216,13 +217,13 @@ class MultipleMediatorsAPI(object):
     def get_active_tabs(self, args):
         return [api.get_active_tab(args) for api in self._apis]
 
-    def new_tab(self, args):
-        if len(args) <= 1:
-            print('Usage: brotab_client.py new_tab <f.|c.> <search query>')
-            return 2
-
-        for api in self._apis:
-            api.new_tab(args)
+    # def new_tab(self, args):
+    #     if len(args) <= 1:
+    #         print('Usage: brotab_client.py new_tab <f.|c.> <search query>')
+    #         return 2
+    #
+    #     for api in self._apis:
+    #         api.new_tab(args)
 
     def list_tabs(self, args, print_error=False):
         functions = [partial(api.list_tabs_safe, args, print_error)

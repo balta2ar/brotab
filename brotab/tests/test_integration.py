@@ -14,7 +14,7 @@ from brotab.tab import parse_tab_lines
 
 
 def run(cmd):
-    return check_output(cmd, shell=True).decode('utf-8').splitlines()
+    return check_output(cmd, shell=True).decode('utf-8').strip().splitlines()
 
 
 TIMEOUT = 15
@@ -84,6 +84,10 @@ class BtCommandWrapper:
         return run('bt list')
 
     @staticmethod
+    def tabs():
+        return parse_tab_lines(BtCommandWrapper.list())
+
+    @staticmethod
     def open(window_id, url):
         return run('echo "%s" | bt open %s' % (url, window_id))
 
@@ -117,7 +121,8 @@ class Browser:
 
 
 class Firefox(Browser):
-    CMD = 'xvfb-run web-ext run --verbose --bc --no-reload -p /dev/shm/firefox'
+    CMD = 'xvfb-run web-ext run --verbose --no-input --no-reload -p /dev/shm/firefox'
+    #CMD = 'web-ext run --verbose --no-reload -p /dev/shm/firefox'
     CWD = '/brotab/brotab/extension/firefox'
     PROFILE = 'firefox'
 
@@ -166,9 +171,7 @@ class TestChromium(TestCase):
         BtCommandWrapper.open('a.1', EchoServer.url('tab1'))
         BtCommandWrapper.open('a.2', EchoServer.url('tab2'))
         BtCommandWrapper.open('a.3', EchoServer.url('tab3'))
-        active = BtCommandWrapper.active()
-        print('ACTIVE', active)
-        print('LIST', BtCommandWrapper.list())
+        assert BtCommandWrapper.active()[0] == BtCommandWrapper.tabs()[-1].id
 
 
 if __name__ == '__main__':

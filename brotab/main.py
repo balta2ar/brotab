@@ -56,6 +56,7 @@ from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
+from urllib.parse import quote_plus
 
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
@@ -84,6 +85,18 @@ def create_clients():
               if is_port_accepting_connections(port)]
     logger.info('Created clients: %s', result)
     return result
+
+
+def parse_prefix_and_window_id(prefix_window_id):
+    prefix, window_id = None, None
+    try:
+        prefix, window_id = prefix_window_id.split('.')
+        prefix += '.'
+    except ValueError:
+        prefix = prefix_window_id
+        prefix += '' if prefix.endswith('.') else '.'
+
+    return prefix, window_id
 
 
 def move_tabs(args):
@@ -162,6 +175,16 @@ def index_tabs(args):
     logger.info('sqlite create took %s', delta)
 
 
+def new_tab(args):
+    prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
+    search_query = ' '.join(args.query)
+    logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
+                search_query, prefix, window_id)
+    url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
+    api = MultipleMediatorsAPI(create_clients())
+    api.open_urls([url], prefix, window_id)
+
+
 def open_urls(args):
     """
     curl -X POST 'http://localhost:4626/open_urls' -F 'urls=@urls.txt'
@@ -169,15 +192,9 @@ def open_urls(args):
 
     where urls.txt containe one url per line (not JSON)
     """
-    prefix, window_id = None, None
-    try:
-        prefix, window_id = args.prefix_window_id.split('.')
-        prefix += '.'
-    except ValueError:
-        prefix = args.prefix_window_id
-
+    prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
     urls = [line.strip() for line in sys.stdin.readlines()]
-    logger.info('Openning URLs from stdin, prefix "%s", window_id "%s": %s',
+    logger.info('Opening URLs from stdin, prefix "%s", window_id "%s": %s',
                 prefix, window_id, urls)
     api = MultipleMediatorsAPI(create_clients())
     api.open_urls(urls, prefix, window_id)
@@ -385,6 +402,21 @@ def parse_args(args):
     parser_index_tabs.add_argument('--tsv', type=str, default=None,
                                    help='get text from tabs and index the results')
 
+    parser_new_tab = subparsers.add_parser(
+        'new',
+        help='''
+        open new tab with the Google search results of the arguments that
+        follow. One positional argument is required:
+        <prefix>.<window_id> OR <client>. If window_id is not specified,
+        URL will be opened in the active window of the specifed client
+        ''')
+    parser_new_tab.set_defaults(func=new_tab)
+    parser_new_tab.add_argument(
+        'prefix_window_id', type=str,
+        help='Client prefix and (optionally) window id, e.g. b.20')
+    parser_new_tab.add_argument('query', type=str, nargs='*',
+                                help='Query to search for in Google')
+
     parser_open_urls = subparsers.add_parser(
         'open',
         help='''
@@ -396,7 +428,7 @@ def parse_args(args):
     parser_open_urls.set_defaults(func=open_urls)
     parser_open_urls.add_argument(
         'prefix_window_id', type=str,
-        help='Client prefix and window id, e.g. b.20')
+        help='Client prefix and (optionally) window id, e.g. b.20')
 
     parser_get_words = subparsers.add_parser(
         'words',

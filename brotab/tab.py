@@ -9,6 +9,14 @@ class Tab:
         self.url = url
 
     @property
+    def id(self):
+        return '{prefix}.{window_id}.{tab_id}'.format(
+            prefix=self.prefix,
+            window_id=self.window_id,
+            tab_id=self.tab_id,
+        )
+
+    @property
     def line(self):
         return '{prefix}.{window_id}.{tab_id}\t{title}\t{url}'.format(
             prefix=self.prefix,
