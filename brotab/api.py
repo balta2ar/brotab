@@ -16,7 +16,7 @@ from brotab.tab import parse_tab_lines
 
 logger = logging.getLogger('brotab')
 
-HTTP_TIMEOUT = 5.0
+HTTP_TIMEOUT = 10.0
 MAX_NUMBER_OF_TABS = 1000
 
 
@@ -129,7 +129,7 @@ class SingleMediatorAPI(object):
 
     def open_urls(self, urls, window_id=None):
         data = '\n'.join(urls)
-        logger.info('SingleMediatorAPI: open_urls: %s', data)
+        logger.info('SingleMediatorAPI: open_urls: %s', urls)
         files = {'urls': data}
         self._post('/open_urls'
                    if window_id is None

@@ -92,6 +92,7 @@ def parse_prefix_and_window_id(prefix_window_id):
     try:
         prefix, window_id = prefix_window_id.split('.')
         prefix += '.'
+        window_id = window_id or None
     except ValueError:
         prefix = prefix_window_id
         prefix += '' if prefix.endswith('.') else '.'
