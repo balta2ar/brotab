@@ -16,8 +16,8 @@ from brotab.tab import parse_tab_lines
 
 logger = logging.getLogger('brotab')
 
-HTTP_TIMEOUT = 10.0
-MAX_NUMBER_OF_TABS = 1000
+HTTP_TIMEOUT = 60 # 10.0
+MAX_NUMBER_OF_TABS = 5000
 
 
 class SingleMediatorAPI(object):

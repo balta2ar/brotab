@@ -3,10 +3,14 @@ This module contains helpers to work with an index of text from a browser.
 """
 
 import argparse
+import sys
 import csv
 import sqlite3
 import logging
 from contextlib import suppress
+
+
+MAX_FIELD_LEN = 131072
 
 
 logger = logging.getLogger('brotab')
@@ -14,8 +18,10 @@ logger = logging.getLogger('brotab')
 
 def index(sqlite_filename, tsv_filename):
     logger.info('Reading tsv file %s', tsv_filename)
+    csv.field_size_limit(sys.maxsize)
     with open(tsv_filename) as tsv_file:
-        lines = [tuple(line) for line in csv.reader(tsv_file, delimiter='\t')]
+        lines = [tuple(line) for line in csv.reader(tsv_file, delimiter='\t',
+                                                    quoting=csv.QUOTE_NONE)]
 
     logger.info(
         'Creating sqlite DB filename %s from tsv %s (%s lines)',
