@@ -4,6 +4,20 @@
 
 cd brotab
 pip install --user -e .
+bt install --tests
+
+In firefox go to: about:debugging#/runtime/this-firefox -> Load temporary addon
+
+In Chrome/Chromium go to: chrome://extensions/ -> Developer mode -> Load
+unpacked
+
+You should see the following output:
+
+```txt
+$ bt clients
+a.      localhost:4625  23744   firefox
+b.      localhost:4626  28895   chrome/chromium
+```
 
 ## Rest
 
@@ -17,7 +31,13 @@ Debug:
 Prod:
     "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/"
 
-## Things to implement
+## TODO, things to implement
+
+[_] add config and allow setting debug level.  prod in release, debug in dev
+[_] automake deployment of extensions and pypi packaging
+[_] automate switching to environments (dev, prod)
+[_] add regexp argument to bt words command
+    this will allow configuration on vim plugin side
 
 - rofi: close multiple tabs (multiselect), should be opened with current tab
   selected for convenience
