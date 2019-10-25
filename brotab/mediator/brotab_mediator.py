@@ -228,6 +228,16 @@ def get_browser():
     return browser.get_browser()
 
 
+@app.route('/')
+def root_handler():
+    lines = []
+    for rule in app.url_map.iter_rules():
+        line = unquote_plus('%s\t%s' % (rule.endpoint, rule))
+        logger.info('endpoint type: %s', type(rule.endpoint))
+        lines.append(line)
+    return '\n'.join(lines) + '\n'
+
+
 # TODO:
 # 1. Run HTTP server and accept the following commands:
 #    - /list_tabs

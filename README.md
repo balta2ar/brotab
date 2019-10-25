@@ -4,7 +4,7 @@ Control your browser's tabs from the terminal.
 
 ## About
 
-```
+```txt
 No command has been specified
 usage: bt [-h] {move,list,close,activate,search,open,words,dup,windows,clients} ...
 
@@ -75,7 +75,6 @@ Features to show:
   * close tabs
 * show duplicate tabs and close them
 
-
 ## Installation
 
 1. Install command-line client: `pip install brotab`
@@ -83,7 +82,6 @@ Features to show:
 1. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/
 1. Install Chrome (Chromium) extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/
 1. Enjoy! (try `bt clients`, `bt windows`, `bt list`, `bt words`)
-
 
 ## Testing extension
 
@@ -105,7 +103,6 @@ run Chromium in Xvfb in integration tests:
 
 firefox: use web-ext run
 https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_web-ext
-
 
 ## Author
 

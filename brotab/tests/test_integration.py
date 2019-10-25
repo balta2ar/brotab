@@ -17,7 +17,7 @@ def run(cmd):
     return check_output(cmd, shell=True).decode('utf-8').strip().splitlines()
 
 
-TIMEOUT = 15
+TIMEOUT = 60 # 15
 ECHO_SERVER_PORT = 8087
 
 
@@ -121,15 +121,19 @@ class Browser:
 
 
 class Firefox(Browser):
-    CMD = 'xvfb-run web-ext run --verbose --no-input --no-reload -p /dev/shm/firefox'
-    #CMD = 'web-ext run --verbose --no-reload -p /dev/shm/firefox'
+    #CMD = 'xvfb-run web-ext run --verbose --no-input --no-reload -p /dev/shm/firefox'
+    CMD = 'web-ext run --verbose --no-reload -p /dev/shm/firefox'
     CWD = '/brotab/brotab/extension/firefox'
     PROFILE = 'firefox'
 
 
 class Chromium(Browser):
-    CMD = ('xvfb-run chromium-browser --no-sandbox '
+    #CMD = ('xvfb-run chromium-browser --no-sandbox '
+    CMD = ('chromium-browser --no-sandbox '
            '--no-first-run --disable-gpu '
+           # '--enabled-logging=stderr '
+           '--enabled-logging --v=1 '
+           '--user-data-dir=/dev/shm/chromium '
            '--load-extension=/brotab/brotab/extension/chrome_tests ')
     #    '--user-data-dir=/dev/shm/chromium')
     CWD = '/brotab/brotab/extension/chrome'
@@ -143,9 +147,9 @@ class TestChromium(TestCase):
         self._echo_server.run()
         self.addCleanup(self._echo_server.stop)
 
-        # self._browser = Chromium()
-        self._browser = Firefox()
-        self.addCleanup(self._browser.stop)
+        self._browser = Chromium()
+        # self._browser = Firefox()
+        # self.addCleanup(self._browser.stop)
         print('SETUP DONE:', self._browser.pid)
 
     def tearDown(self):
@@ -171,6 +175,7 @@ class TestChromium(TestCase):
         BtCommandWrapper.open('a.1', EchoServer.url('tab1'))
         BtCommandWrapper.open('a.2', EchoServer.url('tab2'))
         BtCommandWrapper.open('a.3', EchoServer.url('tab3'))
+        assert len(BtCommandWrapper.tabs()) == 4
         assert BtCommandWrapper.active()[0] == BtCommandWrapper.tabs()[-1].id
 
 

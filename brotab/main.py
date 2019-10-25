@@ -83,6 +83,7 @@ def create_clients():
     result = [SingleMediatorAPI(prefix, port=port)
               for prefix, port in zip(ascii_lowercase, ports)
               if is_port_accepting_connections(port)]
+    # result = [api for api in result if api.ready]
     logger.info('Created clients: %s', result)
     return result
 
@@ -147,9 +148,13 @@ def activate_tab(args):
 def show_active_tab(args):
     logger.info('Showing active tabs: %s', args)
     #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
-    api = MultipleMediatorsAPI(create_clients())
-    tabs = api.get_active_tabs(args)
-    print('\n'.join(tabs))
+    apis = create_clients()
+    # api = MultipleMediatorsAPI(create_clients())
+    # tabs = api.get_active_tabs(args)
+    for api in apis:
+        line = '%s\t%s' % (api.get_active_tab(args), api)
+        print(line)
+    # print('\n'.join(tabs))
     # api.activate_tab(args.tab_id)
 
 

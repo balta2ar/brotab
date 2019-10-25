@@ -152,7 +152,7 @@ if (typeof browser !== 'undefined') {
   browserTabs = new ChromeTabs(chrome);
 
 } else {
-  console.error("Unknown browser detected");
+  console.log("Unknown browser detected");
 }
 
 

@@ -1,8 +1,9 @@
 import io
 import sys
+import socket
 import logging
 from traceback import print_exc
-from urllib.error import URLError
+from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
 from urllib.parse import quote_plus
 from functools import partial
@@ -16,7 +17,7 @@ from brotab.tab import parse_tab_lines
 
 logger = logging.getLogger('brotab')
 
-HTTP_TIMEOUT = 60 # 10.0
+HTTP_TIMEOUT = 10.0 # 2 # 10.0
 MAX_NUMBER_OF_TABS = 5000
 
 
@@ -32,6 +33,10 @@ class SingleMediatorAPI(object):
         self._port = port
         self._pid = self._get_pid()
         self._browser = self._get_browser()
+
+    @property
+    def ready(self):
+        return self._browser != '<ERROR>'
 
     def __str__(self):
         return '%s\t%s:%s\t%s\t%s' % (
@@ -60,11 +65,20 @@ class SingleMediatorAPI(object):
 
     def _get_pid(self):
         """Get process ID from the mediator."""
-        return int(self._get('/get_pid'))
+        try:
+            return int(self._get('/get_pid'))
+        except (HTTPError, socket.timeout) as e:
+            logger.info('_get_pid failed: %s', e)
+        return -1
 
     def _get_browser(self):
         """Get browser name from the mediator."""
-        return self._get('/get_browser')
+        try:
+            return self._get('/get_browser')
+        except (HTTPError, socket.timeout) as e:
+            logger.info('_get_browser failed: %s', e)
+        return '<ERROR>'
+
 
     def close_tabs(self, args):
         # tabs = ','.join(self.filter_tabs(args))
@@ -198,6 +212,10 @@ class MultipleMediatorsAPI(object):
     def __init__(self, apis):
         self._apis = apis
 
+    @property
+    def ready_apis(self):
+        return [api for api in self._apis if api.ready]
+
     def close_tabs(self, args):
         # if len(args) == 0:
         #     print('Usage: brotab_client.py close_tabs <#tab ...>')
@@ -216,6 +234,7 @@ class MultipleMediatorsAPI(object):
 
     def get_active_tabs(self, args):
         return [api.get_active_tab(args) for api in self._apis]
+        #return ['%s\t%s' % (api.get_active_tab(args), api) for api in self._apis]
 
     # def new_tab(self, args):
     #     if len(args) <= 1:
@@ -227,7 +246,7 @@ class MultipleMediatorsAPI(object):
 
     def list_tabs(self, args, print_error=False):
         functions = [partial(api.list_tabs_safe, args, print_error)
-                     for api in self._apis]
+                     for api in self.ready_apis]
         if not functions:
             return []
         tabs = sum(call_parallel(functions), [])
@@ -239,9 +258,11 @@ class MultipleMediatorsAPI(object):
             parse_tab_lines(tabs_after))
 
         if delete_commands:
+            print('DELETE', delete_commands)
             api.close_tabs(delete_commands)
 
         if move_commands:
+            print('MOVE', move_commands)
             api.move_tabs(move_commands)
 
     def move_tabs(self, args):
@@ -287,7 +308,7 @@ class MultipleMediatorsAPI(object):
     def get_words(self, tab_ids):
         words = set()
         import time
-        for api in self._apis:
+        for api in self.ready_apis:
             start = time.time()
             words |= set(api.get_words(tab_ids))
             delta = time.time() - start
@@ -296,7 +317,7 @@ class MultipleMediatorsAPI(object):
 
     def get_text(self, args):
         tabs = []
-        for api in self._apis:
+        for api in self.ready_apis:
             try:
                 import time
                 start = time.time()
