@@ -1,4 +1,28 @@
-# Notes
+# Development
+
+## Installation in development mode
+
+cd brotab
+pip install --user -e .
+
+## Rest
+
+This document serves the purpose of being a reminder to dev
+
+Chrome extension IDs:
+
+Debug:
+    "chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/"
+
+Prod:
+    "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/"
+
+## Things to implement
+
+- rofi: close multiple tabs (multiselect), should be opened with current tab
+  selected for convenience
+
+## Notes
 
 Use this command to print current tabs in firefox:
 
@@ -17,17 +41,17 @@ fs search
 
 Desired modes:
 
-* insert
-    * rt ticket number
-    * rt ticket: title
-    * ticket url
-    * ? insert all: ticket: title (url)
-* open rt ticket in a browser
+- insert
+  - rt ticket number
+  - rt ticket: title
+  - ticket url
+  - ? insert all: ticket: title (url)
+- open rt ticket in a browser
 
-* open sheet ticket in a browser
+- open sheet ticket in a browser
 
-* activate browser tab
-* close browser tab
+- activate browser tab
+- close browser tab
 
 ## Multiple extensions/browsers/native apps
 
@@ -61,12 +85,25 @@ Testing:
 [_] ability to move across windows of the same browser
 [_] ability to move across windows of different browsers
 
+## Bugs
+
+[_] bt move hangs after interacting with chromium
+[_] bt close, chromium timeout
+[_] bt active is broken with chromium extension
+    [_] rofi, activate, close tabs: should select currently active tab
+[_] rofi, close tabs: should be multi-selectable
+
 ## Release procedure
 
-```
+```bash
 $ pandoc --from=markdown --to=rst --output=README.rst README.md
 $ python setup.py sdist bdist_wheel --universal
 $ twine upload dist/*
 ```
 
+## Commands
 
+chromium-browser --pack-extension=chrome
+
+To make sure that extension works under selenium, copy brotab_mediator.json to:
+/etc/opt/chrome/native-messaging-hosts
