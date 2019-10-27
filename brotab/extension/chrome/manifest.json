@@ -5,7 +5,7 @@
   "manifest_version": 2,
   "name": "BroTab",
   "short_name": "BroTab",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "background": {
     "scripts": ["background.js"]
   },

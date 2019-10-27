@@ -119,7 +119,16 @@ Testing:
 $ pandoc --from=markdown --to=rst --output=README.rst README.md
 $ python setup.py sdist bdist_wheel --universal
 $ twine upload dist/*
+
+$ nvim CHANGELOG.md
+$ git ci -m 'Bump version from 0.0.3 to 0.0.5'
+$ git tag 0.0.5
+$ git push && git push --tags
 ```
+
+Load env file as follows:
+
+set -o allexport; source .env; set +o allexport
 
 ## Commands
 

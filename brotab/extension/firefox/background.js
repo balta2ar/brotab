@@ -135,7 +135,7 @@ class ChromeTabs extends BrowserTabs {
 }
 
 
-console.error("Detecting browser");
+console.log("Detecting browser");
 var port = undefined;
 var tabs = undefined;
 var browserTabs = undefined;
@@ -152,7 +152,7 @@ if (typeof browser !== 'undefined') {
   browserTabs = new ChromeTabs(chrome);
 
 } else {
-  console.error("Unknown browser detected");
+  console.log("Unknown browser detected");
 }
 
 
