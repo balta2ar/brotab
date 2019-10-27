@@ -64,7 +64,7 @@ Features to show:
 * move tabs, move, different window
 * move tabs, move, different browser (NOT IMPLEMENTED)
 * move tabs, close
-* words, complete in neovim
+* words, complete in neovim (integration with coc, ncm2, deoplete)
 * open tabs by url
 * open tab by google query, search (should be extendable, NOT IMPLEMENTED)
 * integration with fzf:
@@ -73,6 +73,9 @@ Features to show:
 * integration with rofi:
   * activate tab
   * close tabs
+* integration with albert
+  * index text of available tabs (requires sqlite 3.25, fts5 plugin)
+  * search a tab by text in albert
 * show duplicate tabs and close them
 
 ## Installation
