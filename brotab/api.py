@@ -96,8 +96,8 @@ class SingleMediatorAPI(object):
         self._get('/activate_tab/%s' % tab_id)
         #self._get('/activate_tab/%s' % strWindowTab)
 
-    def get_active_tab(self, args) -> str:
-        return [self.prefix_tab(tab) for tab in self._get('/get_active_tab').split(',')]
+    def get_active_tabs(self, args) -> [str]:
+        return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
     # def new_tab(self, prefix, search_query):
     #     if prefix != self._prefix:
@@ -233,8 +233,8 @@ class MultipleMediatorsAPI(object):
             api.activate_tab(args)
 
     def get_active_tabs(self, args):
-        return [api.get_active_tab(args) for api in self._apis]
-        #return ['%s\t%s' % (api.get_active_tab(args), api) for api in self._apis]
+        return [api.get_active_tabs(args) for api in self._apis]
+        #return ['%s\t%s' % (api.get_active_tabs(args), api) for api in self._apis]
 
     # def new_tab(self, args):
     #     if len(args) <= 1:

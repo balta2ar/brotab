@@ -121,9 +121,9 @@ class BrowserRemoteAPI:
         command = {'name': 'activate_tab', 'tab_id': tab_id}
         self._transport.send(command)
 
-    def get_active_tab(self) -> str:
-        logger.info('getting active tab')
-        command = {'name': 'get_active_tab'}
+    def get_active_tabs(self) -> str:
+        logger.info('getting active tabs')
+        command = {'name': 'get_active_tabs'}
         self._transport.send(command)
         return self._transport.recv()
 
@@ -199,9 +199,9 @@ def activate_tab(tab_id):
     return 'OK'
 
 
-@app.route('/get_active_tab')
-def get_active_tab():
-    return browser.get_active_tab()
+@app.route('/get_active_tabs')
+def get_active_tabs():
+    return browser.get_active_tabs()
 
 
 @app.route('/get_words')
@@ -247,7 +247,7 @@ def root_handler():
 #    - /open_urls
 #    - /new_tab (google search)
 #    - /get_tab_text
-#    - /get_active_tab_text
+#    - /get_active_tabs_text
 #
 # TODO: fix bug when the number of tabs > 1100
 # TODO: read stdin continuously in a separate thraed,
