@@ -253,8 +253,7 @@ function activateTab(tab_id) {
 
 function getActiveTab() {
   browserTabs.getActive(tabs => {
-      let tab = tabs[0];
-      var result = tab.windowId + "." + tab.id;
+      var result = tabs.map(tab => tab.windowId + "." + tab.id).toString()
       console.log(`Active tab: ${result}`);
       port.postMessage(result);
   });

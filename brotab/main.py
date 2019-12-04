@@ -152,8 +152,9 @@ def show_active_tab(args):
     # api = MultipleMediatorsAPI(create_clients())
     # tabs = api.get_active_tabs(args)
     for api in apis:
-        line = '%s\t%s' % (api.get_active_tab(args), api)
-        print(line)
+        tabs = api.get_active_tab(args)
+        for tab in tabs:
+            print('%s\t%s' % (tab, api))
     # print('\n'.join(tabs))
     # api.activate_tab(args.tab_id)
 

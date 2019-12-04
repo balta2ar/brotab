@@ -97,7 +97,7 @@ class SingleMediatorAPI(object):
         #self._get('/activate_tab/%s' % strWindowTab)
 
     def get_active_tab(self, args) -> str:
-        return self.prefix_tab(self._get('/get_active_tab'))
+        return [self.prefix_tab(tab) for tab in self._get('/get_active_tab').split(',')]
 
     # def new_tab(self, prefix, search_query):
     #     if prefix != self._prefix:
