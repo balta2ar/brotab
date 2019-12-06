@@ -295,7 +295,7 @@ def main():
                     DEFAULT_HTTP_IFACE, port)
         actual_port = port
         try:
-            app.run(DEFAULT_HTTP_IFACE, port, debug=False)
+            app.run(DEFAULT_HTTP_IFACE, port, debug=False, threaded=False)
             logger.info('Exiting mediator...')
             break
         except OSError as e:
