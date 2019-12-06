@@ -181,7 +181,7 @@ class SingleMediatorAPI(object):
             num_tabs = int(args[0])
 
         result = self._get(
-            '/get_text?delimiter_regex=%s&replace_with=%s' % (
+            '/get_text/?delimiter_regex=%s&replace_with=%s' % (
                 encode_query(delimiter_regex),
                 encode_query(replace_with),
             ),
@@ -340,7 +340,11 @@ class MultipleMediatorsAPI(object):
                 logger.info('get text (single client) took %s', delta)
             except ValueError as e:
                 print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
+                logger.error("Cannot decode JSON: %s: %s" % (api, e))
             except URLError as e:
                 print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
+                logger.error("Cannot access API %s: %s" % (api, e))
+            except Exception as e:
+                logger.error("Unknown exception: %s %s" % (api, e))
         return tabs
 
