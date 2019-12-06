@@ -2,8 +2,10 @@
 On startup, connect to the "brotab_mediator" app.
 */
 
-const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");';
-const GET_TEXT_SCRIPT = 'document.body.innerText.replace(/\\n|\\r|\\t/g, " ");';
+//const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");';
+const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(#match_regex#))].sort().join(#join_with#);';
+//const GET_TEXT_SCRIPT = 'document.body.innerText.replace(/\\n|\\r|\\t/g, " ");';
+const GET_TEXT_SCRIPT = 'document.body.innerText.replace(#delimiter_regex#, #replace_with#);';
 
 
 class BrowserTabs {
@@ -259,13 +261,26 @@ function getActiveTabs() {
   });
 }
 
-function getWordsFromTabs(tabs) {
+function getWordsScript(match_regex, join_with) {
+  return GET_WORDS_SCRIPT
+    .replace('#match_regex#', match_regex)
+    .replace('#join_with#', join_with);
+}
+
+function getTextScript(delimiter_regex, replace_with) {
+  return GET_TEXT_SCRIPT
+    .replace('#delimiter_regex#', delimiter_regex)
+    .replace('#replace_with#', replace_with);
+}
+
+function getWordsFromTabs(tabs, match_regex, join_with) {
   var promises = [];
   console.log(`Getting words from tabs: ${tabs}`);
+  const script = getWordsScript(match_regex, join_with);
 
   for (let tab of tabs) {
     var promise = new Promise(
-      (resolve, reject) => browserTabs.runScript(tab.id, GET_WORDS_SCRIPT, null,
+      (resolve, reject) => browserTabs.runScript(tab.id, script, null,
         (words, _payload) => {
           console.log(`Got ${words.length} words from another tab`);
           resolve(words);
@@ -287,26 +302,32 @@ function getWordsFromTabs(tabs) {
   )
 }
 
-function getWords(tab_id) {
+function getWords(tab_id, match_regex, join_with) {
   if (tab_id == null) {
     console.log(`Getting words for active tabs`);
-    browserTabs.getActive(getWordsFromTabs);
+    browserTabs.getActive(
+      (tabs) => getWordsFromTabs(tabs, match_regex, join_with),
+    );
   } else {
-    console.log(`Getting words, running a script`);
-    browserTabs.runScript(tab_id, GET_WORDS_SCRIPT, null,
-      (words, _payload) => port.postMessage(words));
+    const script = getWordsScript(match_regex, join_with);
+    console.log(`Getting words, running a script: ${script}`);
+    browserTabs.runScript(tab_id, script, null,
+      (words, _payload) => port.postMessage(words),
+      (error, _payload) => console.log(`getWords: tab_id=${tab_id}, could not run script (${script})`),
+    );
   }
 }
 
-function getTextFromTabs(tabs, onSuccess) {
+function getTextFromTabs(tabs, delimiter_regex, replace_with, onSuccess) {
   var promises = [];
-  console.log(`Getting text from tabs: ${tabs.length}`);
+  const script = getTextScript(delimiter_regex, replace_with)
+  console.log(`Getting text from tabs: ${tabs.length}, script (${script})`);
 
   lines = [];
   for (let tab of tabs) {
     // console.log(`Processing tab ${tab.id}`);
     var promise = new Promise(
-      (resolve, reject) => browserTabs.runScript(tab.id, GET_TEXT_SCRIPT, tab,
+      (resolve, reject) => browserTabs.runScript(tab.id, script, tab,
         (text, current_tab) => {
           // let as_text = JSON.stringify(text);
           // I don't know why, but an array of one item is sent here, so I take
@@ -326,7 +347,6 @@ function getTextFromTabs(tabs, onSuccess) {
 
   // console.log(`Awaiting text promises`);
   Promise.all(promises).then(onSuccess);
-  // console.log(`getTextFromTabs done`);
 }
 
 function getTextOnRunScriptSuccess(all_results) {
@@ -347,15 +367,17 @@ function getTextOnRunScriptSuccess(all_results) {
   port.postMessage(lines);
 }
 
-function getTextOnListSuccess(tabs) {
+function getTextOnListSuccess(tabs, delimiter_regex, replace_with) {
   lines = [];
   // Make sure tabs are sorted by their index within a window
   tabs.sort(compareWindowIdTabId);
-  getTextFromTabs(tabs, getTextOnRunScriptSuccess);
+  getTextFromTabs(tabs, delimiter_regex, replace_with, getTextOnRunScriptSuccess);
 }
 
-function getText() {
-  browserTabs.list({'discarded': false}, getTextOnListSuccess);
+function getText(delimiter_regex, replace_with) {
+  browserTabs.list({'discarded': false},
+      (tabs) => getTextOnListSuccess(tabs, delimiter_regex, replace_with),
+  );
 }
 
 function getBrowserName() {
@@ -405,12 +427,12 @@ port.onMessage.addListener((command) => {
 
   else if (command['name'] == 'get_words') {
     console.log('Getting words from tab:', command['tab_id']);
-    getWords(command['tab_id']);
+    getWords(command['tab_id'], command['match_regex'], command['join_with']);
   }
 
   else if (command['name'] == 'get_text') {
     console.log('Getting texts from all tabs');
-    getText();
+    getText(command['delimiter_regex'], command['replace_with']);
   }
 
   else if (command['name'] == 'get_browser') {
