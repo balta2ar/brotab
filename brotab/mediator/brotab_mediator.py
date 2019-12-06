@@ -15,6 +15,13 @@ from typing import List
 import flask
 from flask import request
 
+from brotab.utils import encode_query, decode_query
+from brotab.const import \
+    DEFAULT_GET_WORDS_MATCH_REGEX, \
+    DEFAULT_GET_WORDS_JOIN_WITH, \
+    DEFAULT_GET_TEXT_DELIMITER_REGEX, \
+    DEFAULT_GET_TEXT_REPLACE_WITH
+
 app = flask.Flask(__name__)
 
 FORMAT = '%(asctime)-15s %(process)-5d %(levelname)-10s %(message)s'
@@ -37,6 +44,11 @@ DEFAULT_HTTP_IFACE = '127.0.0.1'
 DEFAULT_MIN_HTTP_PORT = 4625
 DEFAULT_MAX_HTTP_PORT = DEFAULT_MIN_HTTP_PORT + 10
 actual_port = None
+
+DEFAULT_GET_WORDS_MATCH_REGEX = encode_query(DEFAULT_GET_WORDS_MATCH_REGEX)
+DEFAULT_GET_WORDS_JOIN_WITH = encode_query(DEFAULT_GET_WORDS_JOIN_WITH)
+DEFAULT_GET_TEXT_DELIMITER_REGEX = encode_query(DEFAULT_GET_TEXT_DELIMITER_REGEX)
+DEFAULT_GET_TEXT_REPLACE_WITH = encode_query(DEFAULT_GET_TEXT_REPLACE_WITH)
 
 
 class StdTransport:
@@ -136,15 +148,25 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-    def get_words(self, tab_id):
+    def get_words(self, tab_id, match_regex, join_with):
         logger.info('getting tab words: %s', tab_id)
-        command = {'name': 'get_words', 'tab_id': tab_id}
+        command = {
+            'name': 'get_words',
+            'tab_id': tab_id,
+            'match_regex': match_regex,
+            'join_with': join_with,
+        }
         self._transport.send(command)
         return self._transport.recv()
 
-    def get_text(self):
-        logger.info('getting text')
-        command = {'name': 'get_text'}
+    def get_text(self, delimiter_regex, replace_with):
+        logger.info('getting text, delimiter_regex=%s, replace_with=%s',
+                    delimiter_regex, replace_with)
+        command = {
+            'name': 'get_text',
+            'delimiter_regex': delimiter_regex,
+            'replace_with': replace_with,
+        }
         self._transport.send(command)
         return self._transport.recv()
 
@@ -213,17 +235,26 @@ def get_active_tabs():
     return browser.get_active_tabs()
 
 
-@app.route('/get_words')
-@app.route('/get_words/<int:tab_id>')
+@app.route('/get_words/')
+@app.route('/get_words/<string:tab_id>/')
 def get_words(tab_id=None):
-    words = browser.get_words(tab_id)
-    logger.info('words for tab_id %s: %s', tab_id, words)
+    tab_id = int(tab_id) if is_valid_integer(tab_id) else None
+    match_regex = request.args.get('match_regex', DEFAULT_GET_WORDS_MATCH_REGEX)
+    join_with = request.args.get('join_with', DEFAULT_GET_WORDS_JOIN_WITH)
+    words = browser.get_words(tab_id,
+                              decode_query(match_regex),
+                              decode_query(join_with))
+    logger.info('words for tab_id %s (match_regex %s, join_with %s): %s',
+                tab_id, match_regex, join_with, words)
     return '\n'.join(words)
 
 
-@app.route('/get_text')
+@app.route('/get_text/')
 def get_text():
-    lines = browser.get_text()
+    delimiter_regex = request.args.get('delimiter_regex', DEFAULT_GET_TEXT_DELIMITER_REGEX)
+    replace_with = request.args.get('replace_with', DEFAULT_GET_TEXT_REPLACE_WITH)
+    lines = browser.get_text(decode_query(delimiter_regex),
+                             decode_query(replace_with))
     return '\n'.join(lines)
 
 
@@ -264,6 +295,13 @@ def root_handler():
 #       make sure this threaded reader and server reader are mutually exclusive.
 # TODO: all commands should be synchronous and should only terminate after
 #       the action has been actually executed in the browser.
+
+
+def is_valid_integer(str_value):
+    try:
+        return int(str_value) >= 0
+    except (ValueError, TypeError):
+        return False
 
 
 def signal_pipe(e):

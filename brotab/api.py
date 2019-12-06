@@ -13,6 +13,7 @@ from brotab.inout import MultiPartForm
 from brotab.parallel import call_parallel
 from brotab.operations import infer_delete_and_move_commands
 from brotab.tab import parse_tab_lines
+from brotab.utils import encode_query
 
 
 logger = logging.getLogger('brotab')
@@ -150,28 +151,41 @@ class SingleMediatorAPI(object):
                    else ('/open_urls/%s' % window_id),
                    files)
 
-    def get_words(self, tab_ids):
+    def get_words(self, tab_ids, match_regex, join_with):
         words = set()
+        match_regex = encode_query(match_regex)
+        join_with = encode_query(join_with)
 
         for tab_id in tab_ids:
             prefix, _window_id, tab_id = tab_id.split('.')
             if prefix + '.' != self._prefix:
                 continue
 
-            logger.info('SingleMediatorAPI: get_words: %s', tab_id)
-            words |= set(self._get('/get_words/%s' % tab_id).splitlines())
+            logger.info(
+                'SingleMediatorAPI: get_words: %s, match_regex: %s, join_with: %s',
+                tab_id, match_regex, join_with)
+            words |= set(self._get(
+                '/get_words/%s?match_regex=%s&join_with=%s' % (tab_id, match_regex, join_with)
+            ).splitlines())
 
         if not tab_ids:
-            words = set(self._get('/get_words').splitlines())
+            words = set(self._get(
+                '/get_words/?match_regex=%s&join_with=%s' % (match_regex, join_with)
+            ).splitlines())
 
         return sorted(list(words))
 
-    def get_text(self, args):
+    def get_text(self, args, delimiter_regex, replace_with):
         num_tabs = MAX_NUMBER_OF_TABS
         if len(args) > 0:
             num_tabs = int(args[0])
 
-        result = self._get('/get_text')
+        result = self._get(
+            '/get_text?delimiter_regex=%s&replace_with=%s' % (
+                encode_query(delimiter_regex),
+                encode_query(replace_with),
+            ),
+        )
         lines = []
         for line in result.splitlines()[:num_tabs]:
             lines.append(line)
@@ -305,23 +319,23 @@ class MultipleMediatorsAPI(object):
         client = self._get_api_by_prefix(prefix)
         client.open_urls(urls, window_id)
 
-    def get_words(self, tab_ids):
+    def get_words(self, tab_ids, match_regex, join_with):
         words = set()
         import time
         for api in self.ready_apis:
             start = time.time()
-            words |= set(api.get_words(tab_ids))
+            words |= set(api.get_words(tab_ids, match_regex, join_with))
             delta = time.time() - start
             #print('DELTA', delta, file=sys.stderr)
         return sorted(list(words))
 
-    def get_text(self, args):
+    def get_text(self, args, delimiter_regex, replace_with):
         tabs = []
         for api in self.ready_apis:
             try:
                 import time
                 start = time.time()
-                tabs.extend(api.get_text(args))
+                tabs.extend(api.get_text(args, delimiter_regex, replace_with))
                 delta = time.time() - start
                 logger.info('get text (single client) took %s', delta)
             except ValueError as e:

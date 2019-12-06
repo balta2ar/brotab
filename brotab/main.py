@@ -60,10 +60,15 @@ from urllib.parse import quote_plus
 
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
-from brotab.utils import split_tab_ids
+from brotab.utils import split_tab_ids, get_file_size
 from brotab.search.query import query
 from brotab.search.index import index
 from brotab.api import SingleMediatorAPI, MultipleMediatorsAPI
+from brotab.const import \
+    DEFAULT_GET_WORDS_MATCH_REGEX, \
+    DEFAULT_GET_WORDS_JOIN_WITH, \
+    DEFAULT_GET_TEXT_DELIMITER_REGEX, \
+    DEFAULT_GET_TEXT_REPLACE_WITH
 
 
 MIN_MEDIATOR_PORT = 4625
@@ -179,7 +184,8 @@ def index_tabs(args):
     start = time.time()
     index(args.sqlite, args.tsv)
     delta = time.time() - start
-    logger.info('sqlite create took %s', delta)
+    logger.info('sqlite create took %s, size %s',
+                delta, get_file_size(args.sqlite))
 
 
 def new_tab(args):
@@ -213,9 +219,10 @@ def get_words(args):
     # "})
     import time
     start = time.time()
-    logger.info('Get words from tabs: %s', args.tab_ids)
+    logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
+                args.tab_ids, args.match_regex, args.join_with)
     api = MultipleMediatorsAPI(create_clients())
-    words = api.get_words(args.tab_ids)
+    words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
     print('\n'.join(words))
     delta = time.time() - start
     #print('DELTA TOTAL', delta, file=sys.stderr)
@@ -224,7 +231,7 @@ def get_words(args):
 def get_text(args):
     logger.info('Get text from tabs')
     api = MultipleMediatorsAPI(create_clients())
-    tabs = api.get_text([])
+    tabs = api.get_text([], args.delimiter_regex, args.replace_with)
 
     if args.cleanup:
         pattern = re.compile(r'\s+')
@@ -408,6 +415,12 @@ def parse_args(args):
                                    help='sqlite DB filename')
     parser_index_tabs.add_argument('--tsv', type=str, default=None,
                                    help='get text from tabs and index the results')
+    parser_index_tabs.add_argument(
+        '--delimiter-regex', type=str, default=DEFAULT_GET_TEXT_DELIMITER_REGEX,
+        help='Regex that is used to match delimiters in the page text')
+    parser_index_tabs.add_argument(
+        '--replace-with', type=str, default=DEFAULT_GET_TEXT_REPLACE_WITH,
+        help='String that is used to replaced matched delimiters')
 
     parser_new_tab = subparsers.add_parser(
         'new',
@@ -441,12 +454,18 @@ def parse_args(args):
         'words',
         help='''
         show sorted unique words from all active tabs of all clients. This is
-        a helper for webcomplete deoplete plugin that helps complete words
-        from the browser
+        a helper for webcomplete plugin that helps complete words from the
+        browser
         ''')
     parser_get_words.set_defaults(func=get_words)
     parser_get_words.add_argument('tab_ids', type=str, nargs='*',
                                   help='Tab IDs to get words from')
+    parser_get_words.add_argument(
+        '--match-regex', type=str, default=DEFAULT_GET_WORDS_MATCH_REGEX,
+        help='Regex that is used to match words in the page text')
+    parser_get_words.add_argument(
+        '--join-with', type=str, default=DEFAULT_GET_WORDS_JOIN_WITH,
+        help='String that is used to join matched words')
 
     parser_get_text = subparsers.add_parser(
         'text',
@@ -459,6 +478,12 @@ def parse_args(args):
     parser_get_text.add_argument('--cleanup', action='store_true',
                                  default=False,
                                  help='force removal of extra whitespace')
+    parser_get_text.add_argument(
+        '--delimiter-regex', type=str, default=DEFAULT_GET_TEXT_DELIMITER_REGEX,
+        help='Regex that is used to match delimiters in the page text')
+    parser_get_text.add_argument(
+        '--replace-with', type=str, default=DEFAULT_GET_TEXT_REPLACE_WITH,
+        help='String that is used to replaced matched delimiters')
 
     parser_show_duplicates = subparsers.add_parser(
         'dup',
