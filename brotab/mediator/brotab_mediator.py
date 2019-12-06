@@ -2,6 +2,7 @@
 
 import json
 import logging
+import logging.handlers
 import struct
 import os
 import sys
@@ -17,11 +18,19 @@ from flask import request
 app = flask.Flask(__name__)
 
 FORMAT = '%(asctime)-15s %(process)-5d %(levelname)-10s %(message)s'
-logging.basicConfig(
-    format=FORMAT,
-    filename='/tmp/brotab_mediator.log',
-    level=logging.DEBUG)
+MAX_LOG_SIZE = 50 * 1024 * 1024
+LOG_FILENAME = '/tmp/brotab_mediator.log'
+LOG_BACKUP_COUNT = 1
+
 logger = logging.getLogger('brotab_mediator')
+logger.setLevel(logging.DEBUG)
+handler = logging.handlers.RotatingFileHandler(
+    filename=LOG_FILENAME,
+    maxBytes=MAX_LOG_SIZE,
+    backupCount=LOG_BACKUP_COUNT,
+)
+handler.setFormatter(logging.Formatter(FORMAT))
+logger.addHandler(handler)
 logger.info('Logger has been created')
 
 DEFAULT_HTTP_IFACE = '127.0.0.1'
