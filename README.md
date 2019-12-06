@@ -27,7 +27,7 @@ positional arguments:
                         command to obtain tab IDs (first column)
     activate            activate given tab ID. Tab ID should be in the following
                         format: "<prefix>.<window_id>.<tab_id>"
-    active              display active tab for each client/window in the following
+    active              display active tabs for each client/window in the following
                         format: "<prefix>.<window_id>.<tab_id>"
     search              Search across your indexed tabs using sqlite fts5 plugin.
     index               Index the text from browser's tabs. Text is put into sqlite

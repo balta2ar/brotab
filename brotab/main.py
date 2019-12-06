@@ -145,15 +145,16 @@ def activate_tab(args):
     api.activate_tab(args.tab_id)
 
 
-def show_active_tab(args):
+def show_active_tabs(args):
     logger.info('Showing active tabs: %s', args)
     #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
     apis = create_clients()
     # api = MultipleMediatorsAPI(create_clients())
     # tabs = api.get_active_tabs(args)
     for api in apis:
-        line = '%s\t%s' % (api.get_active_tab(args), api)
-        print(line)
+        tabs = api.get_active_tabs(args)
+        for tab in tabs:
+            print('%s\t%s' % (tab, api))
     # print('\n'.join(tabs))
     # api.activate_tab(args.tab_id)
 
@@ -375,7 +376,7 @@ def parse_args(args):
         activate given tab ID. Tab ID should be in the following format:
         "<prefix>.<window_id>.<tab_id>"
         ''')
-    parser_activate_tab.set_defaults(func=activate_tab)
+    parser_activate_tab.set_defaults(func=activate_tabs)
     parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
                                      help='Tab ID to activate')
 
