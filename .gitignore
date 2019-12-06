@@ -8,3 +8,7 @@ build
 brotab.egg-info
 target
 brotab/node_modules
+
+node_modules
+tags
+npm-debug.log
