@@ -1,5 +1,10 @@
 # BroTab
 
+![GitHub](https://img.shields.io/github/license/balta2ar/brotab)
+[![PyPI version](https://badge.fury.io/py/brotab.svg)](https://badge.fury.io/py/brotab)
+![Mozilla Add-on](https://img.shields.io/amo/v/brotab)
+![Chrome Web Store](https://img.shields.io/chrome-web-store/v/mhpeahbikehnfkfnmopaigggliclhmnc)
+
 Control your browser's tabs from the terminal.
 
 ## About
