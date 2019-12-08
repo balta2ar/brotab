@@ -2,18 +2,18 @@
   "description": "Control your browser's tabs from command line",
   "manifest_version": 2,
   "name": "BroTab",
-  "version": "1.0.5",
-  "applications": {
-    "gecko": {
-      "id": "brotab_mediator@example.org",
-      "strict_min_version": "50.0"
-    }
-  },
+  "version": "1.0.6",
   "background": {
     "scripts": ["background.js"]
   },
   "icons": {
       "128": "brotab-icon-128x128.png"
   },
-  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>"]
+  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>"],
+  "applications": {
+    "gecko": {
+      "id": "brotab_mediator@example.org",
+      "strict_min_version": "50.0"
+    }
+  }
 }

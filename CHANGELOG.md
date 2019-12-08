@@ -1,4 +1,4 @@
-0.0.6 (2019-12-XX)
+1.0.6 (2019-12-08)
 
 * print all active tabs from all windows (#8)
 * autorotate mediator logs to make sure it doesn't grow too large

@@ -28,6 +28,10 @@ Chrome extension IDs:
 Debug:
     "chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/"
 
+  // Extension ID: knldjmfmopnpolahpmmgbagdohdnhkik
+  "key": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDcBHwzDvyBQ6bDppkIs9MP4ksKqCMyXQ/A52JivHZKh4YO/9vJsT3oaYhSpDCE9RPocOEQvwsHsFReW2nUEc6OLLyoCFFxIb7KkLGs
+mfakkut/fFdNJYh0xOTbSN8YvLWcqph09XAY2Y/f0AL7vfO1cuCqtkMt8hFrBGWxDdf9CQIDAQAB",
+
 Prod:
     "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/"
 
@@ -116,6 +120,7 @@ Testing:
 ## Release procedure
 
 ```bash
+# bump bersion in brotab/__version__.py
 $ pandoc --from=markdown --to=rst --output=README.rst README.md
 $ python setup.py sdist bdist_wheel --universal
 $ twine upload dist/*

@@ -46,8 +46,10 @@ here = os.path.abspath(os.path.dirname(__file__))
 #     long_description = '\n' + f.read()
 
 try:
-    import pypandoc
-    long_description = pypandoc.convert_file("README.md", "rst")
+    #import pypandoc
+    #long_description = pypandoc.convert_file("README.md", "rst")
+    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+        long_description = '\n' + f.read()
 except ImportError:
     print('WARNING: description is empty, consider installing pypandoc: pip install --user pypandoc')
     long_description = ''
@@ -105,6 +107,7 @@ setup(
     version=about['__version__'],
     description=DESCRIPTION,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     author=AUTHOR,
     author_email=EMAIL,
     url=URL,
