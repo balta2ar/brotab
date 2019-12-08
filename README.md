@@ -1,6 +1,7 @@
 # BroTab
 
 ![GitHub](https://img.shields.io/github/license/balta2ar/brotab)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/balta2ar/brotab)
 [![PyPI version](https://badge.fury.io/py/brotab.svg)](https://badge.fury.io/py/brotab)
 ![Mozilla Add-on](https://img.shields.io/amo/v/brotab)
 ![Chrome Web Store](https://img.shields.io/chrome-web-store/v/mhpeahbikehnfkfnmopaigggliclhmnc)
