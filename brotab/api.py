@@ -2,11 +2,13 @@ import io
 import sys
 import socket
 import logging
+import json
 from traceback import print_exc
 from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
 from urllib.parse import quote_plus
 from functools import partial
+from collections.abc import Mapping
 
 from brotab.inout import edit_tabs_in_editor
 from brotab.inout import MultiPartForm
@@ -107,6 +109,13 @@ class SingleMediatorAPI(object):
     #     self._get('/new_tab/%s' % search_query)
 
     def query_tabs(self, args):
+        try:
+            if not isinstance(json.loads(json.loads(args)), Mapping):
+                raise json.JSONDecodeError("json has attributes unsupported by brotab.", "", 0)
+        except json.JSONDecodeError as e:
+            print("Cannot decode JSON: %s: %s" % (__name__, e), file=sys.stderr)
+            return []
+
         result = self._get('/query_tabs/%s' % encode_query(args))
         lines = result.splitlines()[:MAX_NUMBER_OF_TABS]
         return self.prefix_tabs(lines)
