@@ -92,6 +92,12 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
+    def query_tabs(self, query_info: str):
+        logger.info('query info: %s', query_info)
+        command = {'name': 'query_tabs', 'query_info': query_info}
+        self._transport.send(command)
+        return self._transport.recv()
+
     def move_tabs(self, move_triplets: str):
         """
         :param move_triplets: Comma-separated list of:
@@ -195,6 +201,12 @@ def shutdown():
 @app.route('/list_tabs')
 def list_tabs():
     tabs = browser.list_tabs()
+    return '\n'.join(tabs)
+
+
+@app.route('/query_tabs/<query_info>')
+def query_tabs(query_info):
+    tabs = browser.query_tabs(query_info)
     return '\n'.join(tabs)
 
 

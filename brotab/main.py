@@ -56,11 +56,12 @@ from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, quote
+from json import dumps as json_dumps
 
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
-from brotab.utils import split_tab_ids, get_file_size
+from brotab.utils import split_tab_ids, get_file_size, encode_query
 from brotab.search.query import query
 from brotab.search.index import index
 from brotab.api import SingleMediatorAPI, MultipleMediatorsAPI
@@ -168,6 +169,18 @@ def search_tabs(args):
     for result in query(args.sqlite, args.query):
         print('\t'.join([result.tab_id, result.title, result.snippet]))
 
+
+def query_tabs(args):
+    logger.info('Querying tabs: %s', args)
+    d = vars(args)
+    if d['info'] is not None:
+        queryInfo = d['info']
+    else:
+        queryInfo = {k: v for k, v in d.items() if v is not None and k not in ['func', 'info']}
+    queryInfo = json_dumps(queryInfo)
+    api = MultipleMediatorsAPI(create_clients())
+    for tab in api.query_tabs(queryInfo):
+        print(tab)
 
 def index_tabs(args):
     if args.tsv is None:
@@ -404,6 +417,67 @@ def parse_args(args):
     parser_search_tabs.add_argument('--sqlite', type=str, default='/tmp/tabs.sqlite',
                                     help='sqlite DB filename')
     parser_search_tabs.add_argument('query', type=str, help='Search query')
+
+    parser_query_tabs = subparsers.add_parser(
+        'query',
+        help='''
+        Filter tabs using chrome.tabs api.
+        ''',
+        prefix_chars='-+')
+    parser_query_tabs.set_defaults(func=query_tabs)
+    parser_query_tabs.add_argument('+active', action='store_const', const=True, default=None,
+        help='tabs are active in their windows')
+    parser_query_tabs.add_argument('-active', action='store_const', const=False, default=None,
+        help='tabs are not active in their windows')
+    parser_query_tabs.add_argument('+pinned', action='store_const', const=True, default=None,
+        help='tabs are pinned')
+    parser_query_tabs.add_argument('-pinned', action='store_const', const=False, default=None,
+        help='tabs are not pinned')
+    parser_query_tabs.add_argument('+audible', action='store_const', const=True, default=None,
+        help='tabs are audible')
+    parser_query_tabs.add_argument('-audible', action='store_const', const=False, default=None,
+        help='tabs are not audible')
+    parser_query_tabs.add_argument('+muted', action='store_const', const=True, default=None,
+        help='tabs are muted')
+    parser_query_tabs.add_argument('-muted', action='store_const', const=False, default=None,
+        help='tabs not are muted')
+    parser_query_tabs.add_argument('+highlighted', action='store_const', const=True, default=None,
+        help='tabs are highlighted')
+    parser_query_tabs.add_argument('-highlighted', action='store_const', const=False, default=None,
+        help='tabs not are highlighted')
+    parser_query_tabs.add_argument('+discarded', action='store_const', const=True, default=None,  
+        help='tabs are discarded i.e. unloaded from memory but still visible in the tab strip.')
+    parser_query_tabs.add_argument('-discarded', action='store_const', const=False, default=None,
+        help='tabs are not discarded i.e. unloaded from memory but still visible in the tab strip.')
+    parser_query_tabs.add_argument('+autoDiscardable', action='store_const', const=True, default=None,
+        help='tabs can be discarded automatically by the browser when resources are low.')
+    parser_query_tabs.add_argument('-autoDiscardable', action='store_const', const=False, default=None,
+        help='tabs cannot be discarded automatically by the browser when resources are low.')
+    parser_query_tabs.add_argument('+currentWindow', action='store_const', const=True, default=None,
+        help='tabs are in the current window.')
+    parser_query_tabs.add_argument('-currentWindow', action='store_const', const=False, default=None,
+        help='tabs are not in the current window.')
+    parser_query_tabs.add_argument('+lastFocusedWindow', action='store_const', const=True, default=None,
+        help='tabs are in the last focused window.')
+    parser_query_tabs.add_argument('-lastFocusedWindow', action='store_const', const=False, default=None,
+        help='tabs are not in the last focused window.')
+    parser_query_tabs.add_argument('-status', type=str, choices=['loading', 'complete'],
+        help='whether the tabs have completed loading i.e. loading or complete.')
+    parser_query_tabs.add_argument('-title', type=str,
+        help='match page titles against a pattern.')
+    parser_query_tabs.add_argument('-url', type=str, action='append',
+        help='match tabs against one or more URL patterns. Fragment identifiers are not matched. see https://developer.chrome.com/extensions/match_patterns')
+    parser_query_tabs.add_argument('-windowId', type=int,
+        help='the ID of the parent window, or windows.WINDOW_ID_CURRENT for the current window.')
+    parser_query_tabs.add_argument('-windowType', type=str, choices=['normal', 'popup', 'panel', 'app', 'devtools'],
+        help='the type of window the tabs are in.')
+    parser_query_tabs.add_argument('-index', type=int,
+        help='the position of the tabs within their windows.')
+    parser_query_tabs.add_argument('-info', type=str,
+        help='''
+        the queryInfo parameter as outlined here: https://developer.chrome.com/extensions/tabs#method-query.
+        all other query arguments are ignored if this argument is present.
+        ''')
 
     parser_index_tabs = subparsers.add_parser(
         'index',
