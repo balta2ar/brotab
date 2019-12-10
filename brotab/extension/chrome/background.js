@@ -58,11 +58,9 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo).then(
-      onSuccess,
-      (error) => console.log(`Error querying tabs: ${error}`)
-    );
+  query(queryInfo, onSuccess, onFailure) {
+    this._browser.tabs.query(queryInfo)
+      .then(onSuccess, onFailure);
   }
 
   close(tab_ids, onSuccess) {
@@ -111,8 +109,9 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query(queryInfo, onSuccess);
   }
 
-  query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo, onSuccess);
+  query(queryInfo, onSuccess, onFailure) {
+    this._browser.tabs.query(queryInfo)
+      .then(onSuccess, onFailure);
   }
 
   close(tab_ids, onSuccess) {
@@ -221,8 +220,40 @@ function queryTabsOnSuccess(tabs) {
   port.postMessage(lines);
 }
 
+function queryTabsOnFailure(error) {
+  console.error(error);
+  port.postMessage([]);
+}
+
 function queryTabs(query_info) {
-  browserTabs.query(JSON.parse(atob(query_info)), queryTabsOnSuccess);
+  try {
+    let query = atob(query_info)
+    query = JSON.parse(query)
+    if (typeof query == 'string')
+      query = JSON.parse(query)
+    integerKeys = {'windowId': null, 'index': null};
+    booleanKeys = {'active': null, 'pinned': null, 'audible': null, 'muted': null, 'highlighted': null,
+      'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null};
+    query = Object.entries(query).reduce((o, [k,v]) => {
+      if (booleanKeys.hasOwnProperty(k) && typeof v != 'boolean') {
+        if (v.toLowerCase() == 'true')
+          o[k] = true;
+        else if (v.toLowerCase() == 'false')
+          o[k] = false;
+        else
+          o[k] = v;
+      }
+      else if (integerKeys.hasOwnProperty(k) && typeof v != 'number')
+        o[k] = Number(v);
+      else
+        o[k] = v;
+      return o;
+    }, {})
+    browserTabs.query(query, queryTabsOnSuccess, queryTabsOnFailure);
+  }
+  catch(error) {
+    queryTabsOnFailure(error);
+  }
 }
 
 // function moveTabs(move_triplets) {
