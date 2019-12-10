@@ -17,6 +17,10 @@ class BrowserTabs {
     throw new Error('list is not implemented');
   }
 
+  query(queryInfo, onSuccess) {
+    throw new Error('query is not implemented');
+  }
+
   close(tab_ids, onSuccess) {
     throw new Error('close is not implemented');
   }
@@ -51,6 +55,13 @@ class FirefoxTabs extends BrowserTabs {
     this._browser.tabs.query(queryInfo).then(
       onSuccess,
       (error) => console.log(`Error listing tabs: ${error}`)
+    );
+  }
+
+  query(queryInfo, onSuccess) {
+    this._browser.tabs.query(queryInfo).then(
+      onSuccess,
+      (error) => console.log(`Error querying tabs: ${error}`)
     );
   }
 
@@ -97,6 +108,10 @@ class FirefoxTabs extends BrowserTabs {
 
 class ChromeTabs extends BrowserTabs {
   list(queryInfo, onSuccess) {
+    this._browser.tabs.query(queryInfo, onSuccess);
+  }
+
+  query(queryInfo, onSuccess) {
     this._browser.tabs.query(queryInfo, onSuccess);
   }
 
@@ -197,6 +212,17 @@ function listTabsOnSuccess(tabs) {
 
 function listTabs() {
   browserTabs.list({}, listTabsOnSuccess);
+}
+
+function queryTabsOnSuccess(tabs) {
+  tabs.sort(compareWindowIdTabId);
+  let lines = tabs.map(tab => `${tab.windowId}.${tab.id}\t${tab.title}\t${tab.url}`)
+  console.log(lines);
+  port.postMessage(lines);
+}
+
+function queryTabs(query_info) {
+  browserTabs.query(JSON.parse(atob(query_info)), queryTabsOnSuccess);
 }
 
 // function moveTabs(move_triplets) {
@@ -393,6 +419,11 @@ port.onMessage.addListener((command) => {
   if (command['name'] == 'list_tabs') {
     console.log('Listing tabs...');
     listTabs();
+  }
+
+  else if (command['name'] == 'query_tabs') {
+    console.log('Querying tabs...');
+    queryTabs(command['query_info']);
   }
 
   else if (command['name'] == 'close_tabs') {

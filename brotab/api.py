@@ -106,6 +106,26 @@ class SingleMediatorAPI(object):
     #
     #     self._get('/new_tab/%s' % search_query)
 
+    def query_tabs(self, args):
+        result = self._get('/query_tabs/%s' % encode_query(args))
+        lines = result.splitlines()[:MAX_NUMBER_OF_TABS]
+        return self.prefix_tabs(lines)
+
+    def query_tabs_safe(self, args, print_error=False):
+        args = args or []
+        tabs = []
+        try:
+            tabs = self.query_tabs(args)
+        except ValueError as e:
+            print("Cannot decode JSON: %s: %s" % (self, e), file=sys.stderr)
+            if print_error:
+                print_exc(file=sys.stderr)
+        except URLError as e:
+            print("Cannot access API %s: %s" % (self, e), file=sys.stderr)
+            if print_error:
+                print_exc(file=sys.stderr)
+        return tabs
+
     def list_tabs(self, args):
         num_tabs = MAX_NUMBER_OF_TABS
         if len(args) > 0:
@@ -257,6 +277,14 @@ class MultipleMediatorsAPI(object):
     #
     #     for api in self._apis:
     #         api.new_tab(args)
+
+    def query_tabs(self, args, print_error=False):
+        functions = [partial(api.query_tabs_safe, args, print_error)
+                     for api in self.ready_apis]
+        if not functions:
+            return []
+        tabs = sum(call_parallel(functions), [])
+        return tabs
 
     def list_tabs(self, args, print_error=False):
         functions = [partial(api.list_tabs_safe, args, print_error)
