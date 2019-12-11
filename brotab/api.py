@@ -109,14 +109,19 @@ class SingleMediatorAPI(object):
     #     self._get('/new_tab/%s' % search_query)
 
     def query_tabs(self, args):
+        query = args
         try:
-            if not isinstance(json.loads(json.loads(args)), Mapping):
+            if not isinstance(query, Mapping):
+                _query = json.loads(query)
+            if not isinstance(_query, Mapping):
+                _query = json.loads(_query)
+            if not isinstance(_query, Mapping):
                 raise json.JSONDecodeError("json has attributes unsupported by brotab.", "", 0)
         except json.JSONDecodeError as e:
             print("Cannot decode JSON: %s: %s" % (__name__, e), file=sys.stderr)
             return []
 
-        result = self._get('/query_tabs/%s' % encode_query(args))
+        result = self._get('/query_tabs/%s' % encode_query(query))
         lines = result.splitlines()[:MAX_NUMBER_OF_TABS]
         return self.prefix_tabs(lines)
 
