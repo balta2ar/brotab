@@ -57,7 +57,6 @@ from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
 from urllib.parse import quote_plus, quote
-from json import dumps as json_dumps
 
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
@@ -177,7 +176,6 @@ def query_tabs(args):
         queryInfo = d['info']
     else:
         queryInfo = {k: v for k, v in d.items() if v is not None and k not in ['func', 'info']}
-    queryInfo = json_dumps(queryInfo)
     api = MultipleMediatorsAPI(create_clients())
     for tab in api.query_tabs(queryInfo):
         print(tab)
