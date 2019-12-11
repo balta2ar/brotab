@@ -110,18 +110,16 @@ class SingleMediatorAPI(object):
 
     def query_tabs(self, args):
         query = args
-        try:
-            if not isinstance(query, Mapping):
-                _query = json.loads(query)
-            if not isinstance(_query, Mapping):
-                _query = json.loads(_query)
-            if not isinstance(_query, Mapping):
-                raise json.JSONDecodeError("json has attributes unsupported by brotab.", "", 0)
-        except json.JSONDecodeError as e:
-            print("Cannot decode JSON: %s: %s" % (__name__, e), file=sys.stderr)
-            return []
+        if isinstance(query, str):
+            try:
+                query = json.loads(query)
+                if not isinstance(query, Mapping):
+                    raise json.JSONDecodeError("json has attributes unsupported by brotab.", "", 0)
+            except json.JSONDecodeError as e:
+                print("Cannot decode JSON: %s: %s" % (__name__, e), file=sys.stderr)
+                return []
 
-        result = self._get('/query_tabs/%s' % encode_query(query))
+        result = self._get('/query_tabs/%s' % encode_query(json.dumps(query)))
         lines = result.splitlines()[:MAX_NUMBER_OF_TABS]
         return self.prefix_tabs(lines)
 
