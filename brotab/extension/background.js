@@ -230,10 +230,9 @@ function queryTabs(query_info) {
     let query = atob(query_info)
     query = JSON.parse(query)
     
-    integerKeys = { 'windowId': null, 'index': null };
-    booleanKeys = { 'active': null, 'pinned': null, 'audible': null,
-      'muted': null, 'highlighted': null, 'discarded': null,
-      'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null };
+    integerKeys = {'windowId': null, 'index': null};
+    booleanKeys = {'active': null, 'pinned': null, 'audible': null, 'muted': null, 'highlighted': null,
+      'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null};
     
     query = Object.entries(query).reduce((o, [k,v]) => {
       if (booleanKeys.hasOwnProperty(k) && typeof v != 'boolean') {
@@ -250,7 +249,7 @@ function queryTabs(query_info) {
         o[k] = v;
       return o;
     }, {})
-
+    
     browserTabs.query(query, queryTabsOnSuccess, queryTabsOnFailure);
   }
   catch(error) {
