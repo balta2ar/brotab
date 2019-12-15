@@ -36,6 +36,7 @@ positional arguments:
     active              display active tabs for each client/window in the following
                         format: "<prefix>.<window_id>.<tab_id>"
     search              Search across your indexed tabs using sqlite fts5 plugin.
+    query               Filter tabs using chrome.tabs api.
     index               Index the text from browser's tabs. Text is put into sqlite
                         fts5 table.
     open                open URLs from the stdin (one URL per line). One positional
