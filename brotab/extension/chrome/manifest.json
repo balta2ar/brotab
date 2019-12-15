@@ -4,7 +4,7 @@
   "description": "Control your browser's tabs from command line",
   "manifest_version": 2,
   "name": "BroTab",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "background": {
     "scripts": ["background.js"]
   },

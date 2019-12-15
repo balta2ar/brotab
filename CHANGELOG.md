@@ -1,3 +1,7 @@
+1.1.0 (2019-12-15)
+
+* add "query" command that allows for more fine-tuned querying of tabs
+
 1.0.6 (2019-12-08)
 
 * print all active tabs from all windows (#8)
