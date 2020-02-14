@@ -83,11 +83,27 @@ logger = logging.getLogger('brotab')
 logger.info('Logger has been created')
 
 
-def create_clients():
-    ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
-    result = [SingleMediatorAPI(prefix, port=port)
-              for prefix, port in zip(ascii_lowercase, ports)
-              if is_port_accepting_connections(port)]
+def create_clients(args=None):
+    targetHosts = None
+    if args is not None :
+        d=vars(args)
+        if d['targetHosts'] is not None:
+            targetHosts = d['targetHosts'].split(',')
+    #print(targetHosts)
+    if targetHosts is not None:
+        #ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
+        hosts = [i.split(':')[0] for i in targetHosts]
+        #print(hosts)
+        ports = [int(i.split(':')[1]) for i in targetHosts]
+        #print(ports)
+        result = [SingleMediatorAPI(prefix, host=host, port=port)
+                  for prefix, host, port in zip(ascii_lowercase, hosts, ports)
+                  if is_port_accepting_connections(port,host)]
+    else:
+        ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
+        result = [SingleMediatorAPI(prefix, port=port)
+                  for prefix, port in zip(ascii_lowercase, ports)
+                  if is_port_accepting_connections(port)]
     # result = [api for api in result if api.ready]
     logger.info('Created clients: %s', result)
     return result
@@ -108,7 +124,7 @@ def parse_prefix_and_window_id(prefix_window_id):
 
 def move_tabs(args):
     logger.info('Moving tabs')
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     api.move_tabs([])
 
 
@@ -118,7 +134,7 @@ def list_tabs(args):
         bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close
     """
     logger.info('Listing tabs')
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     tabs = api.list_tabs([])
     #print('\n'.join([tab.encode('utf8') for tab in tabs]))
     # print(u'\n'.join(tabs).encode('utf8'))
@@ -139,22 +155,28 @@ def close_tabs(args):
 
     logger.info('Closing tabs: %s', tab_ids)
     #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     tabs = api.close_tabs(tab_ids)
 
 
 def activate_tab(args):
     logger.info('Activating tab: %s', args.tab_id)
     #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     api.activate_tab(args.tab_id)
 
+def activateFocus_tab(args):
+    logger.info('Activating tab: %s', args.tab_id)
+    #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
+    api = MultipleMediatorsAPI(create_clients(args))
+    api.activateFocus_tab(args.tab_id)
 
+    
 def show_active_tabs(args):
     logger.info('Showing active tabs: %s', args)
     #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
-    apis = create_clients()
-    # api = MultipleMediatorsAPI(create_clients())
+    apis = create_clients(args)
+    # api = MultipleMediatorsAPI(create_clients(args))
     # tabs = api.get_active_tabs(args)
     for api in apis:
         tabs = api.get_active_tabs(args)
@@ -176,7 +198,7 @@ def query_tabs(args):
         queryInfo = d['info']
     else:
         queryInfo = {k: v for k, v in d.items() if v is not None and k not in ['func', 'info']}
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     for tab in api.query_tabs(queryInfo):
         print(tab)
 
@@ -205,7 +227,7 @@ def new_tab(args):
     logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
                 search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     api.open_urls([url], prefix, window_id)
 
 
@@ -220,7 +242,7 @@ def open_urls(args):
     urls = [line.strip() for line in sys.stdin.readlines()]
     logger.info('Opening URLs from stdin, prefix "%s", window_id "%s": %s',
                 prefix, window_id, urls)
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     api.open_urls(urls, prefix, window_id)
 
 
@@ -232,7 +254,7 @@ def get_words(args):
     start = time.time()
     logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
                 args.tab_ids, args.match_regex, args.join_with)
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
     print('\n'.join(words))
     delta = time.time() - start
@@ -241,7 +263,7 @@ def get_words(args):
 
 def get_text(args):
     logger.info('Get text from tabs')
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     tabs = api.get_text([], args.delimiter_regex, args.replace_with)
 
     if args.cleanup:
@@ -288,14 +310,14 @@ def _print_available_windows(tabs):
 
 def show_windows(args):
     logger.info('Showing windows')
-    api = MultipleMediatorsAPI(create_clients())
+    api = MultipleMediatorsAPI(create_clients(args))
     tabs = api.list_tabs([])
     _print_available_windows(tabs)
 
 
 def show_clients(args):
     logger.info('Showing clients')
-    for client in create_clients():
+    for client in create_clients(args):
         print(client)
 
 
@@ -353,6 +375,8 @@ def parse_args(args):
         your tabs.
         ''')
 
+    parser.add_argument('-target', dest = 'targetHosts', help='Target hosts IP:Port')
+    
     subparsers = parser.add_subparsers()
     parser.set_defaults(func=partial(no_command, parser))
 
@@ -398,6 +422,17 @@ def parse_args(args):
     parser_activate_tab.add_argument('tab_id', type=str, nargs=1,
                                      help='Tab ID to activate')
 
+    parser_activateFocus_tab = subparsers.add_parser(
+        'focus',
+        help='''
+        focus given tab ID. Tab ID should be in the following format:
+        "<prefix>.<window_id>.<tab_id>"
+        ''')
+    parser_activateFocus_tab.set_defaults(func=activateFocus_tab)
+    parser_activateFocus_tab.add_argument('tab_id', type=str, nargs=1,
+                                     help='Tab ID to focus')
+                                     
+                                     
     parser_active_tab = subparsers.add_parser(
         'active',
         help='''
