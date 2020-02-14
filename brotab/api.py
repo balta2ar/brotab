@@ -99,6 +99,17 @@ class SingleMediatorAPI(object):
         self._get('/activate_tab/%s' % tab_id)
         #self._get('/activate_tab/%s' % strWindowTab)
 
+    def activateFocus_tab(self, args):
+        # args = self.filter_tabs(args)
+        if len(args) == 0:
+            return
+
+        strWindowTab = args[0]
+        prefix, window_id, tab_id = strWindowTab.split('.')
+        self._get('/activateFocus_tab/%s' % tab_id)
+        #self._get('/activate_tab/%s' % strWindowTab)
+        
+        
     def get_active_tabs(self, args) -> [str]:
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
@@ -197,7 +208,7 @@ class SingleMediatorAPI(object):
                 'SingleMediatorAPI: get_words: %s, match_regex: %s, join_with: %s',
                 tab_id, match_regex, join_with)
             words |= set(self._get(
-                '/get_words/%s?match_regex=%s&join_with=%s' % (tab_id, match_regex, join_with)
+                '/get_words/%s/?match_regex=%s&join_with=%s' % (tab_id, match_regex, join_with)
             ).splitlines())
 
         if not tab_ids:
@@ -278,6 +289,14 @@ class MultipleMediatorsAPI(object):
         for api in self._apis:
             api.activate_tab(args)
 
+    def activateFocus_tab(self, args):
+        if len(args) == 0:
+            print('Usage: brotab_client.py activateFocus_tab <#tab>')
+            return 2
+
+        for api in self._apis:
+            api.activateFocus_tab(args)
+            
     def get_active_tabs(self, args):
         return [api.get_active_tabs(args) for api in self._apis]
         #return ['%s\t%s' % (api.get_active_tabs(args), api) for api in self._apis]

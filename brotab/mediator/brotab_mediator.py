@@ -50,6 +50,13 @@ DEFAULT_GET_WORDS_JOIN_WITH = encode_query(DEFAULT_GET_WORDS_JOIN_WITH)
 DEFAULT_GET_TEXT_DELIMITER_REGEX = encode_query(DEFAULT_GET_TEXT_DELIMITER_REGEX)
 DEFAULT_GET_TEXT_REPLACE_WITH = encode_query(DEFAULT_GET_TEXT_REPLACE_WITH)
 
+def is_port_accepting_connections(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.100)
+    result = s.connect_ex(('127.0.0.1', port))
+    s.close()
+    return result == 0
+
 
 class StdTransport:
     def __init__(self, input_file, output_file):
@@ -148,6 +155,13 @@ class BrowserRemoteAPI:
         command = {'name': 'activate_tab', 'tab_id': tab_id}
         self._transport.send(command)
 
+    def activateFocus_tab(self, tab_id):
+        logger.info('activating tab id: %s', tab_id)
+        #win_id, tab_id = wintab_id.split(',')
+        command = {'name': 'activateFocus_tab', 'tab_id': tab_id}
+        self._transport.send(command)
+        
+        
     def get_active_tabs(self) -> str:
         logger.info('getting active tabs')
         command = {'name': 'get_active_tabs'}
@@ -241,7 +255,12 @@ def activate_tab(tab_id):
     browser.activate_tab(tab_id)
     return 'OK'
 
+@app.route('/activateFocus_tab/<int:tab_id>')
+def activateFocus_tab(tab_id):
+    browser.activateFocus_tab(tab_id)
+    return 'OK'
 
+    
 @app.route('/get_active_tabs')
 def get_active_tabs():
     return browser.get_active_tabs()
@@ -344,7 +363,7 @@ def monkeypatch_socket_bind():
 
 
 def main():
-    signal.signal(signal.SIGPIPE, signal_pipe)
+    #signal.signal(signal.SIGPIPE, signal_pipe)
     monkeypatch_socket_bind()
     disable_click_echo()
 
@@ -352,6 +371,8 @@ def main():
     for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):
         logger.info('Starting mediator on %s:%s...',
                     DEFAULT_HTTP_IFACE, port)
+        if is_port_accepting_connections(port):
+            continue
         actual_port = port
         try:
             app.run(DEFAULT_HTTP_IFACE, port, debug=False, threaded=False)
@@ -359,6 +380,8 @@ def main():
             break
         except OSError as e:
             logger.info('Cannot bind on port %s: %s', port, e)
+        except BrokenPipeError:
+            signal_pipe
 
     else:
         logger.error(

@@ -34,7 +34,11 @@ class BrowserTabs {
   }
 
   activate(tab_id) {
-    this._browser.tabs.update(tab_id, {'active': true});
+    throw new Error('activate is not implemented');
+  }
+
+  activateFocus(tab_id) {
+    throw new Error('activateFocus is not implemented');
   }
 
   getActive(onSuccess) {
@@ -58,9 +62,16 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  query(queryInfo, onSuccess, onFailure) {
+//  query(queryInfo, onSuccess, onFailure) {
+//    this._browser.tabs.query(queryInfo)
+//      .then(onSuccess, onFailure);
+//  }
+
+  query(queryInfo, onSuccess) {
     this._browser.tabs.query(queryInfo)
-      .then(onSuccess, onFailure);
+      .then(onSuccess, 
+            (error) => console.log(`Error execvuting queryTabs: ${error}`)
+            );
   }
 
   close(tab_ids, onSuccess) {
@@ -102,6 +113,15 @@ class FirefoxTabs extends BrowserTabs {
   getBrowserName() {
       return "firefox";
   }
+
+  activate(tab_id) {
+    this._browser.tabs.update(tab_id, {'active': true});
+  }
+
+  activateFocus(tab_id) {
+    this.activate(tab_id); //this._browser.tabs.update(tab_id, {'active': true});
+  }
+
 }
 
 class ChromeTabs extends BrowserTabs {
@@ -109,9 +129,42 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query(queryInfo, onSuccess);
   }
 
-  query(queryInfo, onSuccess, onFailure) {
-    this._browser.tabs.query(queryInfo)
-      .then(onSuccess, onFailure);
+  activate(tab_id) {
+    this._browser.tabs.update(tab_id, {'active': true});
+  }
+
+  activateFocus(tab_id) {
+    this._browser.tabs.update(tab_id, {'active': true});
+    this._browser.tabs.get(tab_id, function(tab) {
+      chrome.windows.update(tab.windowId,{focused: true});
+    });
+
+//Alternative to  this._browser.tabs.update(tab_id, {'active': true});
+//    chrome.tabs.get(tab_id, function(tab) {
+//      chrome.tabs.highlight({'tabs': tab.index}, function() {});
+//    });
+  }
+
+
+// Try to pass 2 parameters
+//  activate(win_id, tab_id) {
+//    this._browser.tabs.update(tab_id, {'active': true});
+//    if (win_id > 0) { chrome.windows.update(win_id ,{focused: true});
+//     };
+/////Alternative
+//    //chrome.tabs.get(tab_id, function(tab) {
+//    //  chrome.tabs.highlight({'tabs': tab.index}, function() {});
+//    //});
+//  }
+
+
+//  query(queryInfo, onSuccess, onFailure) {
+//    this._browser.tabs.query(queryInfo)
+//      .then(onSuccess, onFailure);
+//  }
+  
+  query(queryInfo, onSuccess) {  
+    this._browser.tabs.query(queryInfo,onSuccess);
   }
 
   close(tab_ids, onSuccess) {
@@ -250,7 +303,8 @@ function queryTabs(query_info) {
       return o;
     }, {})
     
-    browserTabs.query(query, queryTabsOnSuccess, queryTabsOnFailure);
+    //browserTabs.query(query, queryTabsOnSuccess, queryTabsOnFailure);
+    browserTabs.query(query, queryTabsOnSuccess);    
   }
   catch(error) {
     queryTabsOnFailure(error);
@@ -310,6 +364,11 @@ function createTab(url) {
 function activateTab(tab_id) {
   browserTabs.activate(tab_id);
 }
+
+function activateFocusTab(tab_id) {
+  browserTabs.activateFocus(tab_id);
+}
+
 
 function getActiveTabs() {
   browserTabs.getActive(tabs => {
@@ -481,6 +540,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'activate_tab') {
     console.log('Activating tab:', command['tab_id']);
     activateTab(command['tab_id']);
+  }
+
+  else if (command['name'] == 'activateFocus_tab') {
+    console.log('Activating tab:', command['tab_id']);
+    activateFocusTab(command['tab_id']);
   }
 
   else if (command['name'] == 'get_active_tabs') {
