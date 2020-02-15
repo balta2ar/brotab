@@ -3,6 +3,7 @@ from unittest.mock import patch
 from threading import Thread
 
 from brotab.main import run_commands
+from brotab.main import create_clients
 from brotab.inout import get_free_tcp_port
 from brotab.api import SingleMediatorAPI
 from brotab.mediator.brotab_mediator import run_mediator
@@ -57,7 +58,7 @@ def _run_commands(commands):
             run_commands(commands)
 
 
-class TestActivate(TestCase):
+class WithMediator(TestCase):
     def setUp(self):
         self.mediator = MockedMediator('a')
 
@@ -69,6 +70,29 @@ class TestActivate(TestCase):
             mocked.side_effect = [range(self.mediator.port, self.mediator.port + 1)]
             return run_commands(commands)
 
+
+class TestCreateClients(WithMediator):
+    def test_default_target_hosts(self):
+        with patch('brotab.main.get_mediator_ports') as mocked:
+            mocked.side_effect = [range(self.mediator.port, self.mediator.port + 1)]
+            clients = create_clients()
+        assert 1 == len(clients)
+        assert self.mediator.port == clients[0]._port
+
+    def test_one_custom_target_hosts(self):
+        clients = create_clients('127.0.0.1:%d' % self.mediator.port)
+        assert 1 == len(clients)
+        assert self.mediator.port == clients[0]._port
+
+    def test_two_custom_target_hosts(self):
+        clients = create_clients('127.0.0.1:%d,localhost:%d' %
+                                 (self.mediator.port, self.mediator.port))
+        assert 2 == len(clients)
+        assert self.mediator.port == clients[0]._port
+        assert self.mediator.port == clients[1]._port
+
+
+class TestActivate(WithMediator):
     def test_activate_ok(self):
         self._run_commands(['activate', 'a.1.2'])
         assert self.mediator.transport.sent == [
