@@ -61,6 +61,7 @@ from urllib.parse import quote_plus, quote
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
 from brotab.inout import get_mediator_ports
+from brotab.inout import in_temp_dir
 from brotab.utils import split_tab_ids, get_file_size, encode_query
 from brotab.search.query import query
 from brotab.search.index import index
@@ -75,7 +76,7 @@ from brotab.const import \
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
 logging.basicConfig(
     format=FORMAT,
-    filename='/tmp/brotab.log',
+    filename=in_temp_dir('brotab.log'),
     level=logging.DEBUG)
 logger = logging.getLogger('brotab')
 logger.info('Logger has been created')
@@ -191,7 +192,7 @@ def query_tabs(args):
 
 def index_tabs(args):
     if args.tsv is None:
-        args.tsv = '/tmp/tabs.tsv'
+        args.tsv = in_temp_dir('tabs.tsv')
         args.cleanup = True
         logger.info(
             'index_tabs: retrieving tabs from browser into file %s', args.tsv)
@@ -425,7 +426,7 @@ def parse_args(args):
         Search across your indexed tabs using sqlite fts5 plugin.
         ''')
     parser_search_tabs.set_defaults(func=search_tabs)
-    parser_search_tabs.add_argument('--sqlite', type=str, default='/tmp/tabs.sqlite',
+    parser_search_tabs.add_argument('--sqlite', type=str, default=in_temp_dir('tabs.sqlite'),
                                     help='sqlite DB filename')
     parser_search_tabs.add_argument('query', type=str, help='Search query')
 
@@ -496,7 +497,7 @@ def parse_args(args):
         Index the text from browser's tabs. Text is put into sqlite fts5 table.
         ''')
     parser_index_tabs.set_defaults(func=index_tabs)
-    parser_index_tabs.add_argument('--sqlite', type=str, default='/tmp/tabs.sqlite',
+    parser_index_tabs.add_argument('--sqlite', type=str, default=in_temp_dir('tabs.sqlite'),
                                    help='sqlite DB filename')
     parser_index_tabs.add_argument('--tsv', type=str, default=None,
                                    help='get text from tabs and index the results')

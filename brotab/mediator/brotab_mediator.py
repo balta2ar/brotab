@@ -18,6 +18,7 @@ from flask import request
 from brotab.utils import encode_query, decode_query
 from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
+from brotab.inout import in_temp_dir
 from brotab.const import \
     DEFAULT_GET_WORDS_MATCH_REGEX, \
     DEFAULT_GET_WORDS_JOIN_WITH, \
@@ -28,7 +29,7 @@ app = flask.Flask(__name__)
 
 FORMAT = '%(asctime)-15s %(process)-5d %(levelname)-10s %(message)s'
 MAX_LOG_SIZE = 50 * 1024 * 1024
-LOG_FILENAME = '/tmp/brotab_mediator.log'
+LOG_FILENAME = in_temp_dir('brotab_mediator.log')
 LOG_BACKUP_COUNT = 1
 
 logger = logging.getLogger('brotab_mediator')
