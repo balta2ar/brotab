@@ -374,7 +374,6 @@ def run_mediator(port: int, remote_api, no_logging=False):
 
 
 def main():
-    #signal.signal(signal.SIGPIPE, signal_pipe)
     monkeypatch_socket_bind()
     disable_click_echo()
 
@@ -393,7 +392,7 @@ def main():
         except OSError as e:
             logger.info('Cannot bind on port %s: %s', port, e)
         except BrokenPipeError:
-            signal_pipe
+            signal_pipe(e)
 
     else:
         logger.error('No TCP ports available for bind in range %s', port_range)
