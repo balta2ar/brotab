@@ -171,7 +171,7 @@ def activateFocus_tab(args):
     api = MultipleMediatorsAPI(create_clients(args))
     api.activateFocus_tab(args.tab_id)
 
-    
+
 def show_active_tabs(args):
     logger.info('Showing active tabs: %s', args)
     #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
@@ -376,7 +376,7 @@ def parse_args(args):
         ''')
 
     parser.add_argument('-target', dest = 'targetHosts', help='Target hosts IP:Port')
-    
+
     subparsers = parser.add_subparsers()
     parser.set_defaults(func=partial(no_command, parser))
 
@@ -431,8 +431,8 @@ def parse_args(args):
     parser_activateFocus_tab.set_defaults(func=activateFocus_tab)
     parser_activateFocus_tab.add_argument('tab_id', type=str, nargs=1,
                                      help='Tab ID to focus')
-                                     
-                                     
+
+
     parser_active_tab = subparsers.add_parser(
         'active',
         help='''
@@ -478,7 +478,7 @@ def parse_args(args):
         help='tabs are highlighted')
     parser_query_tabs.add_argument('-highlighted', action='store_const', const=False, default=None,
         help='tabs not are highlighted')
-    parser_query_tabs.add_argument('+discarded', action='store_const', const=True, default=None,  
+    parser_query_tabs.add_argument('+discarded', action='store_const', const=True, default=None,
         help='tabs are discarded i.e. unloaded from memory but still visible in the tab strip.')
     parser_query_tabs.add_argument('-discarded', action='store_const', const=False, default=None,
         help='tabs are not discarded i.e. unloaded from memory but still visible in the tab strip.')
