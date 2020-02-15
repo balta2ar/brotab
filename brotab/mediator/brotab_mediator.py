@@ -17,6 +17,7 @@ from flask import request
 
 from brotab.utils import encode_query, decode_query
 from brotab.inout import get_mediator_ports
+from brotab.inout import is_port_accepting_connections
 from brotab.const import \
     DEFAULT_GET_WORDS_MATCH_REGEX, \
     DEFAULT_GET_WORDS_JOIN_WITH, \
@@ -50,13 +51,6 @@ DEFAULT_GET_WORDS_MATCH_REGEX = encode_query(DEFAULT_GET_WORDS_MATCH_REGEX)
 DEFAULT_GET_WORDS_JOIN_WITH = encode_query(DEFAULT_GET_WORDS_JOIN_WITH)
 DEFAULT_GET_TEXT_DELIMITER_REGEX = encode_query(DEFAULT_GET_TEXT_DELIMITER_REGEX)
 DEFAULT_GET_TEXT_REPLACE_WITH = encode_query(DEFAULT_GET_TEXT_REPLACE_WITH)
-
-def is_port_accepting_connections(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(0.100)
-    result = s.connect_ex(('127.0.0.1', port))
-    s.close()
-    return result == 0
 
 
 def create_browser_remote_api(transport=None):
