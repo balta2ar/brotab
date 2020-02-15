@@ -60,6 +60,7 @@ from urllib.parse import quote_plus, quote
 
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
+from brotab.inout import get_mediator_ports
 from brotab.utils import split_tab_ids, get_file_size, encode_query
 from brotab.search.query import query
 from brotab.search.index import index
@@ -70,9 +71,6 @@ from brotab.const import \
     DEFAULT_GET_TEXT_DELIMITER_REGEX, \
     DEFAULT_GET_TEXT_REPLACE_WITH
 
-
-MIN_MEDIATOR_PORT = 4625
-MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
 
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
 logging.basicConfig(
@@ -89,18 +87,14 @@ def create_clients(args=None):
         d=vars(args)
         if d['targetHosts'] is not None:
             targetHosts = d['targetHosts'].split(',')
-    #print(targetHosts)
     if targetHosts is not None:
-        #ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
         hosts = [i.split(':')[0] for i in targetHosts]
-        #print(hosts)
         ports = [int(i.split(':')[1]) for i in targetHosts]
-        #print(ports)
         result = [SingleMediatorAPI(prefix, host=host, port=port)
                   for prefix, host, port in zip(ascii_lowercase, hosts, ports)
                   if is_port_accepting_connections(port,host)]
     else:
-        ports = range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
+        ports = get_mediator_ports()
         result = [SingleMediatorAPI(prefix, port=port)
                   for prefix, port in zip(ascii_lowercase, ports)
                   if is_port_accepting_connections(port)]

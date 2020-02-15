@@ -16,6 +16,7 @@ import flask
 from flask import request
 
 from brotab.utils import encode_query, decode_query
+from brotab.inout import get_mediator_ports
 from brotab.const import \
     DEFAULT_GET_WORDS_MATCH_REGEX, \
     DEFAULT_GET_WORDS_JOIN_WITH, \
@@ -58,6 +59,12 @@ def is_port_accepting_connections(port):
     return result == 0
 
 
+def create_browser_remote_api(transport=None):
+    if transport is None:
+        transport = StdTransport(sys.stdin.buffer, sys.stdout.buffer)
+    return BrowserRemoteAPI(transport)
+
+
 class StdTransport:
     def __init__(self, input_file, output_file):
         self._in = input_file
@@ -91,8 +98,8 @@ class BrowserRemoteAPI:
     to be run by the browser after a request from the helper extension.
     """
 
-    def __init__(self):
-        self._transport = StdTransport(sys.stdin.buffer, sys.stdout.buffer)
+    def __init__(self, transport):
+        self._transport = transport
 
     def list_tabs(self):
         command = {'name': 'list_tabs'}
@@ -160,8 +167,8 @@ class BrowserRemoteAPI:
         #win_id, tab_id = wintab_id.split(',')
         command = {'name': 'activateFocus_tab', 'tab_id': tab_id}
         self._transport.send(command)
-        
-        
+
+
     def get_active_tabs(self) -> str:
         logger.info('getting active tabs')
         command = {'name': 'get_active_tabs'}
@@ -197,7 +204,7 @@ class BrowserRemoteAPI:
         return self._transport.recv()
 
 
-browser = BrowserRemoteAPI()
+browser = create_browser_remote_api()
 logger.info('BrowserRemoteAPI has been created')
 
 
@@ -260,7 +267,7 @@ def activateFocus_tab(tab_id):
     browser.activateFocus_tab(tab_id)
     return 'OK'
 
-    
+
 @app.route('/get_active_tabs')
 def get_active_tabs():
     return browser.get_active_tabs()
@@ -362,20 +369,34 @@ def monkeypatch_socket_bind():
     socket.socket.bind = my_socket_bind
 
 
+def run_mediator(port: int, remote_api, no_logging=False):
+    global browser
+    # reassign this variable again so that tests could mock it
+    browser = remote_api
+    # TODO: does not really work, I still see logs in unittests
+    if no_logging:
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
+        log.disabled = True
+        app.logger.disabled = True
+    return app.run(DEFAULT_HTTP_IFACE, port, debug=False, threaded=False)
+
+
 def main():
     #signal.signal(signal.SIGPIPE, signal_pipe)
     monkeypatch_socket_bind()
     disable_click_echo()
 
     global actual_port
-    for port in range(DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT):
+    port_range = list(get_mediator_ports())
+    for port in port_range:
         logger.info('Starting mediator on %s:%s...',
                     DEFAULT_HTTP_IFACE, port)
         if is_port_accepting_connections(port):
             continue
         actual_port = port
         try:
-            app.run(DEFAULT_HTTP_IFACE, port, debug=False, threaded=False)
+            run_mediator(port, create_browser_remote_api())
             logger.info('Exiting mediator...')
             break
         except OSError as e:
@@ -384,9 +405,7 @@ def main():
             signal_pipe
 
     else:
-        logger.error(
-            'No TCP ports available for bind in range from %s to %s',
-            DEFAULT_MIN_HTTP_PORT, DEFAULT_MAX_HTTP_PORT)
+        logger.error('No TCP ports available for bind in range %s', port_range)
 
 
 if __name__ == '__main__':
