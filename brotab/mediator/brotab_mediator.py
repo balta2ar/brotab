@@ -380,6 +380,8 @@ def run_mediator(port: int, remote_api, no_logging=False):
         log.setLevel(logging.ERROR)
         log.disabled = True
         app.logger.disabled = True
+        from flask.logging import default_handler
+        app.logger.removeHandler(default_handler)
     return app.run(DEFAULT_HTTP_IFACE, port, debug=False, threaded=False)
 
 

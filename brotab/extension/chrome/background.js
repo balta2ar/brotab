@@ -114,8 +114,11 @@ class FirefoxTabs extends BrowserTabs {
       return "firefox";
   }
 
-  activate(tab_id) {
+  activate(tab_id, focused) {
     this._browser.tabs.update(tab_id, {'active': true});
+    this._browser.tabs.get(tab_id, function(tab) {
+      browser.windows.update(tab.windowId,{focused: focused});
+    });
   }
 
   activateFocus(tab_id) {
@@ -129,8 +132,11 @@ class ChromeTabs extends BrowserTabs {
     this._browser.tabs.query(queryInfo, onSuccess);
   }
 
-  activate(tab_id) {
+  activate(tab_id, focused) {
     this._browser.tabs.update(tab_id, {'active': true});
+    this._browser.tabs.get(tab_id, function(tab) {
+      chrome.windows.update(tab.windowId,{focused: focused});
+    });
   }
 
   activateFocus(tab_id) {
@@ -361,8 +367,8 @@ function createTab(url) {
   });
 }
 
-function activateTab(tab_id) {
-  browserTabs.activate(tab_id);
+function activateTab(tab_id, focused) {
+  browserTabs.activate(tab_id, focused);
 }
 
 function activateFocusTab(tab_id) {
@@ -539,7 +545,7 @@ port.onMessage.addListener((command) => {
 
   else if (command['name'] == 'activate_tab') {
     console.log('Activating tab:', command['tab_id']);
-    activateTab(command['tab_id']);
+    activateTab(command['tab_id'], !!command['focused']);
   }
 
   else if (command['name'] == 'activateFocus_tab') {
