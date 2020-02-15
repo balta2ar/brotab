@@ -38,7 +38,7 @@ def edit_tabs_in_editor(tabs_before):
         try:
             #check_call([os.environ.get('EDITOR', 'notepad'), file_name]) #            check_call([os.environ.get('EDITOR', 'nvim'), file_.name])
             Editor = 'notepad' if (platform.system()=='Windows') else 'nvim'
-            check_call([os.environ.get('EDITOR', Editor), file_.name])
+            check_call([os.environ.get('EDITOR', Editor), file_name])
             tabs_after = load_tabs_from_file(file_name)
             return tabs_after
         except CalledProcessError:
