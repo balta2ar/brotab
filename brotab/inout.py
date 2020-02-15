@@ -24,12 +24,14 @@ def save_tabs_to_file(tabs, filename):
         file_.write('\n'.join(tabs))
 
 
-def load_tabs_from_file(filename):
-    with open(filename, encoding='utf-8') as file_:
-        Lines = [line.strip() for line in file_.readlines()]
+def maybe_remove_file(filename):
     if os.path.exists(filename):
         os.remove(filename)
-    return Lines
+
+
+def load_tabs_from_file(filename):
+    with open(filename, encoding='utf-8') as file_:
+        return [line.strip() for line in file_.readlines()]
 
 
 def run_editor(executable: str, filename: str):
@@ -44,6 +46,7 @@ def edit_tabs_in_editor(tabs_before):
         try:
             run_editor(get_editor(), file_name)
             tabs_after = load_tabs_from_file(file_name)
+            maybe_remove_file(file_name)
             return tabs_after
         except CalledProcessError:
             return None
