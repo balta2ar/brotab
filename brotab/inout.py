@@ -4,6 +4,7 @@ import sys
 import uuid
 import select
 import socket
+import tempfile
 import mimetypes
 from tempfile import NamedTemporaryFile
 from subprocess import check_call, CalledProcessError
@@ -13,6 +14,11 @@ from brotab.platform import get_editor
 
 MIN_MEDIATOR_PORT = 4625
 MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
+
+
+def in_temp_dir(filename) -> str:
+    temp_dir = tempfile.gettempdir()
+    return os.path.join(temp_dir, filename)
 
 
 def get_mediator_ports() -> Iterable:
