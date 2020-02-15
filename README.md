@@ -59,6 +59,8 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --target TARGET_HOSTS
+                        Target hosts IP:Port
 ```
 
 ## Demo [TBD]
