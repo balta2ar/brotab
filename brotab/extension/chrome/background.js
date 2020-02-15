@@ -58,16 +58,11 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-//  query(queryInfo, onSuccess, onFailure) {
-//    this._browser.tabs.query(queryInfo)
-//      .then(onSuccess, onFailure);
-//  }
-
   query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo)
-      .then(onSuccess,
-            (error) => console.log(`Error execvuting queryTabs: ${error}`)
-            );
+    this._browser.tabs.query(queryInfo).then(
+      onSuccess,
+      (error) => console.log(`Error executing queryTabs: ${error}`)
+    );
   }
 
   close(tab_ids, onSuccess) {
@@ -130,14 +125,8 @@ class ChromeTabs extends BrowserTabs {
     });
   }
 
-
-//  query(queryInfo, onSuccess, onFailure) {
-//    this._browser.tabs.query(queryInfo)
-//      .then(onSuccess, onFailure);
-//  }
-
   query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo,onSuccess);
+    this._browser.tabs.query(queryInfo, onSuccess);
   }
 
   close(tab_ids, onSuccess) {
@@ -276,7 +265,6 @@ function queryTabs(query_info) {
       return o;
     }, {})
 
-    //browserTabs.query(query, queryTabsOnSuccess, queryTabsOnFailure);
     browserTabs.query(query, queryTabsOnSuccess);
   }
   catch(error) {
