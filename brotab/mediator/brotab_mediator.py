@@ -157,9 +157,9 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
-    def activate_tab(self, tab_id):
+    def activate_tab(self, tab_id: int, focused: bool):
         logger.info('activating tab id: %s', tab_id)
-        command = {'name': 'activate_tab', 'tab_id': tab_id}
+        command = {'name': 'activate_tab', 'tab_id': tab_id, 'focused': focused}
         self._transport.send(command)
 
     def activateFocus_tab(self, tab_id):
@@ -259,7 +259,8 @@ def new_tab(query):
 
 @app.route('/activate_tab/<int:tab_id>')
 def activate_tab(tab_id):
-    browser.activate_tab(tab_id)
+    focused = bool(request.args.get('focused', False))
+    browser.activate_tab(tab_id, focused)
     return 'OK'
 
 @app.route('/activateFocus_tab/<int:tab_id>')

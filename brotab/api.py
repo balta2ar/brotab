@@ -11,6 +11,8 @@ from urllib.parse import quote_plus
 from functools import partial
 from collections.abc import Mapping
 
+from typing import List
+
 from brotab.inout import edit_tabs_in_editor
 from brotab.inout import MultiPartForm
 from brotab.parallel import call_parallel
@@ -101,13 +103,13 @@ class SingleMediatorAPI(object):
                         tab_id in self._split_tabs(args))
         return self._get('/close_tabs/%s' % tabs)
 
-    def activate_tab(self, args):
+    def activate_tab(self, args: List[str], focused: bool):
         if len(args) == 0:
             return
 
-        strWindowTab = args[0]
-        prefix, window_id, tab_id = strWindowTab.split('.')
-        self._get('/activate_tab/%s' % tab_id)
+        # args: ['a.1.2']
+        prefix, window_id, tab_id = args[0].split('.')
+        self._get('/activate_tab/%s%s' % (tab_id, '?focused=1' if focused else ''))
 
     def activateFocus_tab(self, args):
         if len(args) == 0:
@@ -286,13 +288,13 @@ class MultipleMediatorsAPI(object):
         for api in self._apis:
             api.close_tabs(args)
 
-    def activate_tab(self, args):
+    def activate_tab(self, args: List[str], focused: bool):
         if len(args) == 0:
-            print('Usage: brotab_client.py activate_tab <#tab>')
+            print('Usage: brotab_client.py activate_tab [--focused] <#tab>')
             return 2
 
         for api in self._apis:
-            api.activate_tab(args)
+            api.activate_tab(args, focused)
 
     def activateFocus_tab(self, args):
         if len(args) == 0:

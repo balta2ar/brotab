@@ -50,14 +50,35 @@ class MockedMediator:
         self.shutdown_and_wait()
 
 
-class TestActivate(TestCase):
-    @patch('brotab.main.get_mediator_ports')
-    def test_activate_ok(self, get_mediator_ports_mock):
+def _run_commands(commands):
         with MockedMediator('a') as mediator:
             get_mediator_ports_mock.side_effect = \
                 [range(mediator.port, mediator.port + 1)]
-            run_commands(['activate', 'a.1.2'])
-            assert mediator.transport.sent == [
-                {'name': 'get_browser'},
-                {'name': 'activate_tab', 'tab_id': 2}
-            ]
+            run_commands(commands)
+
+
+class TestActivate(TestCase):
+    def setUp(self):
+        self.mediator = MockedMediator('a')
+
+    def tearDown(self):
+        self.mediator.shutdown_and_wait()
+
+    def _run_commands(self, commands):
+        with patch('brotab.main.get_mediator_ports') as mocked:
+            mocked.side_effect = [range(self.mediator.port, self.mediator.port + 1)]
+            return run_commands(commands)
+
+    def test_activate_ok(self):
+        self._run_commands(['activate', 'a.1.2'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'name': 'activate_tab', 'tab_id': 2, 'focused': False}
+        ]
+
+    def test_activate_focused_ok(self):
+        self._run_commands(['activate', '--focused', 'a.1.2'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'name': 'activate_tab', 'tab_id': 2, 'focused': True}
+        ]
