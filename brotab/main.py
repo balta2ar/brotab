@@ -158,12 +158,6 @@ def activate_tab(args):
     api = MultipleMediatorsAPI(create_clients(args))
     api.activate_tab(args.tab_id, args.focused)
 
-def activateFocus_tab(args):
-    logger.info('Activating tab: %s', args.tab_id)
-    #api = MultipleMediatorsAPI([SingleMediatorAPI('f')])
-    api = MultipleMediatorsAPI(create_clients(args))
-    api.activateFocus_tab(args.tab_id)
-
 
 def show_active_tabs(args):
     logger.info('Showing active tabs: %s', args)
@@ -416,17 +410,6 @@ def parse_args(args):
                                      help='Tab ID to activate')
     parser_activate_tab.add_argument('--focused', action='store_const', const=True, default=None,
                                      help='make browser focused after tab activation (default: False)')
-
-    parser_activateFocus_tab = subparsers.add_parser(
-        'focus',
-        help='''
-        focus given tab ID. Tab ID should be in the following format:
-        "<prefix>.<window_id>.<tab_id>"
-        ''')
-    parser_activateFocus_tab.set_defaults(func=activateFocus_tab)
-    parser_activateFocus_tab.add_argument('tab_id', type=str, nargs=1,
-                                     help='Tab ID to focus')
-
 
     parser_active_tab = subparsers.add_parser(
         'active',

@@ -37,10 +37,6 @@ class BrowserTabs {
     throw new Error('activate is not implemented');
   }
 
-  activateFocus(tab_id) {
-    throw new Error('activateFocus is not implemented');
-  }
-
   getActive(onSuccess) {
     throw new Error('getActive is not implemented');
   }
@@ -69,7 +65,7 @@ class FirefoxTabs extends BrowserTabs {
 
   query(queryInfo, onSuccess) {
     this._browser.tabs.query(queryInfo)
-      .then(onSuccess, 
+      .then(onSuccess,
             (error) => console.log(`Error execvuting queryTabs: ${error}`)
             );
   }
@@ -117,14 +113,9 @@ class FirefoxTabs extends BrowserTabs {
   activate(tab_id, focused) {
     this._browser.tabs.update(tab_id, {'active': true});
     this._browser.tabs.get(tab_id, function(tab) {
-      browser.windows.update(tab.windowId,{focused: focused});
+      browser.windows.update(tab.windowId, {focused: focused});
     });
   }
-
-  activateFocus(tab_id) {
-    this.activate(tab_id); //this._browser.tabs.update(tab_id, {'active': true});
-  }
-
 }
 
 class ChromeTabs extends BrowserTabs {
@@ -135,41 +126,17 @@ class ChromeTabs extends BrowserTabs {
   activate(tab_id, focused) {
     this._browser.tabs.update(tab_id, {'active': true});
     this._browser.tabs.get(tab_id, function(tab) {
-      chrome.windows.update(tab.windowId,{focused: focused});
+      chrome.windows.update(tab.windowId, {focused: focused});
     });
   }
-
-  activateFocus(tab_id) {
-    this._browser.tabs.update(tab_id, {'active': true});
-    this._browser.tabs.get(tab_id, function(tab) {
-      chrome.windows.update(tab.windowId,{focused: true});
-    });
-
-//Alternative to  this._browser.tabs.update(tab_id, {'active': true});
-//    chrome.tabs.get(tab_id, function(tab) {
-//      chrome.tabs.highlight({'tabs': tab.index}, function() {});
-//    });
-  }
-
-
-// Try to pass 2 parameters
-//  activate(win_id, tab_id) {
-//    this._browser.tabs.update(tab_id, {'active': true});
-//    if (win_id > 0) { chrome.windows.update(win_id ,{focused: true});
-//     };
-/////Alternative
-//    //chrome.tabs.get(tab_id, function(tab) {
-//    //  chrome.tabs.highlight({'tabs': tab.index}, function() {});
-//    //});
-//  }
 
 
 //  query(queryInfo, onSuccess, onFailure) {
 //    this._browser.tabs.query(queryInfo)
 //      .then(onSuccess, onFailure);
 //  }
-  
-  query(queryInfo, onSuccess) {  
+
+  query(queryInfo, onSuccess) {
     this._browser.tabs.query(queryInfo,onSuccess);
   }
 
@@ -288,11 +255,11 @@ function queryTabs(query_info) {
   try {
     let query = atob(query_info)
     query = JSON.parse(query)
-    
+
     integerKeys = {'windowId': null, 'index': null};
     booleanKeys = {'active': null, 'pinned': null, 'audible': null, 'muted': null, 'highlighted': null,
       'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null};
-    
+
     query = Object.entries(query).reduce((o, [k,v]) => {
       if (booleanKeys.hasOwnProperty(k) && typeof v != 'boolean') {
         if (v.toLowerCase() == 'true')
@@ -308,9 +275,9 @@ function queryTabs(query_info) {
         o[k] = v;
       return o;
     }, {})
-    
+
     //browserTabs.query(query, queryTabsOnSuccess, queryTabsOnFailure);
-    browserTabs.query(query, queryTabsOnSuccess);    
+    browserTabs.query(query, queryTabsOnSuccess);
   }
   catch(error) {
     queryTabsOnFailure(error);
@@ -370,11 +337,6 @@ function createTab(url) {
 function activateTab(tab_id, focused) {
   browserTabs.activate(tab_id, focused);
 }
-
-function activateFocusTab(tab_id) {
-  browserTabs.activateFocus(tab_id);
-}
-
 
 function getActiveTabs() {
   browserTabs.getActive(tabs => {
@@ -546,11 +508,6 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'activate_tab') {
     console.log('Activating tab:', command['tab_id']);
     activateTab(command['tab_id'], !!command['focused']);
-  }
-
-  else if (command['name'] == 'activateFocus_tab') {
-    console.log('Activating tab:', command['tab_id']);
-    activateFocusTab(command['tab_id']);
   }
 
   else if (command['name'] == 'get_active_tabs') {

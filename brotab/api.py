@@ -111,15 +111,6 @@ class SingleMediatorAPI(object):
         prefix, window_id, tab_id = args[0].split('.')
         self._get('/activate_tab/%s%s' % (tab_id, '?focused=1' if focused else ''))
 
-    def activateFocus_tab(self, args):
-        if len(args) == 0:
-            return
-
-        strWindowTab = args[0]
-        prefix, window_id, tab_id = strWindowTab.split('.')
-        self._get('/activateFocus_tab/%s' % tab_id)
-        #self._get('/activate_tab/%s' % strWindowTab)
-
     def get_active_tabs(self, args) -> [str]:
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
@@ -296,25 +287,8 @@ class MultipleMediatorsAPI(object):
         for api in self._apis:
             api.activate_tab(args, focused)
 
-    def activateFocus_tab(self, args):
-        if len(args) == 0:
-            print('Usage: brotab_client.py activateFocus_tab <#tab>')
-            return 2
-
-        for api in self._apis:
-            api.activateFocus_tab(args)
-            
     def get_active_tabs(self, args):
         return [api.get_active_tabs(args) for api in self._apis]
-        #return ['%s\t%s' % (api.get_active_tabs(args), api) for api in self._apis]
-
-    # def new_tab(self, args):
-    #     if len(args) <= 1:
-    #         print('Usage: brotab_client.py new_tab <f.|c.> <search query>')
-    #         return 2
-    #
-    #     for api in self._apis:
-    #         api.new_tab(args)
 
     def query_tabs(self, args, print_error=False):
         functions = [partial(api.query_tabs_safe, args, print_error)
