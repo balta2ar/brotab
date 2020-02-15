@@ -62,6 +62,10 @@ from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
 from brotab.inout import get_mediator_ports
 from brotab.inout import in_temp_dir
+from brotab.platform import is_windows
+from brotab.platform import register_native_manifest_windows_chrome
+from brotab.platform import register_native_manifest_windows_firefox
+from brotab.platform import make_windows_path_double_sep
 from brotab.utils import split_tab_ids, get_file_size, encode_query
 from brotab.search.query import query
 from brotab.search.index import index
@@ -312,6 +316,8 @@ def show_clients(args):
 def install_mediator(args):
     logger.info('Installing mediators')
     bt_mediator_path = shutil.which('bt_mediator')
+    if is_windows():
+        bt_mediator_path = make_windows_path_double_sep(bt_mediator_path)
 
     native_app_manifests = [
         ('mediator/firefox_mediator.json',
@@ -332,14 +338,18 @@ def install_mediator(args):
     for filename, destination in native_app_manifests:
         destination = os.path.expanduser(os.path.expandvars(destination))
         template = resource_string(__name__, filename).decode('utf8')
-        manifest = template.replace(r'$PWD/brotab_mediator.py',
-                                    bt_mediator_path)
+        manifest = template.replace(r'$PWD/brotab_mediator.py', bt_mediator_path)
         logger.info('Installing template %s into %s', filename, destination)
         print('Installing mediator manifest %s' % destination)
 
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         with open(destination, 'w') as file_:
             file_.write(manifest)
+
+        if is_windows() and 'mozilla' in destination:
+            register_native_manifest_windows_firefox(destination)
+        if is_windows() and 'chrome' in destination:
+            register_native_manifest_windows_chrome(destination)
 
     print('Link to Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/')
     print('Link to Chrome (Chromium) extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
