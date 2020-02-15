@@ -1,5 +1,6 @@
 import io
 import sys
+import time
 import socket
 import logging
 import json
@@ -24,18 +25,31 @@ HTTP_TIMEOUT = 10.0 # 2 # 10.0
 MAX_NUMBER_OF_TABS = 5000
 
 
+class StartupTimeout(BaseException):
+    pass
+
+
 class SingleMediatorAPI(object):
     """
     This API is designed to work with a single mediator.
     """
-    # BROWSER_PREFIX = 'f.'
-
-    def __init__(self, prefix, host='localhost', port=4625):
+    def __init__(self, prefix, host='localhost', port=4625, startup_timeout=None):
         self._prefix = '%s.' % prefix
         self._host = host
         self._port = port
+        if startup_timeout is not None:
+            if not self.wait_for_startup(startup_timeout):
+                raise StartupTimeout('Failed to start in %s seconds' % startup_timeout)
         self._pid = self._get_pid()
         self._browser = self._get_browser()
+
+    def wait_for_startup(self, timeout_msec: int) -> bool:
+        expires_at = time.time() + timeout_msec
+        while time.time() < expires_at:
+            if self._get_pid() != -1:
+                return True
+            time.sleep(0.050)
+        return False
 
     @property
     def ready(self):
@@ -70,7 +84,7 @@ class SingleMediatorAPI(object):
         """Get process ID from the mediator."""
         try:
             return int(self._get('/get_pid'))
-        except (HTTPError, socket.timeout) as e:
+        except (URLError, HTTPError, socket.timeout) as e:
             logger.info('_get_pid failed: %s', e)
         return -1
 
@@ -78,29 +92,24 @@ class SingleMediatorAPI(object):
         """Get browser name from the mediator."""
         try:
             return self._get('/get_browser')
-        except (HTTPError, socket.timeout) as e:
+        except (URLError, HTTPError, socket.timeout) as e:
             logger.info('_get_browser failed: %s', e)
         return '<ERROR>'
 
-
     def close_tabs(self, args):
-        # tabs = ','.join(self.filter_tabs(args))
         tabs = ','.join(tab_id for _prefix, _window_id,
                         tab_id in self._split_tabs(args))
         return self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args):
-        # args = self.filter_tabs(args)
         if len(args) == 0:
             return
 
         strWindowTab = args[0]
         prefix, window_id, tab_id = strWindowTab.split('.')
         self._get('/activate_tab/%s' % tab_id)
-        #self._get('/activate_tab/%s' % strWindowTab)
 
     def activateFocus_tab(self, args):
-        # args = self.filter_tabs(args)
         if len(args) == 0:
             return
 
@@ -108,16 +117,9 @@ class SingleMediatorAPI(object):
         prefix, window_id, tab_id = strWindowTab.split('.')
         self._get('/activateFocus_tab/%s' % tab_id)
         #self._get('/activate_tab/%s' % strWindowTab)
-        
-        
+
     def get_active_tabs(self, args) -> [str]:
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
-
-    # def new_tab(self, prefix, search_query):
-    #     if prefix != self._prefix:
-    #         return 2
-    #
-    #     self._get('/new_tab/%s' % search_query)
 
     def query_tabs(self, args):
         query = args
@@ -233,6 +235,9 @@ class SingleMediatorAPI(object):
         for line in result.splitlines()[:num_tabs]:
             lines.append(line)
         return self.prefix_tabs(lines)
+
+    def shutdown(self):
+        return self._get('/shutdown')
 
     def _get(self, path, data=None):
         url = 'http://%s:%s%s' % (self._host, self._port, path)

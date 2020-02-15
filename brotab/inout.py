@@ -7,8 +7,23 @@ import socket
 import mimetypes
 from tempfile import NamedTemporaryFile
 from subprocess import check_call, CalledProcessError
+from typing import Iterable
 
 from brotab.platform import get_editor
+
+MIN_MEDIATOR_PORT = 4625
+MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
+
+
+def get_mediator_ports() -> Iterable:
+    return range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
+
+
+def get_free_tcp_port(start=1025, end=65536, host='127.0.0.1'):
+    for port in range(start, end):
+        if not is_port_accepting_connections(port, host):
+            return port
+    return RuntimeError('Cannot find free port in range %d:%d' % (start, end))
 
 
 def is_port_accepting_connections(port, host='127.0.0.1'):
