@@ -523,7 +523,7 @@ port.onDisconnect.addListener(function() {
   console.log("Disconnected");
 });
 
-console.log("Connected to native app");
+console.log("Connected to native app " + NATIVE_APP_NAME);
 
 /*
 On a click on the browser action, send the app a message.
