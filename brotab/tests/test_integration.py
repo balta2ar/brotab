@@ -140,7 +140,7 @@ class Chromium(Browser):
     PROFILE = 'chromium'
 
 
-# @pytest.mark.skip
+@pytest.mark.skip
 class TestChromium(TestCase):
     def setUp(self):
         self._echo_server = EchoServer()

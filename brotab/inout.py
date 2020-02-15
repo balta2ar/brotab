@@ -8,6 +8,8 @@ import mimetypes
 from tempfile import NamedTemporaryFile
 from subprocess import check_call, CalledProcessError
 
+from brotab.platform import get_editor
+
 
 def is_port_accepting_connections(port, host='127.0.0.1'):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,15 +32,17 @@ def load_tabs_from_file(filename):
     return Lines
 
 
+def run_editor(executable: str, filename: str):
+    return check_call([executable, filename])
+
+
 def edit_tabs_in_editor(tabs_before):
     with NamedTemporaryFile() as file_:
-        file_name=file_.name
+        file_name = file_.name
         file_.close()
         save_tabs_to_file(tabs_before, file_name)
         try:
-            #check_call([os.environ.get('EDITOR', 'notepad'), file_name]) #            check_call([os.environ.get('EDITOR', 'nvim'), file_.name])
-            Editor = 'notepad' if (platform.system()=='Windows') else 'nvim'
-            check_call([os.environ.get('EDITOR', Editor), file_name])
+            run_editor(get_editor(), file_name)
             tabs_after = load_tabs_from_file(file_name)
             return tabs_after
         except CalledProcessError:
