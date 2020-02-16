@@ -1,3 +1,14 @@
+* add "--target" argument to disable automatic mediator discovery and be
+  able to specify mediator's host:port address. Multiple entries are
+  separated with a comma, e.g. --target "localhost:2000,127.0.0.1:3000"
+* add "--focused" argument to "activate" tab command. This will bring browser
+  into focus
+* automatically register native app manifest in the Windows Registry when doing
+  "bt install" (Windows only)
+* detect user's temporary directory (Windows-related fix)
+* use "notepad" editor for "bt move" command on Windows
+* add optional tab_ids filter to "bt text [tab_id]" command
+
 1.1.0 (2019-12-15)
 
 * add "query" command that allows for more fine-tuned querying of tabs
