@@ -123,3 +123,22 @@ class TestText(WithMediator):
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_text', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.1\ttitle\turl\tbody\n']
+
+    def test_text_with_tab_id_ok(self):
+        self.mediator.transport.received.extend([
+            'mocked',
+            [
+                '1.1\ttitle\turl\tbody',
+                '1.2\ttitle\turl\tbody',
+                '1.3\ttitle\turl\tbody',
+            ],
+        ])
+
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            self._run_commands(['text', 'a.1.2', 'a.1.3'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_text', 'replace_with': '" "'},
+        ]
+        assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']

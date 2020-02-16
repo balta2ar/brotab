@@ -252,6 +252,8 @@ def get_text(args):
     logger.info('Get text from tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.get_text([], args.delimiter_regex, args.replace_with)
+    re_match_tabs = re.compile('|'.join(['^%s\t' % tab for tab in args.tab_ids]))
+    tabs = [tab for tab in tabs if re_match_tabs.match(tab)]
 
     if args.cleanup:
         pattern = re.compile(r'\s+')
@@ -565,6 +567,8 @@ def parse_args(args):
         show text form all tabs
         ''')
     parser_get_text.set_defaults(func=get_text)
+    parser_get_text.add_argument('tab_ids', type=str, nargs='*',
+                                  help='Tab IDs to get text from')
     parser_get_text.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
     parser_get_text.add_argument('--cleanup', action='store_true',
