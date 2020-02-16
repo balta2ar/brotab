@@ -106,3 +106,20 @@ class TestActivate(WithMediator):
             {'name': 'get_browser'},
             {'name': 'activate_tab', 'tab_id': 2, 'focused': True}
         ]
+
+
+class TestText(WithMediator):
+    def test_text_no_arguments_ok(self):
+        self.mediator.transport.received.extend([
+            'mocked',
+            ['1.1\ttitle\turl\tbody'],
+        ])
+
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            self._run_commands(['text'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_text', 'replace_with': '" "'},
+        ]
+        assert output == [b'a.1.1\ttitle\turl\tbody\n']

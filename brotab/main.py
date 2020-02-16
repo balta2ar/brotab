@@ -64,6 +64,7 @@ from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
 from brotab.inout import get_mediator_ports
 from brotab.inout import in_temp_dir
+from brotab.inout import stdout_buffer_write
 from brotab.platform import is_windows
 from brotab.platform import register_native_manifest_windows_chrome
 from brotab.platform import register_native_manifest_windows_firefox
@@ -263,7 +264,7 @@ def get_text(args):
 
     message = '\n'.join(tabs) + '\n'
     if args.tsv is None:
-        sys.stdout.buffer.write(message.encode('utf8'))
+        stdout_buffer_write(message.encode('utf8'))
     else:
         with open(args.tsv, 'w') as file_:
             file_.write(message)
