@@ -505,6 +505,8 @@ def parse_args(args):
         Index the text from browser's tabs. Text is put into sqlite fts5 table.
         ''')
     parser_index_tabs.set_defaults(func=index_tabs)
+    parser_index_tabs.add_argument('tab_ids', type=str, nargs='*',
+                                   help='Tab IDs to get text from')
     parser_index_tabs.add_argument('--sqlite', type=str, default=in_temp_dir('tabs.sqlite'),
                                    help='sqlite DB filename')
     parser_index_tabs.add_argument('--tsv', type=str, default=None,
