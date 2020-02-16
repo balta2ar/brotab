@@ -137,8 +137,10 @@ $ git tag 0.0.5
 $ git push origin master && git push --tags
 ```
 
-Load env file as follows:
+Go to Github tags and manually create a release from the tag:
+https://github.com/balta2ar/brotab/tags
 
+Load env file as follows:
 set -o allexport; source .env; set +o allexport
 
 ## Commands
