@@ -37,6 +37,7 @@ Prod:
 
 ## TODO, things to implement
 
+[_] provide zsh completion: ~/rc.arch/bz/.config/zsh/completion/_bt
 [_] add config and allow setting debug level.  prod in release, debug in dev
 [_] automake deployment of extensions and pypi packaging
 [_] automate switching to environments (dev, prod)
