@@ -78,6 +78,10 @@ def read_stdin():
     return ''
 
 
+def stdout_buffer_write(message):
+    return sys.stdout.buffer.write(message)
+
+
 # Taken from https://pymotw.com/3/urllib.request/
 class MultiPartForm:
     """Accumulate the data to be used when posting a form."""
