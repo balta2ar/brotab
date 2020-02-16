@@ -61,6 +61,12 @@ fc close
 fo open
 fs search
 
+Getting data from PDF page:
+
+Firefox:
+var d = await window.PDFViewerApplication.pdfDocument.getData()
+Uint8Array(100194) [ 37, 80, 68, 70, 45, 49, 46, 51, 10, 37, … ]
+
 ## CompleBox
 
 Desired modes:
