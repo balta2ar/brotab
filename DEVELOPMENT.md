@@ -134,7 +134,7 @@ $ twine upload dist/*
 $ nvim CHANGELOG.md
 $ git ci -m 'Bump version from 0.0.3 to 0.0.5'
 $ git tag 0.0.5
-$ git push && git push --tags
+$ git push origin master && git push --tags
 ```
 
 Load env file as follows:
