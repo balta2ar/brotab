@@ -1,4 +1,5 @@
 flask
 requests
 pytest
+pytest-cov
 psutil
