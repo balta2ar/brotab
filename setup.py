@@ -96,7 +96,9 @@ class UploadCommand(Command):
 packages = find_packages(
     # where='brotab',
     # exclude=('brotab.tests', 'firefox_extension', 'firefox_mediator')
-    exclude=('tests', 'firefox_extension', 'firefox_mediator')
+    #exclude=('tests', 'firefox_extension', 'firefox_mediator')
+    include=('brotab', 'brotab.tests'),
+    exclude=('firefox_extension', 'firefox_mediator')
 )
 print('>>', packages)
 
@@ -139,15 +141,12 @@ setup(
         # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: Implementation :: CPython',
-        'Programming Language :: Python :: Implementation :: PyPy'
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: Implementation :: CPython'
     ],
     # $ setup.py publish support.
     cmdclass={
