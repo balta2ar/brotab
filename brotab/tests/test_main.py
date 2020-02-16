@@ -52,10 +52,10 @@ class MockedMediator:
 
 
 def _run_commands(commands):
-        with MockedMediator('a') as mediator:
-            get_mediator_ports_mock.side_effect = \
-                [range(mediator.port, mediator.port + 1)]
-            run_commands(commands)
+    with MockedMediator('a') as mediator:
+        get_mediator_ports_mock.side_effect = \
+            [range(mediator.port, mediator.port + 1)]
+        run_commands(commands)
 
 
 class WithMediator(TestCase):
