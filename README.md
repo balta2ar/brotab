@@ -95,27 +95,6 @@ Features to show:
 1. Install Chrome (Chromium) extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/
 1. Enjoy! (try `bt clients`, `bt windows`, `bt list`, `bt words`)
 
-## Testing extension
-
-To perform integration tests for the extension, chromium and firefox have
-different approaches to load it upon the start.
-
-### Chromium
-
-chromium: google-chrome-stable --disable-gpu --load-extension=./firefox_extension
-
-Chromium is a bit more demading. Several conditions are required before you can
-run Chromium in Xvfb in integration tests:
-
-1. Use extension from brotab/extension/chrome-tests. It contains the correct
-   fake Key and extension ID (knldjmfmopnpolahpmmgbagdohdnhkik). The same
-   extension ID is installed when you run `bt install` command in Docker.
-   This very extension ID is also present in
-   brotab/mediator/chromium_mediator_tests.json, which is used in `bt install`.
-
-firefox: use web-ext run
-https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_web-ext
-
 ## Author
 
 Yuri Bochkarev

@@ -149,3 +149,25 @@ chromium-browser --pack-extension=chrome
 
 To make sure that extension works under selenium, copy brotab_mediator.json to:
 /etc/opt/chrome/native-messaging-hosts
+
+## Testing extension
+
+To perform integration tests for the extension, chromium and firefox have
+different approaches to load it upon the start.
+
+### Chromium
+
+chromium: google-chrome-stable --disable-gpu --load-extension=./firefox_extension
+
+Chromium is a bit more demading. Several conditions are required before you can
+run Chromium in Xvfb in integration tests:
+
+1. Use extension from brotab/extension/chrome-tests. It contains the correct
+   fake Key and extension ID (knldjmfmopnpolahpmmgbagdohdnhkik). The same
+   extension ID is installed when you run `bt install` command in Docker.
+   This very extension ID is also present in
+   brotab/mediator/chromium_mediator_tests.json, which is used in `bt install`.
+
+firefox: use web-ext run
+https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_web-ext
+
