@@ -1,3 +1,5 @@
+1.2.0 (2020-02-16)
+
 * add "--target" argument to disable automatic mediator discovery and be
   able to specify mediator's host:port address. Multiple entries are
   separated with a comma, e.g. --target "localhost:2000,127.0.0.1:3000"
