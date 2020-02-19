@@ -127,14 +127,15 @@ Testing:
 ## Release procedure
 
 ```bash
-# bump bersion in brotab/__version__.py
-$ python setup.py sdist bdist_wheel
-$ twine upload dist/*
+# Bump bersion in brotab/__version__.py
 
 $ nvim CHANGELOG.md
-$ git ci -m 'Bump version from 0.0.3 to 0.0.5'
-$ git tag 0.0.5
+$ git ci -m 'Bump version from 1.2.0 to 1.2.1\n<CHANGELOG HERE>'
+$ git tag 1.2.1
 $ git push origin master && git push --tags
+
+# Go to releases and update the CHANGELOG: https://github.com/balta2ar/brotab/releases
+# This will trigger PyPI package build and upload
 ```
 
 Go to Github tags and manually create a release from the tag:
@@ -142,6 +143,11 @@ https://github.com/balta2ar/brotab/tags
 
 Load env file as follows:
 set -o allexport; source .env; set +o allexport
+
+## Old steps of release procedure
+
+$ python setup.py sdist bdist_wheel
+$ twine upload dist/*
 
 ## Commands
 
