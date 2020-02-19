@@ -35,6 +35,6 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: ${{ env.COMMITMSG }}
-          draft: false
+          body: "${{ env.COMMITMSG }}"
+          draft: true
           prerelease: false
