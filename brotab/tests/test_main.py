@@ -1,10 +1,14 @@
+from time import sleep
+from threading import Thread
+from string import ascii_letters
 from unittest import TestCase
 from unittest.mock import patch
-from threading import Thread
+from typing import List
 
 from brotab.main import run_commands
 from brotab.main import create_clients
 from brotab.inout import get_free_tcp_port
+from brotab.inout import MIN_MEDIATOR_PORT
 from brotab.api import SingleMediatorAPI
 from brotab.mediator.brotab_mediator import run_mediator
 from brotab.mediator.brotab_mediator import create_browser_remote_api
@@ -25,8 +29,8 @@ class MockedLoggingTransport:
             return result
 
 
-def _run_mediator_in_thread(port, transport) -> Thread:
-    remote_api = create_browser_remote_api(transport)
+def _run_mediator_in_thread(port, transport, remote_api=None) -> Thread:
+    remote_api = create_browser_remote_api(transport) if remote_api is None else remote_api
     thread = Thread(target=lambda: run_mediator(port, remote_api, no_logging=True))
     thread.daemon = True
     thread.start()
@@ -34,11 +38,11 @@ def _run_mediator_in_thread(port, transport) -> Thread:
 
 
 class MockedMediator:
-    def __init__(self, prefix='a'):
-        self.port = get_free_tcp_port()
+    def __init__(self, prefix='a', port=None, remote_api=None):
+        self.port = get_free_tcp_port() if port is None else port
         self.transport = MockedLoggingTransport()
         self.transport.received = ['mocked']
-        self.thread = _run_mediator_in_thread(self.port, self.transport)
+        self.thread = _run_mediator_in_thread(self.port, self.transport, remote_api)
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
         assert self.api._browser == 'mocked'
         self.transport.reset()
@@ -56,6 +60,66 @@ def _run_commands(commands):
         get_mediator_ports_mock.side_effect = \
             [range(mediator.port, mediator.port + 1)]
         run_commands(commands)
+
+
+class DummyBrowserRemoteAPI:
+    """
+    Dummy version of browser API for integration smoke tests.
+    """
+
+    def list_tabs(self):
+        return ['1.1\ttitle\turl']
+    def query_tabs(self, query_info: str):
+        raise NotImplementedError()
+    def move_tabs(self, move_triplets: str):
+        raise NotImplementedError()
+    def open_urls(self, urls: List[str], window_id=None):
+        raise NotImplementedError()
+    def close_tabs(self, tab_ids: str):
+        raise NotImplementedError()
+    def new_tab(self, query):
+        raise NotImplementedError()
+    def activate_tab(self, tab_id: int, focused: bool):
+        raise NotImplementedError()
+    def get_active_tabs(self) -> str:
+        return '1.1'
+    def get_words(self, tab_id, match_regex, join_with):
+        return ['a', 'b']
+    def get_text(self, delimiter_regex, replace_with):
+        return ['1.1\ttitle\turl\tbody']
+    def get_browser(self):
+        return 'mocked'
+
+
+def run_mocked_mediators(count, default_port_offset, delay):
+    """
+    How to run:
+
+    python -c 'from brotab.tests.test_main import run_mocked_mediators as run; run(3, 0, 0)'
+    python -c 'from brotab.tests.test_main import run_mocked_mediators as run; run(count=3, default_port_offset=10, delay=0)'
+    """
+    assert count > 0
+    print('Creating %d mediators' % count)
+    start_port = MIN_MEDIATOR_PORT + default_port_offset
+    ports = range(start_port, start_port + count)
+    mediators = [MockedMediator(letter, port, DummyBrowserRemoteAPI())
+                 for i, letter, port in zip(range(count), ascii_letters, ports)]
+    sleep(delay)
+    print('Ready')
+    for mediator in mediators:
+        print(mediator.port)
+    mediators[0].thread.join()
+
+
+def run_mocked_mediator_current_thread(port):
+    """
+    How to run:
+
+    python -c 'from brotab.tests.test_main import run_mocked_mediator_current_thread as run; run(4635)'
+    """
+    remote_api = DummyBrowserRemoteAPI()
+    port = get_free_tcp_port() if port is None else port
+    run_mediator(port, remote_api, no_logging=False)
 
 
 class WithMediator(TestCase):
