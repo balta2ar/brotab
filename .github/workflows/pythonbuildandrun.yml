@@ -1,4 +1,4 @@
-name: Build Python Package and run the app in smoke testing setup
+name: Build Python Package And Smoke Run
 
 on: [push]
 

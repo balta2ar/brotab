@@ -99,10 +99,10 @@ packages = find_packages(
     #exclude=('tests', 'firefox_extension', 'firefox_mediator')
     include=(
         'brotab',
-        'brotab.tests',
-        'brotab.search',
-        'brotab.mediator',
-        'brotab.albert',
+        #'brotab.tests',
+        #'brotab.search',
+        #'brotab.mediator',
+        #'brotab.albert',
     ),
     exclude=('firefox_extension', 'firefox_mediator')
 )
