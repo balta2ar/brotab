@@ -1,3 +1,7 @@
+1.2.1 (2020-02-19)
+
+* fix setup.py and add smoke integration tests to build package and run the app
+
 1.2.0 (2020-02-16)
 
 * add "--target" argument to disable automatic mediator discovery and be
