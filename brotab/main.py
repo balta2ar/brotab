@@ -50,6 +50,7 @@ News:
 import os
 import re
 import sys
+import time
 import shutil
 import logging
 from string import ascii_lowercase
@@ -195,7 +196,6 @@ def index_tabs(args):
         args.cleanup = True
         logger.info(
             'index_tabs: retrieving tabs from browser into file %s', args.tsv)
-        import time
         start = time.time()
         get_text(args)
         delta = time.time() - start
@@ -237,7 +237,6 @@ def get_words(args):
     # return tab.execute({javascript: "
     # [...new Set(document.body.innerText.match(/\w+/g))].sort().join('\n');
     # "})
-    import time
     start = time.time()
     logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
                 args.tab_ids, args.match_regex, args.join_with)
@@ -268,7 +267,7 @@ def get_text(args):
     if args.tsv is None:
         stdout_buffer_write(message.encode('utf8'))
     else:
-        with open(args.tsv, 'w') as file_:
+        with open(args.tsv, 'w', encoding='utf-8') as file_:
             file_.write(message)
 
 

@@ -19,6 +19,12 @@ a.      localhost:4625  23744   firefox
 b.      localhost:4626  28895   chrome/chromium
 ```
 
+## Running tests
+
+```bash
+$ pytest brotab/tests
+```
+
 ## Rest
 
 This document serves the purpose of being a reminder to dev

@@ -1,3 +1,4 @@
+from uuid import uuid4
 from time import sleep
 from threading import Thread
 from string import ascii_letters
@@ -8,10 +9,17 @@ from typing import List
 from brotab.main import run_commands
 from brotab.main import create_clients
 from brotab.inout import get_free_tcp_port
+from brotab.inout import in_temp_dir
+from brotab.inout import spit
 from brotab.inout import MIN_MEDIATOR_PORT
 from brotab.api import SingleMediatorAPI
 from brotab.mediator.brotab_mediator import run_mediator
 from brotab.mediator.brotab_mediator import create_browser_remote_api
+
+from brotab.tests.utils import assert_file_absent
+from brotab.tests.utils import assert_file_not_empty
+from brotab.tests.utils import assert_file_contents
+from brotab.tests.utils import assert_sqlite3_table_contents
 
 
 class MockedLoggingTransport:
@@ -206,3 +214,54 @@ class TestText(WithMediator):
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_text', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
+
+
+class TestIndex(WithMediator):
+    def test_index_no_arguments_ok(self):
+        self.mediator.transport.received.extend([
+            'mocked',
+            ['1.1\ttitle\turl\tbody'],
+        ])
+
+        sqlite_filename = in_temp_dir('tabs.sqlite')
+        tsv_filename = in_temp_dir('tabs.tsv')
+        assert_file_absent(sqlite_filename)
+        assert_file_absent(tsv_filename)
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            self._run_commands(['index'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'delimiter_regex': '/\\n|\\r|\\t/g',
+                'name': 'get_text', 'replace_with': '" "'},
+        ]
+        assert_file_not_empty(sqlite_filename)
+        assert_file_not_empty(tsv_filename)
+        assert_file_contents(tsv_filename, 'a.1.1\ttitle\turl\tbody\n')
+        assert_sqlite3_table_contents(
+            sqlite_filename,  'tabs', 'a.1.1\ttitle\turl\tbody')
+
+    def test_index_custom_filename(self):
+        self.mediator.transport.received.extend([
+            'mocked',
+            ['1.1\ttitle\turl\tbody'],
+        ])
+
+        sqlite_filename = in_temp_dir(uuid4().hex + '.sqlite')
+        tsv_filename = in_temp_dir(uuid4().hex + '.tsv')
+        assert_file_absent(sqlite_filename)
+        assert_file_absent(tsv_filename)
+        spit(tsv_filename, 'a.1.1\ttitle\turl\tbody\n')
+
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            self._run_commands(
+                ['index', '--sqlite', sqlite_filename, '--tsv', tsv_filename])
+        assert self.mediator.transport.sent == []
+        assert_file_not_empty(sqlite_filename)
+        assert_file_not_empty(tsv_filename)
+        assert_file_contents(tsv_filename, 'a.1.1\ttitle\turl\tbody\n')
+        assert_sqlite3_table_contents(
+            sqlite_filename,  'tabs', 'a.1.1\ttitle\turl\tbody')
+        assert_file_absent(sqlite_filename)
+        assert_file_absent(tsv_filename)
