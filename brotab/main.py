@@ -322,6 +322,8 @@ def install_mediator(args):
          '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
         ('mediator/chromium_mediator.json',
          '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+        ('mediator/chromium_mediator.json',
+         '~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/brotab_mediator.json'),
     ]
 
     if args.tests:
@@ -348,7 +350,7 @@ def install_mediator(args):
             register_native_manifest_windows_chrome(destination)
 
     print('Link to Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/')
-    print('Link to Chrome (Chromium) extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
+    print('Link to Chrome (Chromium)/Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
 
 
 def executejs(args):
