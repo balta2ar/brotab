@@ -69,6 +69,7 @@ from brotab.inout import stdout_buffer_write
 from brotab.platform import is_windows
 from brotab.platform import register_native_manifest_windows_chrome
 from brotab.platform import register_native_manifest_windows_firefox
+from brotab.platform import register_native_manifest_windows_brave
 from brotab.platform import make_windows_path_double_sep
 from brotab.utils import split_tab_ids, get_file_size, encode_query
 from brotab.search.query import query
@@ -348,6 +349,8 @@ def install_mediator(args):
             register_native_manifest_windows_firefox(destination)
         if is_windows() and 'chrome' in destination:
             register_native_manifest_windows_chrome(destination)
+        if is_windows() and 'Brave' in destination:
+            register_native_manifest_windows_brave(destination)
 
     print('Link to Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/')
     print('Link to Chrome (Chromium)/Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
