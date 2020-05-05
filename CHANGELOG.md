@@ -1,3 +1,7 @@
+1.2.2 (2020-05-05)
+
+* Added Brave Browser support #29
+
 1.2.1 (2020-02-19)
 
 * fix setup.py and add smoke integration tests to build package and run the app
