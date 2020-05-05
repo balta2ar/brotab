@@ -1,5 +1,13 @@
 # Development
 
+## Build, test and manual installation
+
+1. Install docker: https://docs.docker.com/get-docker/
+1. Install Python3
+1. Clone repository and cd into it
+1. Run:```rm -rf ./dist && python3 setup.py sdist bdist_wheel && docker build -t brotab-buildinstallrun . && docker run -it brotab-buildinstallrun```
+1. The build is in the dist folder and can be installed with ```pip install $(find ./dist -name *.whl -type f) ```
+
 ## Installation in development mode
 
 cd brotab
