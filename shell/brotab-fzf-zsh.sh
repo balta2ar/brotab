@@ -9,7 +9,7 @@ _fzf_complete_bt() {
         [[ $ARGS == 'bt activate'* ]] || \
         [[ $ARGS == 'bt words'* ]]; \
   then
-    _fzf_complete "-m --no-sort --inline-info --toggle-sort=\`" "$@" < <(
+    _fzf_complete -m --no-sort --inline-info --toggle-sort=\` "$@" < <(
       { bt list }
     )
   else
