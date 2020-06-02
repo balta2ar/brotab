@@ -95,6 +95,8 @@ class DummyBrowserRemoteAPI:
         return ['a', 'b']
     def get_text(self, delimiter_regex, replace_with):
         return ['1.1\ttitle\turl\tbody']
+    def get_html(self, delimiter_regex, replace_with):
+        return ['1.1\ttitle\turl\t<body>some body</body>']
     def get_browser(self):
         return 'mocked'
 
