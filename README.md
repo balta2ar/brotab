@@ -12,13 +12,13 @@ Control your browser's tabs from the terminal.
 
 ```txt
 No command has been specified
-usage: bt [-h] {move,list,close,activate,search,open,words,dup,windows,clients} ...
+usage: bt [-h] {move,list,close,activate,search,open,words,text,html,dup,windows,clients} ...
 
 bt (brotab = Browser Tabs) is a command-line tool that helps you manage browser tabs. It can
 help you list, close, reorder, open and activate your tabs.
 
 positional arguments:
-  {move,list,close,activate,active,search,index,open,words,text,dup,windows,clients,install}
+  {move,list,close,activate,active,search,index,open,words,text,html,dup,windows,clients,install}
     move                move tabs around. This command lists available tabs and runs
                         the editor. In the editor you can 1) reorder tabs -- tabs
                         will be moved in the browser 2) delete tabs -- tabs will be
@@ -47,6 +47,7 @@ positional arguments:
                         clients. This is a helper for webcomplete deoplete plugin
                         that helps complete words from the browser
     text                show text form all tabs
+    html                show html form all tabs
     dup                 display reminder on how to show duplicate tabs using
                         command-line tools
     windows             display available prefixes and window IDs, along with the
