@@ -3,9 +3,10 @@ On startup, connect to the "brotab_mediator" app.
 */
 
 //const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");';
-const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(#match_regex#))].sort().join(#join_with#);';
+const GET_WORDS_SCRIPT = '[...new Set(document.documentElement.innerText.match(#match_regex#))].sort().join(#join_with#);';
 //const GET_TEXT_SCRIPT = 'document.body.innerText.replace(/\\n|\\r|\\t/g, " ");';
-const GET_TEXT_SCRIPT = 'document.body.innerText.replace(#delimiter_regex#, #replace_with#);';
+const GET_TEXT_SCRIPT = 'document.documentElement.innerText.replace(#delimiter_regex#, #replace_with#);';
+const GET_HTML_SCRIPT = 'document.documentElement.innerHTML.replace(#delimiter_regex#, #replace_with#);';
 
 
 class BrowserTabs {
@@ -97,7 +98,7 @@ class FirefoxTabs extends BrowserTabs {
   runScript(tab_id, script, payload, onSuccess, onError) {
     this._browser.tabs.executeScript(tab_id, {code: script}).then(
       (result) => onSuccess(result, payload),
-      (result) => onError(result, payload)
+      (error) => onError(error, payload)
     );
   }
 
@@ -346,6 +347,12 @@ function getTextScript(delimiter_regex, replace_with) {
     .replace('#replace_with#', replace_with);
 }
 
+function getHtmlScript(delimiter_regex, replace_with) {
+  return GET_HTML_SCRIPT
+    .replace('#delimiter_regex#', delimiter_regex)
+    .replace('#replace_with#', replace_with);
+}
+
 function getWordsFromTabs(tabs, match_regex, join_with) {
   var promises = [];
   console.log(`Getting words from tabs: ${tabs}`);
@@ -391,9 +398,9 @@ function getWords(tab_id, match_regex, join_with) {
   }
 }
 
-function getTextFromTabs(tabs, delimiter_regex, replace_with, onSuccess) {
+function getTextOrHtmlFromTabs(tabs, scriptGetter, delimiter_regex, replace_with, onSuccess) {
   var promises = [];
-  const script = getTextScript(delimiter_regex, replace_with)
+  const script = scriptGetter(delimiter_regex, replace_with)
   console.log(`Getting text from tabs: ${tabs.length}, script (${script})`);
 
   lines = [];
@@ -405,9 +412,13 @@ function getTextFromTabs(tabs, delimiter_regex, replace_with, onSuccess) {
           // let as_text = JSON.stringify(text);
           // I don't know why, but an array of one item is sent here, so I take
           // the first item.
-          text = text[0];
-          console.log(`Got ${text.length} chars of text from another tab: ${current_tab.id}`);
-          resolve({tab: current_tab, text: text});
+          if (text && text[0]) {
+            console.log(`Got ${text.length} chars of text from another tab: ${current_tab.id}`);
+            resolve({tab: current_tab, text: text[0]});
+          } else {
+            console.log(`Got empty text from another tab: ${current_tab.id}`);
+            resolve({tab: current_tab, text: ''});
+          }
         },
         (error, current_tab) => {
           console.log(`Could not get text from tab: ${error}: ${current_tab.id}`);
@@ -418,7 +429,6 @@ function getTextFromTabs(tabs, delimiter_regex, replace_with, onSuccess) {
     promises.push(promise);
   }
 
-  // console.log(`Awaiting text promises`);
   Promise.all(promises).then(onSuccess);
 }
 
@@ -441,15 +451,26 @@ function getTextOnRunScriptSuccess(all_results) {
 }
 
 function getTextOnListSuccess(tabs, delimiter_regex, replace_with) {
-  lines = [];
   // Make sure tabs are sorted by their index within a window
   tabs.sort(compareWindowIdTabId);
-  getTextFromTabs(tabs, delimiter_regex, replace_with, getTextOnRunScriptSuccess);
+  getTextOrHtmlFromTabs(tabs, getTextScript, delimiter_regex, replace_with, getTextOnRunScriptSuccess);
 }
 
 function getText(delimiter_regex, replace_with) {
   browserTabs.list({'discarded': false},
       (tabs) => getTextOnListSuccess(tabs, delimiter_regex, replace_with),
+  );
+}
+
+function getHtmlOnListSuccess(tabs, delimiter_regex, replace_with) {
+  // Make sure tabs are sorted by their index within a window
+  tabs.sort(compareWindowIdTabId);
+  getTextOrHtmlFromTabs(tabs, getHtmlScript, delimiter_regex, replace_with, getTextOnRunScriptSuccess);
+}
+
+function getHtml(delimiter_regex, replace_with) {
+  browserTabs.list({'discarded': false},
+      (tabs) => getHtmlOnListSuccess(tabs, delimiter_regex, replace_with),
   );
 }
 
@@ -513,6 +534,11 @@ port.onMessage.addListener((command) => {
     getText(command['delimiter_regex'], command['replace_with']);
   }
 
+  else if (command['name'] == 'get_html') {
+    console.log('Getting HTML from all tabs');
+    getHtml(command['delimiter_regex'], command['replace_with']);
+  }
+
   else if (command['name'] == 'get_browser') {
     console.log('Getting browser name');
     getBrowserName();
@@ -521,6 +547,11 @@ port.onMessage.addListener((command) => {
 
 port.onDisconnect.addListener(function() {
   console.log("Disconnected");
+  if(chrome.runtime.lastError) {
+    console.warn("Reason: " + chrome.runtime.lastError.message);
+  } else {
+    console.warn("lastError is undefined");
+  }
 });
 
 console.log("Connected to native app " + NATIVE_APP_NAME);
