@@ -111,7 +111,7 @@ class SingleMediatorAPI(object):
         prefix, window_id, tab_id = args[0].split('.')
         self._get('/activate_tab/%s%s' % (tab_id, '?focused=1' if focused else ''))
 
-    def get_active_tabs(self, args) -> [str]:
+    def get_active_tabs(self, args) -> List[str]:
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
     def query_tabs(self, args):
@@ -213,13 +213,14 @@ class SingleMediatorAPI(object):
 
         return sorted(list(words))
 
-    def get_text(self, args, delimiter_regex, replace_with):
+    def get_text_or_html(self, command, args, delimiter_regex, replace_with):
         num_tabs = MAX_NUMBER_OF_TABS
         if len(args) > 0:
             num_tabs = int(args[0])
 
         result = self._get(
-            '/get_text/?delimiter_regex=%s&replace_with=%s' % (
+            '/%s/?delimiter_regex=%s&replace_with=%s' % (
+                command,
                 encode_query(delimiter_regex),
                 encode_query(replace_with),
             ),
@@ -228,6 +229,12 @@ class SingleMediatorAPI(object):
         for line in result.splitlines()[:num_tabs]:
             lines.append(line)
         return self.prefix_tabs(lines)
+
+    def get_text(self, args, delimiter_regex, replace_with):
+        return self.get_text_or_html('get_text', args, delimiter_regex, replace_with)
+
+    def get_html(self, args, delimiter_regex, replace_with):
+        return self.get_text_or_html('get_html', args, delimiter_regex, replace_with)
 
     def shutdown(self):
         return self._get('/shutdown')
@@ -369,22 +376,35 @@ class MultipleMediatorsAPI(object):
             #print('DELTA', delta, file=sys.stderr)
         return sorted(list(words))
 
+    def _get_text_or_html(self, api, getter, args, delimiter_regex, replace_with):
+        result = []
+        try:
+            import time
+            start = time.time()
+            result = getter(args, delimiter_regex, replace_with)
+            delta = time.time() - start
+            logger.info('get text/html (single client) took %s', delta)
+        except ValueError as e:
+            print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
+            logger.error("Cannot decode JSON: %s: %s" % (api, e))
+        except URLError as e:
+            print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
+            logger.error("Cannot access API %s: %s" % (api, e))
+        except Exception as e:
+            logger.error("Unknown exception: %s %s" % (api, e))
+        return result
+
     def get_text(self, args, delimiter_regex, replace_with):
         tabs = []
         for api in self.ready_apis:
-            try:
-                import time
-                start = time.time()
-                tabs.extend(api.get_text(args, delimiter_regex, replace_with))
-                delta = time.time() - start
-                logger.info('get text (single client) took %s', delta)
-            except ValueError as e:
-                print("Cannot decode JSON: %s: %s" % (api, e), file=sys.stderr)
-                logger.error("Cannot decode JSON: %s: %s" % (api, e))
-            except URLError as e:
-                print("Cannot access API %s: %s" % (api, e), file=sys.stderr)
-                logger.error("Cannot access API %s: %s" % (api, e))
-            except Exception as e:
-                logger.error("Unknown exception: %s %s" % (api, e))
+            tabs.extend(self._get_text_or_html(api, api.get_text, args,
+                                               delimiter_regex, replace_with))
+        return tabs
+
+    def get_html(self, args, delimiter_regex, replace_with):
+        tabs = []
+        for api in self.ready_apis:
+            tabs.extend(self._get_text_or_html(api, api.get_html, args,
+                                               delimiter_regex, replace_with))
         return tabs
 

@@ -79,7 +79,9 @@ from brotab.const import \
     DEFAULT_GET_WORDS_MATCH_REGEX, \
     DEFAULT_GET_WORDS_JOIN_WITH, \
     DEFAULT_GET_TEXT_DELIMITER_REGEX, \
-    DEFAULT_GET_TEXT_REPLACE_WITH
+    DEFAULT_GET_TEXT_REPLACE_WITH, \
+    DEFAULT_GET_HTML_DELIMITER_REGEX, \
+    DEFAULT_GET_HTML_REPLACE_WITH
 
 
 FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
@@ -248,10 +250,8 @@ def get_words(args):
     #print('DELTA TOTAL', delta, file=sys.stderr)
 
 
-def get_text(args):
-    logger.info('Get text from tabs')
-    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    tabs = api.get_text([], args.delimiter_regex, args.replace_with)
+def get_text_or_html(getter, args):
+    tabs = getter([], args.delimiter_regex, args.replace_with)
     re_match_tabs = re.compile('|'.join(['^%s\t' % tab for tab in args.tab_ids]))
     tabs = [tab for tab in tabs if re_match_tabs.match(tab)]
 
@@ -270,6 +270,18 @@ def get_text(args):
     else:
         with open(args.tsv, 'w', encoding='utf-8') as file_:
             file_.write(message)
+
+
+def get_text(args):
+    logger.info('Get text from tabs')
+    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    return get_text_or_html(api.get_text, args)
+
+
+def get_html(args):
+    logger.info('Get html from tabs')
+    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    return get_text_or_html(api.get_html, args)
 
 
 def show_duplicates(args):
@@ -585,6 +597,26 @@ def parse_args(args):
         help='Regex that is used to match delimiters in the page text')
     parser_get_text.add_argument(
         '--replace-with', type=str, default=DEFAULT_GET_TEXT_REPLACE_WITH,
+        help='String that is used to replaced matched delimiters')
+
+    parser_get_html = subparsers.add_parser(
+        'html',
+        help='''
+        show html form all tabs
+        ''')
+    parser_get_html.set_defaults(func=get_html)
+    parser_get_html.add_argument('tab_ids', type=str, nargs='*',
+                                  help='Tab IDs to get text from')
+    parser_get_html.add_argument('--tsv', type=str, default=None,
+                                 help='tsv file to save results to')
+    parser_get_html.add_argument('--cleanup', action='store_true',
+                                 default=False,
+                                 help='force removal of extra whitespace')
+    parser_get_html.add_argument(
+        '--delimiter-regex', type=str, default=DEFAULT_GET_HTML_DELIMITER_REGEX,
+        help='Regex that is used to match delimiters in the page text')
+    parser_get_html.add_argument(
+        '--replace-with', type=str, default=DEFAULT_GET_HTML_REPLACE_WITH,
         help='String that is used to replaced matched delimiters')
 
     parser_show_duplicates = subparsers.add_parser(

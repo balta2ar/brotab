@@ -23,7 +23,9 @@ from brotab.const import \
     DEFAULT_GET_WORDS_MATCH_REGEX, \
     DEFAULT_GET_WORDS_JOIN_WITH, \
     DEFAULT_GET_TEXT_DELIMITER_REGEX, \
-    DEFAULT_GET_TEXT_REPLACE_WITH
+    DEFAULT_GET_TEXT_REPLACE_WITH, \
+    DEFAULT_GET_HTML_DELIMITER_REGEX, \
+    DEFAULT_GET_HTML_REPLACE_WITH
 
 app = flask.Flask(__name__)
 
@@ -52,6 +54,8 @@ DEFAULT_GET_WORDS_MATCH_REGEX = encode_query(DEFAULT_GET_WORDS_MATCH_REGEX)
 DEFAULT_GET_WORDS_JOIN_WITH = encode_query(DEFAULT_GET_WORDS_JOIN_WITH)
 DEFAULT_GET_TEXT_DELIMITER_REGEX = encode_query(DEFAULT_GET_TEXT_DELIMITER_REGEX)
 DEFAULT_GET_TEXT_REPLACE_WITH = encode_query(DEFAULT_GET_TEXT_REPLACE_WITH)
+DEFAULT_GET_HTML_DELIMITER_REGEX = encode_query(DEFAULT_GET_HTML_DELIMITER_REGEX)
+DEFAULT_GET_HTML_REPLACE_WITH = encode_query(DEFAULT_GET_HTML_REPLACE_WITH)
 
 
 def create_browser_remote_api(transport=None):
@@ -185,6 +189,17 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
+    def get_html(self, delimiter_regex, replace_with):
+        logger.info('getting html, delimiter_regex=%s, replace_with=%s',
+                    delimiter_regex, replace_with)
+        command = {
+            'name': 'get_html',
+            'delimiter_regex': delimiter_regex,
+            'replace_with': replace_with,
+        }
+        self._transport.send(command)
+        return self._transport.recv()
+
     def get_browser(self):
         logger.info('getting browser name')
         command = {'name': 'get_browser'}
@@ -276,6 +291,15 @@ def get_text():
     delimiter_regex = request.args.get('delimiter_regex', DEFAULT_GET_TEXT_DELIMITER_REGEX)
     replace_with = request.args.get('replace_with', DEFAULT_GET_TEXT_REPLACE_WITH)
     lines = browser.get_text(decode_query(delimiter_regex),
+                             decode_query(replace_with))
+    return '\n'.join(lines)
+
+
+@app.route('/get_html/')
+def get_html():
+    delimiter_regex = request.args.get('delimiter_regex', DEFAULT_GET_HTML_DELIMITER_REGEX)
+    replace_with = request.args.get('replace_with', DEFAULT_GET_HTML_REPLACE_WITH)
+    lines = browser.get_html(decode_query(delimiter_regex),
                              decode_query(replace_with))
     return '\n'.join(lines)
 

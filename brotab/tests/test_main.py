@@ -216,6 +216,41 @@ class TestText(WithMediator):
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
 
 
+class TestHtml(WithMediator):
+    def test_html_no_arguments_ok(self):
+        self.mediator.transport.received.extend([
+            'mocked',
+            ['1.1\ttitle\turl\tbody'],
+        ])
+
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            self._run_commands(['html'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_html', 'replace_with': '" "'},
+        ]
+        assert output == [b'a.1.1\ttitle\turl\tbody\n']
+
+    def test_html_with_tab_id_ok(self):
+        self.mediator.transport.received.extend([
+            'mocked',
+            [
+                '1.1\ttitle\turl\tbody',
+                '1.2\ttitle\turl\tbody',
+                '1.3\ttitle\turl\tbody',
+            ],
+        ])
+
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            self._run_commands(['html', 'a.1.2', 'a.1.3'])
+        assert self.mediator.transport.sent == [
+            {'name': 'get_browser'},
+            {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_html', 'replace_with': '" "'},
+        ]
+        assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
+
 class TestIndex(WithMediator):
     def test_index_no_arguments_ok(self):
         self.mediator.transport.received.extend([
