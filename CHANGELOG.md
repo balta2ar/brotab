@@ -1,3 +1,7 @@
+1.3.0 (2020-06-02)
+
+* Added "bt html" command #31, #34
+
 1.2.2 (2020-05-05)
 
 * Added Brave Browser support #29
