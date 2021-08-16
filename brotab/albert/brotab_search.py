@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""The extension searches your indexed browser tabs' contents."""
+"""
+The extension searches your indexed browser tabs' contents.
+
+To install put into:
+    ~/.local/share/albert/org.albert.extension.python/modules/brotab_search.py
+"""
 
 import os
 import time
