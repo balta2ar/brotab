@@ -27,7 +27,7 @@ class Runner:
         mediator_logger.info('Runner: calling terminate: %s', self._shutdown)
         self._shutdown()
 
-    def _here(self) -> None:
+    def here(self) -> None:
         # global browser
         # TODO: fix this
         # reassign this variable again so that tests could mock it
@@ -52,7 +52,7 @@ class Runner:
     #     return thread
 
     def in_process(self) -> Process:
-        process = Process(target=self._here)
+        process = Process(target=self.here)
         process.daemon = True
         process.start()
 

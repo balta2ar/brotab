@@ -1,4 +1,3 @@
-import os
 from multiprocessing import Queue
 from string import ascii_letters
 from time import sleep
@@ -16,7 +15,6 @@ from brotab.main import create_clients
 from brotab.main import run_commands
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.http_server import MediatorHttpServer
-from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
 from brotab.mediator.transport import Transport
 from brotab.tests.utils import assert_file_absent
@@ -162,7 +160,8 @@ def run_mocked_mediator_current_thread(port):
     """
     remote_api = DummyBrowserRemoteAPI()
     port = get_available_tcp_port() if port is None else port
-    run_mediator(port, remote_api, no_logging=False)
+    server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api)
+    server.run.here()
 
 
 class WithMediator(TestCase):
