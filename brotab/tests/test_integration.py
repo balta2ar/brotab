@@ -9,7 +9,7 @@ import pytest
 
 
 from brotab.tests.utils import wait_net_service
-from brotab.mediator.brotab_mediator import DEFAULT_MIN_HTTP_PORT
+from brotab.mediator.const import DEFAULT_MIN_HTTP_PORT
 from brotab.tab import parse_tab_lines
 
 

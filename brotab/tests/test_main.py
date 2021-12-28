@@ -1,73 +1,103 @@
-from uuid import uuid4
-from time import sleep
-from threading import Thread
+import os
+from multiprocessing import Queue
 from string import ascii_letters
+from time import sleep
+from typing import List
 from unittest import TestCase
 from unittest.mock import patch
-from typing import List
+from uuid import uuid4
 
-from brotab.main import run_commands
-from brotab.main import create_clients
-from brotab.inout import get_free_tcp_port
+from brotab.api import SingleMediatorAPI
+from brotab.inout import MIN_MEDIATOR_PORT
+from brotab.inout import get_available_tcp_port
 from brotab.inout import in_temp_dir
 from brotab.inout import spit
-from brotab.inout import MIN_MEDIATOR_PORT
-from brotab.api import SingleMediatorAPI
-from brotab.mediator.brotab_mediator import run_mediator
-from brotab.mediator.brotab_mediator import create_browser_remote_api
-
+from brotab.main import create_clients
+from brotab.main import run_commands
+from brotab.mediator.const import DEFAULT_HTTP_IFACE
+from brotab.mediator.http_server import MediatorHttpServer
+from brotab.mediator.log import logger
+from brotab.mediator.remote_api import default_remote_api
+from brotab.mediator.transport import Transport
 from brotab.tests.utils import assert_file_absent
-from brotab.tests.utils import assert_file_not_empty
 from brotab.tests.utils import assert_file_contents
+from brotab.tests.utils import assert_file_not_empty
 from brotab.tests.utils import assert_sqlite3_table_contents
 
 
-class MockedLoggingTransport:
+class MockedLoggingTransport(Transport):
+    MAX_SIZE = 1000
+
     def __init__(self):
-        self.reset()
+        self._sent = Queue(self.MAX_SIZE)
+        self._received = Queue(self.MAX_SIZE)
+
     def reset(self):
-        self.sent = []
-        self.received = []
-    def send(self, message):
-        self.sent.append(message)
+        self._read_queue(self._sent)
+        self._read_queue(self._received)
+
+    def _read_queue(self, queue: Queue) -> list:
+        result = []
+        while not queue.empty():
+            result.append(queue.get())
+        return result
+
+    @property
+    def sent(self):
+        result = self._read_queue(self._sent)
+        logger.warning('MAKING SENT LIST (=%s) pid=%s', result, os.getpid())
+        return result
+
+    @property
+    def received(self):
+        logger.warning('MAKING RECEIVED LIST pid=%s', os.getpid())
+        return self._read_queue(self._received)
+
+    def received_extend(self, values) -> None:
+        logger.warning('EXTENDING RECEIVED LIST (values=%s) pid=%s', values, os.getpid())
+        for value in values:
+            self._received.put(value)
+
+    def send(self, message) -> None:
+        self._sent.put(message)
+        logger.warning('Sent message (pid=%s): %s, empty=%s', os.getpid(), message, self._sent.empty())
+
     def recv(self):
-        if self.received:
-            result = self.received[0]
-            self.received = self.received[1:]
+        if not self._received.empty():
+            result = self._received.get()
+            logger.warning('Received message (pid=%s): %s, empty=%s', os.getpid(), result, self._received.empty())
             return result
-
-
-def _run_mediator_in_thread(port, transport, remote_api=None) -> Thread:
-    remote_api = create_browser_remote_api(transport) if remote_api is None else remote_api
-    thread = Thread(target=lambda: run_mediator(port, remote_api, no_logging=True))
-    thread.daemon = True
-    thread.start()
-    return thread
+        logger.warning('Nothing to receive (pid=%s)', os.getpid())
 
 
 class MockedMediator:
     def __init__(self, prefix='a', port=None, remote_api=None):
-        self.port = get_free_tcp_port() if port is None else port
+        self.port = get_available_tcp_port() if port is None else port
         self.transport = MockedLoggingTransport()
-        self.transport.received = ['mocked']
-        self.thread = _run_mediator_in_thread(self.port, self.transport, remote_api)
+        self.remote_api = default_remote_api(self.transport) if remote_api is None else remote_api
+        self.server = MediatorHttpServer(DEFAULT_HTTP_IFACE, self.port, self.remote_api)
+        self.process = self.server.run.in_process()
+        self.transport.received_extend(['mocked'])  # TODO: why 2 times? should be only 1
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
-        assert self.api._browser == 'mocked'
+        assert self.api.browser == 'mocked'
         self.transport.reset()
+
     def shutdown_and_wait(self):
-        self.api.shutdown()
-        self.thread.join()
+        self.server.shutdown()
+        self.process.join()
+
     def __enter__(self):
         return self
+
     def __exit__(self, type_, value, tb):
         self.shutdown_and_wait()
 
 
-def _run_commands(commands):
-    with MockedMediator('a') as mediator:
-        get_mediator_ports_mock.side_effect = \
-            [range(mediator.port, mediator.port + 1)]
-        run_commands(commands)
+# def _run_commands(commands):
+#     with MockedMediator('a') as mediator:
+#         get_mediator_ports_mock.side_effect = \
+#             [range(mediator.port, mediator.port + 1)]
+#         run_commands(commands)
 
 
 class DummyBrowserRemoteAPI:
@@ -77,26 +107,37 @@ class DummyBrowserRemoteAPI:
 
     def list_tabs(self):
         return ['1.1\ttitle\turl']
+
     def query_tabs(self, query_info: str):
         raise NotImplementedError()
+
     def move_tabs(self, move_triplets: str):
         raise NotImplementedError()
+
     def open_urls(self, urls: List[str], window_id=None):
         raise NotImplementedError()
+
     def close_tabs(self, tab_ids: str):
         raise NotImplementedError()
+
     def new_tab(self, query):
         raise NotImplementedError()
+
     def activate_tab(self, tab_id: int, focused: bool):
         raise NotImplementedError()
+
     def get_active_tabs(self) -> str:
         return '1.1'
+
     def get_words(self, tab_id, match_regex, join_with):
         return ['a', 'b']
+
     def get_text(self, delimiter_regex, replace_with):
         return ['1.1\ttitle\turl\tbody']
+
     def get_html(self, delimiter_regex, replace_with):
         return ['1.1\ttitle\turl\t<body>some body</body>']
+
     def get_browser(self):
         return 'mocked'
 
@@ -118,7 +159,7 @@ def run_mocked_mediators(count, default_port_offset, delay):
     print('Ready')
     for mediator in mediators:
         print(mediator.port)
-    mediators[0].thread.join()
+    mediators[0].process.join()
 
 
 def run_mocked_mediator_current_thread(port):
@@ -128,7 +169,7 @@ def run_mocked_mediator_current_thread(port):
     python -c 'from brotab.tests.test_main import run_mocked_mediator_current_thread as run; run(4635)'
     """
     remote_api = DummyBrowserRemoteAPI()
-    port = get_free_tcp_port() if port is None else port
+    port = get_available_tcp_port() if port is None else port
     run_mediator(port, remote_api, no_logging=False)
 
 
@@ -184,7 +225,7 @@ class TestActivate(WithMediator):
 
 class TestText(WithMediator):
     def test_text_no_arguments_ok(self):
-        self.mediator.transport.received.extend([
+        self.mediator.transport.received_extend([
             'mocked',
             ['1.1\ttitle\turl\tbody'],
         ])
@@ -199,7 +240,7 @@ class TestText(WithMediator):
         assert output == [b'a.1.1\ttitle\turl\tbody\n']
 
     def test_text_with_tab_id_ok(self):
-        self.mediator.transport.received.extend([
+        self.mediator.transport.received_extend([
             'mocked',
             [
                 '1.1\ttitle\turl\tbody',
@@ -220,7 +261,7 @@ class TestText(WithMediator):
 
 class TestHtml(WithMediator):
     def test_html_no_arguments_ok(self):
-        self.mediator.transport.received.extend([
+        self.mediator.transport.received_extend([
             'mocked',
             ['1.1\ttitle\turl\tbody'],
         ])
@@ -235,7 +276,7 @@ class TestHtml(WithMediator):
         assert output == [b'a.1.1\ttitle\turl\tbody\n']
 
     def test_html_with_tab_id_ok(self):
-        self.mediator.transport.received.extend([
+        self.mediator.transport.received_extend([
             'mocked',
             [
                 '1.1\ttitle\turl\tbody',
@@ -253,9 +294,10 @@ class TestHtml(WithMediator):
         ]
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
 
+
 class TestIndex(WithMediator):
     def test_index_no_arguments_ok(self):
-        self.mediator.transport.received.extend([
+        self.mediator.transport.received_extend([
             'mocked',
             ['1.1\ttitle\turl\tbody'],
         ])
@@ -270,16 +312,16 @@ class TestIndex(WithMediator):
         assert self.mediator.transport.sent == [
             {'name': 'get_browser'},
             {'delimiter_regex': '/\\n|\\r|\\t/g',
-                'name': 'get_text', 'replace_with': '" "'},
+             'name': 'get_text', 'replace_with': '" "'},
         ]
         assert_file_not_empty(sqlite_filename)
         assert_file_not_empty(tsv_filename)
         assert_file_contents(tsv_filename, 'a.1.1\ttitle\turl\tbody\n')
         assert_sqlite3_table_contents(
-            sqlite_filename,  'tabs', 'a.1.1\ttitle\turl\tbody')
+            sqlite_filename, 'tabs', 'a.1.1\ttitle\turl\tbody')
 
     def test_index_custom_filename(self):
-        self.mediator.transport.received.extend([
+        self.mediator.transport.received_extend([
             'mocked',
             ['1.1\ttitle\turl\tbody'],
         ])
@@ -299,6 +341,12 @@ class TestIndex(WithMediator):
         assert_file_not_empty(tsv_filename)
         assert_file_contents(tsv_filename, 'a.1.1\ttitle\turl\tbody\n')
         assert_sqlite3_table_contents(
-            sqlite_filename,  'tabs', 'a.1.1\ttitle\turl\tbody')
+            sqlite_filename, 'tabs', 'a.1.1\ttitle\turl\tbody')
         assert_file_absent(sqlite_filename)
         assert_file_absent(tsv_filename)
+
+# tests todo:
+# 1. mediator cannot write/read, terminates
+# 2. terminate mediator on ctrl-c, sigint, sigterm
+# 3. terminate mediator when parent terminates
+# 4. make sure that stdin & stdout passed to mediator are passed correctly to http server process

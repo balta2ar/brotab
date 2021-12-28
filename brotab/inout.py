@@ -1,13 +1,14 @@
 import io
+import mimetypes
 import os
-import sys
-import uuid
 import select
 import socket
+import sys
 import tempfile
-import mimetypes
+import uuid
+from subprocess import CalledProcessError
+from subprocess import check_call
 from tempfile import NamedTemporaryFile
-from subprocess import check_call, CalledProcessError
 from typing import Iterable
 
 from brotab.platform import get_editor
@@ -35,11 +36,11 @@ def get_mediator_ports() -> Iterable:
     return range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
 
 
-def get_free_tcp_port(start=1025, end=65536, host='127.0.0.1'):
+def get_available_tcp_port(start=1025, end=65536, host='127.0.0.1'):
     for port in range(start, end):
         if not is_port_accepting_connections(port, host):
             return port
-    return RuntimeError('Cannot find free port in range %d:%d' % (start, end))
+    return RuntimeError('Cannot find available port in range %d:%d' % (start, end))
 
 
 def is_port_accepting_connections(port, host='127.0.0.1'):
@@ -82,6 +83,7 @@ def edit_tabs_in_editor(tabs_before):
         except CalledProcessError:
             return None
 
+
 def read_stdin():
     if select.select([sys.stdin, ], [], [], 1.0)[0]:
         return sys.stdin.read()
@@ -118,8 +120,8 @@ class MultiPartForm:
         body = fileHandle.read()
         if mimetype is None:
             mimetype = (
-                mimetypes.guess_type(filename)[0] or
-                'application/octet-stream'
+                    mimetypes.guess_type(filename)[0] or
+                    'application/octet-stream'
             )
         self.files.append((fieldname, filename, mimetype, body))
         return
@@ -133,7 +135,7 @@ class MultiPartForm:
     def _attached_file(name, filename):
         return ('Content-Disposition: file; '
                 'name="{}"; filename="{}"\r\n').format(
-                    name, filename).encode('utf-8')
+            name, filename).encode('utf-8')
 
     @staticmethod
     def _content_type(ct):

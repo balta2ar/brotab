@@ -1,29 +1,30 @@
 import io
+import json
+import logging
+import socket
 import sys
 import time
-import socket
-import logging
-import json
-from traceback import print_exc
-from urllib.error import URLError, HTTPError
-from urllib.request import Request, urlopen
-from urllib.parse import quote_plus
-from functools import partial
 from collections.abc import Mapping
-
+from functools import partial
+from http.client import RemoteDisconnected
+from traceback import print_exc
 from typing import List
+from urllib.error import HTTPError
+from urllib.error import URLError
+from urllib.parse import quote_plus
+from urllib.request import Request
+from urllib.request import urlopen
 
-from brotab.inout import edit_tabs_in_editor
 from brotab.inout import MultiPartForm
-from brotab.parallel import call_parallel
+from brotab.inout import edit_tabs_in_editor
 from brotab.operations import infer_delete_and_move_commands
+from brotab.parallel import call_parallel
 from brotab.tab import parse_tab_lines
 from brotab.utils import encode_query
 
-
 logger = logging.getLogger('brotab')
 
-HTTP_TIMEOUT = 10.0 # 2 # 10.0
+HTTP_TIMEOUT = 10.0
 MAX_NUMBER_OF_TABS = 5000
 
 
@@ -35,6 +36,7 @@ class SingleMediatorAPI(object):
     """
     This API is designed to work with a single mediator.
     """
+
     def __init__(self, prefix, host='localhost', port=4625, startup_timeout=None):
         self._prefix = '%s.' % prefix
         self._host = host
@@ -54,6 +56,10 @@ class SingleMediatorAPI(object):
         return False
 
     @property
+    def browser(self) -> str:
+        return self._browser
+
+    @property
     def ready(self):
         return self._browser != '<ERROR>'
 
@@ -68,8 +74,8 @@ class SingleMediatorAPI(object):
         return list(map(self.prefix_tab, tabs))
 
     def unprefix_tabs(self, tabs):
-        N = len(self._prefix)
-        return [tab[N:]
+        num = len(self._prefix)
+        return [tab[num:]
                 if tab.startswith(self._prefix)
                 else tab for tab in tabs]
 
@@ -86,7 +92,7 @@ class SingleMediatorAPI(object):
         """Get process ID from the mediator."""
         try:
             return int(self._get('/get_pid'))
-        except (URLError, HTTPError, socket.timeout) as e:
+        except (URLError, HTTPError, socket.timeout, RemoteDisconnected) as e:
             logger.info('_get_pid failed: %s', e)
         return -1
 
@@ -94,13 +100,13 @@ class SingleMediatorAPI(object):
         """Get browser name from the mediator."""
         try:
             return self._get('/get_browser')
-        except (URLError, HTTPError, socket.timeout) as e:
+        except (URLError, HTTPError, socket.timeout, RemoteDisconnected) as e:
             logger.info('_get_browser failed: %s', e)
         return '<ERROR>'
 
     def close_tabs(self, args):
         tabs = ','.join(tab_id for _prefix, _window_id,
-                        tab_id in self._split_tabs(args))
+                                   tab_id in self._split_tabs(args))
         return self._get('/close_tabs/%s' % tabs)
 
     def activate_tab(self, args: List[str], focused: bool):
@@ -108,7 +114,7 @@ class SingleMediatorAPI(object):
             return
 
         # args: ['a.1.2']
-        prefix, window_id, tab_id = args[0].split('.')
+        _prefix, _window_id, tab_id = args[0].split('.')
         self._get('/activate_tab/%s%s' % (tab_id, '?focused=1' if focused else ''))
 
     def get_active_tabs(self, args) -> List[str]:
@@ -152,9 +158,6 @@ class SingleMediatorAPI(object):
         result = self._get('/list_tabs')
         lines = []
         for line in result.splitlines()[:num_tabs]:
-            # for line in result.split('\n')[:num_tabs]:
-            # line = '%s%s' % (self._prefix, line)
-            # print(line)
             lines.append(line)
         return self.prefix_tabs(lines)
 
@@ -203,12 +206,12 @@ class SingleMediatorAPI(object):
                 'SingleMediatorAPI: get_words: %s, match_regex: %s, join_with: %s',
                 tab_id, match_regex, join_with)
             words |= set(self._get(
-                '/get_words/%s/?match_regex=%s&join_with=%s' % (tab_id, match_regex, join_with)
+                '/get_words/%s?match_regex=%s&join_with=%s' % (tab_id, match_regex, join_with)
             ).splitlines())
 
         if not tab_ids:
             words = set(self._get(
-                '/get_words/?match_regex=%s&join_with=%s' % (match_regex, join_with)
+                '/get_words?match_regex=%s&join_with=%s' % (match_regex, join_with)
             ).splitlines())
 
         return sorted(list(words))
@@ -219,7 +222,7 @@ class SingleMediatorAPI(object):
             num_tabs = int(args[0])
 
         result = self._get(
-            '/%s/?delimiter_regex=%s&replace_with=%s' % (
+            '/%s?delimiter_regex=%s&replace_with=%s' % (
                 command,
                 encode_query(delimiter_regex),
                 encode_query(replace_with),
@@ -279,10 +282,6 @@ class MultipleMediatorsAPI(object):
         return [api for api in self._apis if api.ready]
 
     def close_tabs(self, args):
-        # if len(args) == 0:
-        #     print('Usage: brotab_client.py close_tabs <#tab ...>')
-        #     return 2
-
         for api in self._apis:
             api.close_tabs(args)
 
@@ -373,7 +372,7 @@ class MultipleMediatorsAPI(object):
             start = time.time()
             words |= set(api.get_words(tab_ids, match_regex, join_with))
             delta = time.time() - start
-            #print('DELTA', delta, file=sys.stderr)
+            # print('DELTA', delta, file=sys.stderr)
         return sorted(list(words))
 
     def _get_text_or_html(self, api, getter, args, delimiter_regex, replace_with):
@@ -407,4 +406,3 @@ class MultipleMediatorsAPI(object):
             tabs.extend(self._get_text_or_html(api, api.get_html, args,
                                                delimiter_regex, replace_with))
         return tabs
-

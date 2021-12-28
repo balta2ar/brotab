@@ -1,5 +1,2 @@
-
-
-
 class BrowserPortMock:
     pass

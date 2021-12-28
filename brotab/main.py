@@ -49,47 +49,42 @@ News:
 
 import os
 import re
+import shutil
 import sys
 import time
-import shutil
-import logging
-from string import ascii_lowercase
 from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
-from urllib.parse import quote_plus, quote
+from string import ascii_lowercase
+from typing import List
+from typing import Tuple
+from urllib.parse import quote_plus
 
-from typing import Tuple, List
-
-from brotab.inout import is_port_accepting_connections
-from brotab.inout import read_stdin
+from brotab.api import MultipleMediatorsAPI
+from brotab.api import SingleMediatorAPI
+from brotab.const import DEFAULT_GET_HTML_DELIMITER_REGEX
+from brotab.const import DEFAULT_GET_HTML_REPLACE_WITH
+from brotab.const import DEFAULT_GET_TEXT_DELIMITER_REGEX
+from brotab.const import DEFAULT_GET_TEXT_REPLACE_WITH
+from brotab.const import DEFAULT_GET_WORDS_JOIN_WITH
+from brotab.const import DEFAULT_GET_WORDS_MATCH_REGEX
 from brotab.inout import get_mediator_ports
 from brotab.inout import in_temp_dir
+from brotab.inout import is_port_accepting_connections
+from brotab.inout import read_stdin
 from brotab.inout import stdout_buffer_write
+from brotab.mediator.log import init_brotab_logger
 from brotab.platform import is_windows
+from brotab.platform import make_windows_path_double_sep
+from brotab.platform import register_native_manifest_windows_brave
 from brotab.platform import register_native_manifest_windows_chrome
 from brotab.platform import register_native_manifest_windows_firefox
-from brotab.platform import register_native_manifest_windows_brave
-from brotab.platform import make_windows_path_double_sep
-from brotab.utils import split_tab_ids, get_file_size, encode_query
-from brotab.search.query import query
 from brotab.search.index import index
-from brotab.api import SingleMediatorAPI, MultipleMediatorsAPI
-from brotab.const import \
-    DEFAULT_GET_WORDS_MATCH_REGEX, \
-    DEFAULT_GET_WORDS_JOIN_WITH, \
-    DEFAULT_GET_TEXT_DELIMITER_REGEX, \
-    DEFAULT_GET_TEXT_REPLACE_WITH, \
-    DEFAULT_GET_HTML_DELIMITER_REGEX, \
-    DEFAULT_GET_HTML_REPLACE_WITH
+from brotab.search.query import query
+from brotab.utils import get_file_size
+from brotab.utils import split_tab_ids
 
-
-FORMAT = '%(asctime)-15s %(levelname)-10s %(message)s'
-logging.basicConfig(
-    format=FORMAT,
-    filename=in_temp_dir('brotab.log'),
-    level=logging.DEBUG)
-logger = logging.getLogger('brotab')
+logger = init_brotab_logger('brotab')
 logger.info('Logger has been created')
 
 
@@ -193,6 +188,7 @@ def query_tabs(args):
     for tab in api.query_tabs(queryInfo):
         print(tab)
 
+
 def index_tabs(args):
     if args.tsv is None:
         args.tsv = in_temp_dir('tabs.tsv')
@@ -247,7 +243,7 @@ def get_words(args):
     words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
     print('\n'.join(words))
     delta = time.time() - start
-    #print('DELTA TOTAL', delta, file=sys.stderr)
+    # print('DELTA TOTAL', delta, file=sys.stderr)
 
 
 def get_text_or_html(getter, args):
@@ -287,7 +283,7 @@ def get_html(args):
 def show_duplicates(args):
     # I'm not using uniq here because it's not easy to get duplicates
     # only by a single column. awk is much easier in this regard.
-    #print('bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close')
+    # print('bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close')
     print("Show duplicates by Title:")
     print(
         "bt list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bt close")
@@ -365,7 +361,8 @@ def install_mediator(args):
             register_native_manifest_windows_brave(destination)
 
     print('Link to Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/')
-    print('Link to Chrome (Chromium)/Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
+    print(
+        'Link to Chrome (Chromium)/Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/')
 
 
 def executejs(args):
@@ -462,55 +459,55 @@ def parse_args(args):
         prefix_chars='-+')
     parser_query_tabs.set_defaults(func=query_tabs)
     parser_query_tabs.add_argument('+active', action='store_const', const=True, default=None,
-        help='tabs are active in their windows')
+                                   help='tabs are active in their windows')
     parser_query_tabs.add_argument('-active', action='store_const', const=False, default=None,
-        help='tabs are not active in their windows')
+                                   help='tabs are not active in their windows')
     parser_query_tabs.add_argument('+pinned', action='store_const', const=True, default=None,
-        help='tabs are pinned')
+                                   help='tabs are pinned')
     parser_query_tabs.add_argument('-pinned', action='store_const', const=False, default=None,
-        help='tabs are not pinned')
+                                   help='tabs are not pinned')
     parser_query_tabs.add_argument('+audible', action='store_const', const=True, default=None,
-        help='tabs are audible')
+                                   help='tabs are audible')
     parser_query_tabs.add_argument('-audible', action='store_const', const=False, default=None,
-        help='tabs are not audible')
+                                   help='tabs are not audible')
     parser_query_tabs.add_argument('+muted', action='store_const', const=True, default=None,
-        help='tabs are muted')
+                                   help='tabs are muted')
     parser_query_tabs.add_argument('-muted', action='store_const', const=False, default=None,
-        help='tabs not are muted')
+                                   help='tabs not are muted')
     parser_query_tabs.add_argument('+highlighted', action='store_const', const=True, default=None,
-        help='tabs are highlighted')
+                                   help='tabs are highlighted')
     parser_query_tabs.add_argument('-highlighted', action='store_const', const=False, default=None,
-        help='tabs not are highlighted')
+                                   help='tabs not are highlighted')
     parser_query_tabs.add_argument('+discarded', action='store_const', const=True, default=None,
-        help='tabs are discarded i.e. unloaded from memory but still visible in the tab strip.')
+                                   help='tabs are discarded i.e. unloaded from memory but still visible in the tab strip.')
     parser_query_tabs.add_argument('-discarded', action='store_const', const=False, default=None,
-        help='tabs are not discarded i.e. unloaded from memory but still visible in the tab strip.')
+                                   help='tabs are not discarded i.e. unloaded from memory but still visible in the tab strip.')
     parser_query_tabs.add_argument('+autoDiscardable', action='store_const', const=True, default=None,
-        help='tabs can be discarded automatically by the browser when resources are low.')
+                                   help='tabs can be discarded automatically by the browser when resources are low.')
     parser_query_tabs.add_argument('-autoDiscardable', action='store_const', const=False, default=None,
-        help='tabs cannot be discarded automatically by the browser when resources are low.')
+                                   help='tabs cannot be discarded automatically by the browser when resources are low.')
     parser_query_tabs.add_argument('+currentWindow', action='store_const', const=True, default=None,
-        help='tabs are in the current window.')
+                                   help='tabs are in the current window.')
     parser_query_tabs.add_argument('-currentWindow', action='store_const', const=False, default=None,
-        help='tabs are not in the current window.')
+                                   help='tabs are not in the current window.')
     parser_query_tabs.add_argument('+lastFocusedWindow', action='store_const', const=True, default=None,
-        help='tabs are in the last focused window.')
+                                   help='tabs are in the last focused window.')
     parser_query_tabs.add_argument('-lastFocusedWindow', action='store_const', const=False, default=None,
-        help='tabs are not in the last focused window.')
+                                   help='tabs are not in the last focused window.')
     parser_query_tabs.add_argument('-status', type=str, choices=['loading', 'complete'],
-        help='whether the tabs have completed loading i.e. loading or complete.')
+                                   help='whether the tabs have completed loading i.e. loading or complete.')
     parser_query_tabs.add_argument('-title', type=str,
-        help='match page titles against a pattern.')
+                                   help='match page titles against a pattern.')
     parser_query_tabs.add_argument('-url', type=str, action='append',
-        help='match tabs against one or more URL patterns. Fragment identifiers are not matched. see https://developer.chrome.com/extensions/match_patterns')
+                                   help='match tabs against one or more URL patterns. Fragment identifiers are not matched. see https://developer.chrome.com/extensions/match_patterns')
     parser_query_tabs.add_argument('-windowId', type=int,
-        help='the ID of the parent window, or windows.WINDOW_ID_CURRENT for the current window.')
+                                   help='the ID of the parent window, or windows.WINDOW_ID_CURRENT for the current window.')
     parser_query_tabs.add_argument('-windowType', type=str, choices=['normal', 'popup', 'panel', 'app', 'devtools'],
-        help='the type of window the tabs are in.')
+                                   help='the type of window the tabs are in.')
     parser_query_tabs.add_argument('-index', type=int,
-        help='the position of the tabs within their windows.')
+                                   help='the position of the tabs within their windows.')
     parser_query_tabs.add_argument('-info', type=str,
-        help='''
+                                   help='''
         the queryInfo parameter as outlined here: https://developer.chrome.com/extensions/tabs#method-query.
         all other query arguments are ignored if this argument is present.
         ''')
@@ -586,7 +583,7 @@ def parse_args(args):
         ''')
     parser_get_text.set_defaults(func=get_text)
     parser_get_text.add_argument('tab_ids', type=str, nargs='*',
-                                  help='Tab IDs to get text from')
+                                 help='Tab IDs to get text from')
     parser_get_text.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
     parser_get_text.add_argument('--cleanup', action='store_true',
@@ -606,7 +603,7 @@ def parse_args(args):
         ''')
     parser_get_html.set_defaults(func=get_html)
     parser_get_html.add_argument('tab_ids', type=str, nargs='*',
-                                  help='Tab IDs to get text from')
+                                 help='Tab IDs to get text from')
     parser_get_html.add_argument('--tsv', type=str, default=None,
                                  help='tsv file to save results to')
     parser_get_html.add_argument('--cleanup', action='store_true',
@@ -650,7 +647,7 @@ def parse_args(args):
     parser_install_mediator.add_argument('--tests', action='store_true',
                                          default=False,
                                          help='install testing version of '
-                                         'manifest for chromium')
+                                              'manifest for chromium')
     parser_install_mediator.set_defaults(func=install_mediator)
 
     return parser.parse_args(args)
