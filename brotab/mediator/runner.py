@@ -28,12 +28,6 @@ class Runner:
         self._shutdown()
 
     def here(self) -> None:
-        # global browser
-        # TODO: fix this
-        # reassign this variable again so that tests could mock it
-        # browser = remote_api
-        # TODO: does not really work, I still see logs in unittests
-        # global logger
         mediator_logger.info('Started mediator process, pid=%s', os.getpid())
         disable_logging()
 
@@ -44,12 +38,6 @@ class Runner:
 
         self._shutdown = shutdown
         return self.target()
-
-    # def in_thread(self, port: int) -> Thread:
-    #     thread = Thread(target=lambda: self.here(port))
-    #     thread.daemon = True
-    #     thread.start()
-    #     return thread
 
     def in_process(self) -> Process:
         process = Process(target=self.here)

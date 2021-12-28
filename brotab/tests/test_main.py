@@ -67,7 +67,7 @@ class MockedMediator:
         self.remote_api = default_remote_api(self.transport) if remote_api is None else remote_api
         self.server = MediatorHttpServer(DEFAULT_HTTP_IFACE, self.port, self.remote_api)
         self.process = self.server.run.in_process()
-        self.transport.received_extend(['mocked'])  # TODO: why 2 times? should be only 1
+        self.transport.received_extend(['mocked'])
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
         assert self.api.browser == 'mocked'
         self.transport.reset()
