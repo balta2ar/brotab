@@ -68,7 +68,7 @@ function _list_tabs() {
 #
 # Browser Open tab script
 #
-function fo() {
+function fopen() {
     if [ $# -eq 0 ]; then
         result=$(_list_tabs | _colorize_tabs | fzf --ansi --no-sort --prompt="open> " --toggle-sort=\`)
         if [ $? -ne 0 ]; then return $?; fi
@@ -83,9 +83,9 @@ function fo() {
 #
 # Browser Search tab script
 #
-function fs() {
+function fsearch() {
     if [ $# -eq 0 ]; then
-        echo "Usage: fs <browser> <search query>"
+        echo "Usage: fsearch <browser> <search query>"
         return 1
     fi
 
