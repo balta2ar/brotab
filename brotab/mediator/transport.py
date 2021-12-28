@@ -5,7 +5,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import BinaryIO
 
-from brotab.mediator.log import logger
+from brotab.mediator.log import mediator_logger
 
 
 class Transport(ABC):
@@ -33,22 +33,22 @@ class StdTransport(Transport):
 
     def send(self, command: dict) -> None:
         encoded = self._encode(command)
-        logger.info('StdTransport SENDING: %s', command)
+        mediator_logger.info('StdTransport SENDING: %s', command)
         self._out.write(encoded['length'])
-        logger.info('StdTransport SENT length')
+        mediator_logger.info('StdTransport SENT length')
         self._out.write(encoded['content'])
-        logger.info('StdTransport SENT content')
+        mediator_logger.info('StdTransport SENT content')
         self._out.flush()
-        logger.info('StdTransport SENT flush')
+        mediator_logger.info('StdTransport SENT flush')
 
     def recv(self) -> dict:
-        logger.info('StdTransport RECEIVING')
+        mediator_logger.info('StdTransport RECEIVING')
         raw_length = self._in.read(4)
         if len(raw_length) == 0:
             raise TransportError('StdTransport: cannot read, raw_length is empty')
         message_length = struct.unpack('@I', raw_length)[0]
         message = self._in.read(message_length).decode('utf8')
-        logger.info('RECEIVED: %s', message.encode('utf8'))
+        mediator_logger.info('RECEIVED: %s', message.encode('utf8'))
         return json.loads(message)
 
     def _encode(self, message):

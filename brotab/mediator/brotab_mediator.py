@@ -12,7 +12,7 @@ from brotab.mediator import sig
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.log import disable_click_echo
-from brotab.mediator.log import logger
+from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
 # TODO:
 # 1. Run HTTP server and accept the following commands:
@@ -42,7 +42,7 @@ def monkeypatch_socket_bind_allow_port_reuse():
     socket.socket._bind = socket.socket.bind
 
     def my_socket_bind(self, *args, **kwargs):
-        logger.info('Custom bind called: %s, %s', args, kwargs)
+        mediator_logger.info('Custom bind called: %s, %s', args, kwargs)
         self.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return socket.socket._bind(self, *args, **kwargs)
 
@@ -70,7 +70,7 @@ def mediator_main():
     host = DEFAULT_HTTP_IFACE
 
     for port in port_range:
-        logger.info('Starting mediator on %s:%s...', host, port)
+        mediator_logger.info('Starting mediator on %s:%s...', host, port)
         if is_port_accepting_connections(port):
             continue
         try:
@@ -78,17 +78,17 @@ def mediator_main():
             process = server.run.in_process()
             sig.setup(server.run.shutdown)
             process.join()
-            logger.info('Exiting mediator pid=%s on %s:%s...', os.getpid(), host, port)
+            mediator_logger.info('Exiting mediator pid=%s on %s:%s...', os.getpid(), host, port)
             break
         except OSError as e:
             # TODO: fixme: we won't get this if we run in a process
-            logger.info('Cannot bind on port %s: %s', port, e)
+            mediator_logger.info('Cannot bind on port %s: %s', port, e)
         except BrokenPipeError as e:
             # TODO: probably also won't work with processes, also a race
             sig.pipe(server.run.shutdown, e)
 
     else:
-        logger.error('No TCP ports available for bind in range %s', port_range)
+        mediator_logger.error('No TCP ports available for bind in range %s', port_range)
 
 
 def main():

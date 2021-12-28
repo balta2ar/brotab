@@ -8,7 +8,7 @@ from typing import Optional
 from psutil import pid_exists
 
 from brotab.mediator.log import disable_logging
-from brotab.mediator.log import logger
+from brotab.mediator.log import mediator_logger
 
 
 class NotStarted(Exception):
@@ -24,7 +24,7 @@ class Runner:
         # TODO: break this to test ctrl-c
         if not self._shutdown:
             raise NotStarted('start the runner first')
-        logger.info('Runner: calling terminate: %s', self._shutdown)
+        mediator_logger.info('Runner: calling terminate: %s', self._shutdown)
         self._shutdown()
 
     def _here(self) -> None:
@@ -34,12 +34,12 @@ class Runner:
         # browser = remote_api
         # TODO: does not really work, I still see logs in unittests
         # global logger
-        logger.info('Started mediator process, pid=%s', os.getpid())
+        mediator_logger.info('Started mediator process, pid=%s', os.getpid())
         disable_logging()
 
         def shutdown():
             pid = os.getpid()
-            logger.info('Runner: shutdown in here, os.kill(%s)', pid)
+            mediator_logger.info('Runner: shutdown in here, os.kill(%s)', pid)
             os.kill(pid, signal.SIGTERM)
 
         self._shutdown = shutdown
@@ -57,7 +57,7 @@ class Runner:
         process.start()
 
         def shutdown():
-            logger.info('Runner: shutdown in in_process, process.terminate')
+            mediator_logger.info('Runner: shutdown in in_process, process.terminate')
             process.terminate()
 
         self._shutdown = shutdown
@@ -66,11 +66,11 @@ class Runner:
 
     def _watcher(self, parent_pid: int, interval: float) -> Process:
         def watch():
-            logger.info('Watching parent process pid=%s', parent_pid)
+            mediator_logger.info('Watching parent process pid=%s', parent_pid)
             while True:
                 time.sleep(interval)
                 if not pid_exists(parent_pid):
-                    logger.info('Parent process died pid=%s, shutting down mediator', parent_pid)
+                    mediator_logger.info('Parent process died pid=%s, shutting down mediator', parent_pid)
                     self.shutdown()
                     break
 

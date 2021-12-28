@@ -73,7 +73,7 @@ from brotab.inout import in_temp_dir
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import read_stdin
 from brotab.inout import stdout_buffer_write
-from brotab.mediator.log import init_brotab_logger
+from brotab.mediator.log import brotab_logger
 from brotab.platform import is_windows
 from brotab.platform import make_windows_path_double_sep
 from brotab.platform import register_native_manifest_windows_brave
@@ -83,9 +83,6 @@ from brotab.search.index import index
 from brotab.search.query import query
 from brotab.utils import get_file_size
 from brotab.utils import split_tab_ids
-
-logger = init_brotab_logger('brotab')
-logger.info('Logger has been created')
 
 
 def parse_target_hosts(target_hosts: str) -> Tuple[List[str], List[int]]:
@@ -111,7 +108,7 @@ def create_clients(target_hosts=None) -> List[SingleMediatorAPI]:
     result = [SingleMediatorAPI(prefix, host=host, port=port)
               for prefix, host, port in zip(ascii_lowercase, hosts, ports)
               if is_port_accepting_connections(port, host)]
-    logger.info('Created clients: %s', result)
+    brotab_logger.info('Created clients: %s', result)
     return result
 
 
@@ -129,7 +126,7 @@ def parse_prefix_and_window_id(prefix_window_id):
 
 
 def move_tabs(args):
-    logger.info('Moving tabs')
+    brotab_logger.info('Moving tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     api.move_tabs([])
 
@@ -139,7 +136,7 @@ def list_tabs(args):
     Use this to show duplicates:
         bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close
     """
-    logger.info('Listing tabs')
+    brotab_logger.info('Listing tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.list_tabs([])
     message = '\n'.join(tabs) + '\n'
@@ -152,19 +149,19 @@ def close_tabs(args):
     if len(args.tab_ids) == 0:
         tab_ids = split_tab_ids(read_stdin().strip())
 
-    logger.info('Closing tabs: %s', tab_ids)
+    brotab_logger.info('Closing tabs: %s', tab_ids)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.close_tabs(tab_ids)
 
 
 def activate_tab(args):
-    logger.info('Activating tab: %s', args.tab_id)
+    brotab_logger.info('Activating tab: %s', args.tab_id)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     api.activate_tab(args.tab_id, args.focused)
 
 
 def show_active_tabs(args):
-    logger.info('Showing active tabs: %s', args)
+    brotab_logger.info('Showing active tabs: %s', args)
     apis = create_clients(args.target_hosts)
     for api in apis:
         tabs = api.get_active_tabs(args)
@@ -178,7 +175,7 @@ def search_tabs(args):
 
 
 def query_tabs(args):
-    logger.info('Querying tabs: %s', args)
+    brotab_logger.info('Querying tabs: %s', args)
     d = vars(args)
     if d['info'] is not None:
         queryInfo = d['info']
@@ -193,24 +190,24 @@ def index_tabs(args):
     if args.tsv is None:
         args.tsv = in_temp_dir('tabs.tsv')
         args.cleanup = True
-        logger.info(
+        brotab_logger.info(
             'index_tabs: retrieving tabs from browser into file %s', args.tsv)
         start = time.time()
         get_text(args)
         delta = time.time() - start
-        logger.info('getting text took %s', delta)
+        brotab_logger.info('getting text took %s', delta)
 
     start = time.time()
     index(args.sqlite, args.tsv)
     delta = time.time() - start
-    logger.info('sqlite create took %s, size %s',
-                delta, get_file_size(args.sqlite))
+    brotab_logger.info('sqlite create took %s, size %s',
+                       delta, get_file_size(args.sqlite))
 
 
 def new_tab(args):
     prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
     search_query = ' '.join(args.query)
-    logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
+    brotab_logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
                 search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
@@ -226,7 +223,7 @@ def open_urls(args):
     """
     prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
     urls = [line.strip() for line in sys.stdin.readlines()]
-    logger.info('Opening URLs from stdin, prefix "%s", window_id "%s": %s',
+    brotab_logger.info('Opening URLs from stdin, prefix "%s", window_id "%s": %s',
                 prefix, window_id, urls)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     api.open_urls(urls, prefix, window_id)
@@ -237,7 +234,7 @@ def get_words(args):
     # [...new Set(document.body.innerText.match(/\w+/g))].sort().join('\n');
     # "})
     start = time.time()
-    logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
+    brotab_logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
                 args.tab_ids, args.match_regex, args.join_with)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
@@ -269,13 +266,13 @@ def get_text_or_html(getter, args):
 
 
 def get_text(args):
-    logger.info('Get text from tabs')
+    brotab_logger.info('Get text from tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     return get_text_or_html(api.get_text, args)
 
 
 def get_html(args):
-    logger.info('Get html from tabs')
+    brotab_logger.info('Get html from tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     return get_text_or_html(api.get_html, args)
 
@@ -306,20 +303,20 @@ def _print_available_windows(tabs):
 
 
 def show_windows(args):
-    logger.info('Showing windows')
+    brotab_logger.info('Showing windows')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.list_tabs([])
     _print_available_windows(tabs)
 
 
 def show_clients(args):
-    logger.info('Showing clients')
+    brotab_logger.info('Showing clients')
     for client in create_clients(args.target_hosts):
         print(client)
 
 
 def install_mediator(args):
-    logger.info('Installing mediators')
+    brotab_logger.info('Installing mediators')
     bt_mediator_path = shutil.which('bt_mediator')
     if is_windows():
         bt_mediator_path = make_windows_path_double_sep(bt_mediator_path)
@@ -346,7 +343,7 @@ def install_mediator(args):
         destination = os.path.expanduser(os.path.expandvars(destination))
         template = resource_string(__name__, filename).decode('utf8')
         manifest = template.replace(r'$PWD/brotab_mediator.py', bt_mediator_path)
-        logger.info('Installing template %s into %s', filename, destination)
+        brotab_logger.info('Installing template %s into %s', filename, destination)
         print('Installing mediator manifest %s' % destination)
 
         os.makedirs(os.path.dirname(destination), exist_ok=True)

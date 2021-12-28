@@ -16,7 +16,7 @@ from brotab.main import create_clients
 from brotab.main import run_commands
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.http_server import MediatorHttpServer
-from brotab.mediator.log import logger
+from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
 from brotab.mediator.transport import Transport
 from brotab.tests.utils import assert_file_absent
@@ -44,30 +44,22 @@ class MockedLoggingTransport(Transport):
 
     @property
     def sent(self):
-        result = self._read_queue(self._sent)
-        logger.warning('MAKING SENT LIST (=%s) pid=%s', result, os.getpid())
-        return result
+        return self._read_queue(self._sent)
 
     @property
     def received(self):
-        logger.warning('MAKING RECEIVED LIST pid=%s', os.getpid())
         return self._read_queue(self._received)
 
     def received_extend(self, values) -> None:
-        logger.warning('EXTENDING RECEIVED LIST (values=%s) pid=%s', values, os.getpid())
         for value in values:
             self._received.put(value)
 
     def send(self, message) -> None:
         self._sent.put(message)
-        logger.warning('Sent message (pid=%s): %s, empty=%s', os.getpid(), message, self._sent.empty())
 
     def recv(self):
         if not self._received.empty():
-            result = self._received.get()
-            logger.warning('Received message (pid=%s): %s, empty=%s', os.getpid(), result, self._received.empty())
-            return result
-        logger.warning('Nothing to receive (pid=%s)', os.getpid())
+            return self._received.get()
 
 
 class MockedMediator:

@@ -60,4 +60,5 @@ def stack():
     return '\n'.join(format_stack())
 
 
-logger = init_mediator_logger('mediator')
+mediator_logger = init_mediator_logger('mediator')
+brotab_logger = init_brotab_logger('brotab')

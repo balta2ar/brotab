@@ -11,7 +11,7 @@ from brotab.mediator.const import DEFAULT_GET_TEXT_DELIMITER_REGEX
 from brotab.mediator.const import DEFAULT_GET_TEXT_REPLACE_WITH
 from brotab.mediator.const import DEFAULT_GET_WORDS_JOIN_WITH
 from brotab.mediator.const import DEFAULT_GET_WORDS_MATCH_REGEX
-from brotab.mediator.log import logger
+from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import BrowserRemoteAPI
 from brotab.mediator.runner import Runner
 from brotab.mediator.support import is_valid_integer
@@ -34,7 +34,7 @@ class MediatorHttpServer:
         self.run = Runner(target)
 
     def _setup_routes(self) -> None:
-        logger.info('Starting mediator http server on %s:%s pid=%s', self.host, self.port, self.pid)
+        mediator_logger.info('Starting mediator http server on %s:%s pid=%s', self.host, self.port, self.pid)
         self.app.register_error_handler(ConnectionError, self.error_handler)
         self.app.register_error_handler(TimeoutError, self.error_handler)
         self.app.register_error_handler(ValueError, self.error_handler)
@@ -57,7 +57,7 @@ class MediatorHttpServer:
         self.app.route('/get_browser', methods=['GET'])(self.get_browser)
 
     def error_handler(self, e: Exception):
-        logger.exception('Shutting down mediator http server due to exception: %s', e)
+        mediator_logger.exception('Shutting down mediator http server due to exception: %s', e)
         self.run.shutdown()
         return '<ERROR>'
 
@@ -89,7 +89,7 @@ class MediatorHttpServer:
         if urls is None:
             return 'ERROR: Please provide urls file in the request'
         urls = urls.stream.read().decode('utf8').splitlines()
-        logger.info('Open urls (window_id = %s): %s', window_id, urls)
+        mediator_logger.info('Open urls (window_id = %s): %s', window_id, urls)
         return self.remote_api.open_urls(urls, window_id)
 
     def close_tabs(self, tab_ids):
@@ -113,8 +113,8 @@ class MediatorHttpServer:
         words = self.remote_api.get_words(tab_id,
                                           decode_query(match_regex),
                                           decode_query(join_with))
-        logger.info('words for tab_id %s (match_regex %s, join_with %s): %s',
-                    tab_id, match_regex, join_with, words)
+        mediator_logger.info('words for tab_id %s (match_regex %s, join_with %s): %s',
+                             tab_id, match_regex, join_with, words)
         return '\n'.join(words)
 
     def get_text(self):
@@ -132,9 +132,9 @@ class MediatorHttpServer:
         return '\n'.join(lines)
 
     def get_pid(self):
-        logger.info('getting pid')
+        mediator_logger.info('getting pid')
         return str(os.getpid())
 
     def get_browser(self):
-        logger.info('getting browser name')
+        mediator_logger.info('getting browser name')
         return self.remote_api.get_browser()

@@ -1,17 +1,17 @@
 import signal
 from typing import Callable
 
-from brotab.mediator.log import logger
+from brotab.mediator.log import mediator_logger
 
 
 def pipe(shutdown: Callable, e):
-    logger.info('Pipe has been closed (%s)', e)
+    mediator_logger.info('Pipe has been closed (%s)', e)
     shutdown()
 
 
 def setup(shutdown: Callable):
     def handler(signum, _frame):
-        logger.info('Got signal %s', signum)
+        mediator_logger.info('Got signal %s', signum)
         shutdown()
 
     signal.signal(signal.SIGINT, handler)
