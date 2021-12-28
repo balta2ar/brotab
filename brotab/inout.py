@@ -6,9 +6,11 @@ import socket
 import sys
 import tempfile
 import uuid
+from select import select
 from subprocess import CalledProcessError
 from subprocess import check_call
 from tempfile import NamedTemporaryFile
+from typing import BinaryIO
 from typing import Iterable
 
 from brotab.platform import get_editor
@@ -167,3 +169,27 @@ class MultiPartForm:
 
         buffer.write(b'--' + self.boundary + b'--\r\n')
         return buffer.getvalue()
+
+
+class TimeoutIO(io.BytesIO):
+    def __init__(self, file_: BinaryIO, timeout: float):
+        self.file_ = file_
+        self.timeout = timeout
+        super().__init__()
+
+    def read(self, *args, **kwargs) -> bytes:
+        rlist, _, _ = select([self.file_], [], [], self.timeout)
+        if rlist:
+            return self.file_.read(*args, **kwargs)
+        else:
+            raise TimeoutError('Read timeout ({}s)'.format(self.timeout))
+
+    def write(self, *args, **kwargs) -> int:
+        _, wlist, _ = select([], [self.file_], [], self.timeout)
+        if wlist:
+            return self.file_.write(*args, **kwargs)
+        else:
+            raise TimeoutError('Write timeout ({}s)'.format(self.timeout))
+
+    def flush(self) -> None:
+        self.file_.flush()

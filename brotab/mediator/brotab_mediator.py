@@ -10,10 +10,14 @@ from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
 from brotab.mediator import sig
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
+from brotab.mediator.const import DEFAULT_SHUTDOWN_POLL_INTERVAL
 from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.log import disable_click_echo
 from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
+from brotab.mediator.transport import transport_with_timeout
+
+
 # TODO:
 # 1. Run HTTP server and accept the following commands:
 #    - /list_tabs
@@ -31,10 +35,6 @@ from brotab.mediator.remote_api import default_remote_api
 #       make sure this threaded reader and server reader are mutually exclusive.
 # TODO: all commands should be synchronous and should only terminate after
 #       the action has been actually executed in the browser.
-from brotab.mediator.transport import default_transport
-
-
-# app = flask.Flask(__name__)
 
 
 def monkeypatch_socket_bind_allow_port_reuse():
@@ -65,19 +65,22 @@ def mediator_main():
     disable_click_echo()
 
     port_range = list(get_mediator_ports())
-    transport = default_transport()
+    # transport = transport_with_timeout(DEFAULT_TRANSPORT_TIMEOUT)
+    transport = transport_with_timeout(1.0)
     remote_api = default_remote_api(transport)
     host = DEFAULT_HTTP_IFACE
+    poll_interval = DEFAULT_SHUTDOWN_POLL_INTERVAL
 
     for port in port_range:
         mediator_logger.info('Starting mediator on %s:%s...', host, port)
         if is_port_accepting_connections(port):
             continue
         try:
-            server = MediatorHttpServer(host, port, remote_api)
-            process = server.run.in_process()
+            server = MediatorHttpServer(host, port, remote_api, poll_interval)
+            thread = server.run.in_thread()
+            server.run.parent_watcher()
             sig.setup(server.run.shutdown)
-            process.join()
+            thread.join()
             mediator_logger.info('Exiting mediator pid=%s on %s:%s...', os.getpid(), host, port)
             break
         except OSError as e:
@@ -85,7 +88,9 @@ def mediator_main():
             mediator_logger.info('Cannot bind on port %s: %s', port, e)
         except BrokenPipeError as e:
             # TODO: probably also won't work with processes, also a race
-            sig.pipe(server.run.shutdown, e)
+            mediator_logger.exception('Pipe has been closed (%s)', e)
+            server.run.shutdown()
+            break
 
     else:
         mediator_logger.error('No TCP ports available for bind in range %s', port_range)

@@ -122,7 +122,5 @@ class BrowserRemoteAPI:
         return self._transport.recv()
 
 
-def default_remote_api(transport: Transport = None) -> BrowserRemoteAPI:
-    if transport is None:
-        transport = default_transport()
+def default_remote_api(transport: Transport) -> BrowserRemoteAPI:
     return BrowserRemoteAPI(transport)

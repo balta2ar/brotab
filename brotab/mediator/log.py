@@ -6,7 +6,7 @@ from brotab.inout import in_temp_dir
 
 
 def _init_logger(tag, filename: str):
-    FORMAT = '%(asctime)-15s %(process)-5d %(levelname)-10s %(filename)s:%(lineno)d:%(funcName)s %(message)s'
+    FORMAT = '%(asctime)-15s %(process)-5d %(levelname)-8s %(filename)s:%(lineno)d:%(funcName)s %(message)s'
     MAX_LOG_SIZE = 50 * 1024 * 1024
     LOG_BACKUP_COUNT = 1
 

@@ -1,5 +1,8 @@
 import os
+from functools import partial
+from threading import Thread
 from urllib.parse import unquote_plus
+from wsgiref.simple_server import make_server
 
 from flask import Flask
 from flask import request
@@ -19,19 +22,31 @@ from brotab.utils import decode_query
 
 
 class MediatorHttpServer:
-    def __init__(self, host: str, port: str, remote_api: BrowserRemoteAPI):
+    def __init__(self, host: str, port: int, remote_api: BrowserRemoteAPI, poll_interval: float):
         self.host: str = host
-        self.port: str = port
+        self.port: int = port
         self.remote_api: BrowserRemoteAPI = remote_api
         self.pid: int = os.getpid()
         self.app = Flask(__name__)
+        self.http_server = make_server(host=host, port=port, app=self.app)
         self._setup_routes()
 
-        def target() -> None:
-            self.app.url_map.strict_slashes = False
-            self.app.run(host=host, port=port, debug=False, threaded=False)
+        def serve():
+            mediator_logger.info('Serving mediator on %s:%s', host, port)
+            self.http_server.serve_forever(poll_interval=poll_interval)
 
-        self.run = Runner(target)
+        def shutdown():
+            mediator_logger.info('Closing mediator http server on %s:%s', host, port)
+            self.http_server.server_close()
+            mediator_logger.info('Shutting down mediator http server on %s:%s', host, port)
+            thread = Thread(target=self.http_server.shutdown)
+            thread.daemon = True
+            thread.start()
+            thread.join(3.0)
+            mediator_logger.info('Done shutting down mediator (is_alive=%s) http server on %s:%s',
+                                 thread.is_alive(), host, port)
+
+        self.run = Runner(serve, shutdown)
 
     def _setup_routes(self) -> None:
         mediator_logger.info('Starting mediator http server on %s:%s pid=%s', self.host, self.port, self.pid)

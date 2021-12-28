@@ -60,13 +60,18 @@ class MockedLoggingTransport(Transport):
             return self._received.get()
 
 
+# tests todo:
+# 1. mediator cannot write/read, terminates
+# 2. terminate mediator on ctrl-c, sigint, sigterm
+# 3. terminate mediator when parent terminates
+# 4. make sure that stdin & stdout passed to mediator are passed correctly to http server process
 class MockedMediator:
     def __init__(self, prefix='a', port=None, remote_api=None):
         self.port = get_available_tcp_port() if port is None else port
         self.transport = MockedLoggingTransport()
         self.remote_api = default_remote_api(self.transport) if remote_api is None else remote_api
-        self.server = MediatorHttpServer(DEFAULT_HTTP_IFACE, self.port, self.remote_api)
-        self.process = self.server.run.in_process()
+        self.server = MediatorHttpServer(DEFAULT_HTTP_IFACE, self.port, self.remote_api, 0.050)
+        self.thread = self.server.run.in_thread()
         self.transport.received_extend(['mocked'])
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
         assert self.api.browser == 'mocked'
@@ -74,13 +79,34 @@ class MockedMediator:
 
     def shutdown_and_wait(self):
         self.server.shutdown()
-        self.process.join()
+        self.thread.join()
 
     def __enter__(self):
         return self
 
     def __exit__(self, type_, value, tb):
         self.shutdown_and_wait()
+
+
+# class TestMediator(TestCase):
+#     def test_terminates_if_cannot_read_write(self):
+#         port = get_available_tcp_port()
+#         stream_in = io.BytesIO()
+#         stream_out = io.BytesIO()
+#         writer = StdTransport(io.BytesIO(), stream_in)
+#         transport = StdTransport(stream_in, stream_out)
+#         remote_api = default_remote_api(transport)
+#         server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api)
+#         process = server.run.in_process()
+#         # transport.received_extend(['mocked'])
+#         writer.send('mocked')
+#         stream_in.seek(0)
+#         self.api = SingleMediatorAPI(prefix='a', port=port, startup_timeout=1)
+#         assert self.api.browser == 'mocked'
+#         # self.transport.reset()
+#
+#         server.shutdown()
+#         process.join()
 
 
 # def _run_commands(commands):
@@ -149,7 +175,7 @@ def run_mocked_mediators(count, default_port_offset, delay):
     print('Ready')
     for mediator in mediators:
         print(mediator.port)
-    mediators[0].process.join()
+    mediators[0].thread.join()
 
 
 def run_mocked_mediator_current_thread(port):
@@ -160,7 +186,7 @@ def run_mocked_mediator_current_thread(port):
     """
     remote_api = DummyBrowserRemoteAPI()
     port = get_available_tcp_port() if port is None else port
-    server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api)
+    server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api, 0.050)
     server.run.here()
 
 
@@ -335,9 +361,3 @@ class TestIndex(WithMediator):
             sqlite_filename, 'tabs', 'a.1.1\ttitle\turl\tbody')
         assert_file_absent(sqlite_filename)
         assert_file_absent(tsv_filename)
-
-# tests todo:
-# 1. mediator cannot write/read, terminates
-# 2. terminate mediator on ctrl-c, sigint, sigterm
-# 3. terminate mediator when parent terminates
-# 4. make sure that stdin & stdout passed to mediator are passed correctly to http server process
