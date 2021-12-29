@@ -3,7 +3,6 @@ import json
 import logging
 import socket
 import sys
-import time
 from collections.abc import Mapping
 from functools import partial
 from http.client import RemoteDisconnected
@@ -21,6 +20,8 @@ from brotab.operations import infer_delete_and_move_commands
 from brotab.parallel import call_parallel
 from brotab.tab import parse_tab_lines
 from brotab.utils import encode_query
+from brotab.wait import ConditionTrue
+from brotab.wait import Waiter
 
 logger = logging.getLogger('brotab')
 
@@ -76,18 +77,11 @@ class SingleMediatorAPI(object):
         self._port = port
         self._client = HttpClient(host=host, port=port) if client is None else client
         if startup_timeout is not None:
-            if not self.wait_for_startup(startup_timeout):
+            condition = ConditionTrue(lambda: self.get_pid() != -1)
+            if not Waiter(condition).wait(timeout=startup_timeout):
                 raise StartupTimeout('Failed to start in %s seconds' % startup_timeout)
-        self._pid = self._get_pid()
-        self._browser = self._get_browser()
-
-    def wait_for_startup(self, timeout_msec: int) -> bool:
-        expires_at = time.time() + timeout_msec
-        while time.time() < expires_at:
-            if self._get_pid() != -1:
-                return True
-            time.sleep(0.050)
-        return False
+        self._pid = self.get_pid()
+        self._browser = self.get_browser()
 
     @property
     def browser(self) -> str:
@@ -122,7 +116,7 @@ class SingleMediatorAPI(object):
     def _split_tabs(self, tabs):
         return [tab.split('.') for tab in tabs]
 
-    def _get_pid(self):
+    def get_pid(self):
         """Get process ID from the mediator."""
         try:
             return int(self._get('/get_pid'))
@@ -130,7 +124,7 @@ class SingleMediatorAPI(object):
             logger.info('_get_pid failed: %s', e)
         return -1
 
-    def _get_browser(self):
+    def get_browser(self):
         """Get browser name from the mediator."""
         try:
             return self._get('/get_browser')

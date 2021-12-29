@@ -182,7 +182,7 @@ class TimeoutIO(io.BytesIO):
             self._read = lambda *args, **kwargs: os.read(file_, *args, **kwargs)
             self._close = lambda: os.close(file_)
             self._flush = lambda: None
-        elif isinstance(file_, BinaryIO):
+        elif isinstance(file_, io.BufferedIOBase):
             self._write = file_.write
             self._read = file_.read
             self._close = file_.close
