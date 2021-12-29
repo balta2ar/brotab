@@ -71,24 +71,33 @@ class SingleMediatorAPI(object):
     This API is designed to work with a single mediator.
     """
 
-    def __init__(self, prefix, host='localhost', port=4625, startup_timeout=None, client: HttpClient = None):
+    def __init__(self, prefix, host='localhost', port=4625, startup_timeout: float = None, client: HttpClient = None):
         self._prefix = '%s.' % prefix
         self._host = host
         self._port = port
         self._client = HttpClient(host=host, port=port) if client is None else client
         if startup_timeout is not None:
-            condition = ConditionTrue(lambda: self.get_pid() != -1)
-            if not Waiter(condition).wait(timeout=startup_timeout):
-                raise StartupTimeout('Failed to start in %s seconds' % startup_timeout)
+            self.must_ready(timeout=startup_timeout)
         self._pid = self.get_pid()
         self._browser = self.get_browser()
+
+    def must_ready(self, timeout: float) -> None:
+        condition = ConditionTrue(lambda: self.get_pid() != -1)
+        if not Waiter(condition).wait(timeout=timeout):
+            raise StartupTimeout('Failed to start in %s seconds' % timeout)
+
+    def pid_ready(self) -> bool:
+        return self.get_pid() != -1
+
+    def pid_not_ready(self) -> bool:
+        return not self.pid_ready()
 
     @property
     def browser(self) -> str:
         return self._browser
 
     @property
-    def ready(self):
+    def ready(self) -> bool:
         return self._browser != '<ERROR>'
 
     def __str__(self):
@@ -120,7 +129,7 @@ class SingleMediatorAPI(object):
         """Get process ID from the mediator."""
         try:
             return int(self._get('/get_pid'))
-        except (URLError, HTTPError, socket.timeout, RemoteDisconnected) as e:
+        except (URLError, HTTPError, socket.timeout, RemoteDisconnected, ConnectionResetError) as e:
             logger.info('_get_pid failed: %s', e)
         return -1
 
@@ -128,7 +137,7 @@ class SingleMediatorAPI(object):
         """Get browser name from the mediator."""
         try:
             return self._get('/get_browser')
-        except (URLError, HTTPError, socket.timeout, RemoteDisconnected) as e:
+        except (URLError, HTTPError, socket.timeout, RemoteDisconnected, ConnectionResetError) as e:
             logger.info('_get_browser failed: %s', e)
         return '<ERROR>'
 

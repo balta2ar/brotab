@@ -74,11 +74,6 @@ class MockedLoggingTransport(Transport):
         pass
 
 
-# tests todo:
-# 1. mediator cannot write/read, terminates
-# 2. terminate mediator on ctrl-c, sigint, sigterm
-# 3. terminate mediator when parent terminates
-# 4. make sure that stdin & stdout passed to mediator are passed correctly to http server process
 class MockedMediator:
     def __init__(self, prefix='a', port=None, remote_api=None):
         self.port = get_available_tcp_port() if port is None else port
@@ -106,9 +101,9 @@ class TestMediatorThreadTerminates(TestCase):
     def setUp(self):
         port = get_available_tcp_port()
         input_r, input_w = os.pipe()
-        output_r, self.output_w = os.pipe()
+        output_r, output_w = os.pipe()
         self.transport_browser = transport_with_timeout(output_r, input_w, 0.050)
-        transport_mediator = transport_with_timeout(input_r, self.output_w, 0.050)
+        transport_mediator = transport_with_timeout(input_r, output_w, 0.050)
         remote_api = default_remote_api(transport_mediator)
         server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api, poll_interval=0.050)
         self.thread = server.run.in_thread()
@@ -180,9 +175,39 @@ class TestMediatorProcessTerminates(TestCase):
 
         # kill parent and expect mediator to terminate as well
         kill_parent.wait()
-        condition = ConditionTrue(lambda: api.get_pid() == -1)
-        self.assertTrue(Waiter(condition).wait(timeout=1.0))
+        self.assertTrue(Waiter(api.pid_not_ready).wait(timeout=1.0))
         supervisor.join()
+
+    def test_when_sigint_received(self):
+        port = get_available_tcp_port()
+        mediator_logger.info('starting test pid=%s', os.getpid())
+
+        def run_threaded_mediator():
+            mediator_logger.info('starting mediator pid=%s', os.getpid())
+            input_r, input_w = os.pipe()
+            output_r, self.output_w = os.pipe()
+            transport_browser = transport_with_timeout(output_r, input_w, 0.050)
+            transport_mediator = transport_with_timeout(input_r, self.output_w, 0.050)
+            remote_api = default_remote_api(transport_mediator)
+            server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api, poll_interval=0.050)
+            thread = server.run.in_thread()
+            transport_browser.send('mocked')
+
+            sig.setup(lambda: server.run.shutdown(join=False))
+            server.run.parent_watcher(thread.is_alive, interval=0.050)  # this is crucial
+            thread.join()
+
+        mediator_process = Process(target=run_threaded_mediator)
+        mediator_process.start()
+
+        client = HttpClient('localhost', port, timeout=0.1)
+        api = SingleMediatorAPI(prefix='a', port=port, startup_timeout=1, client=client)
+        assert api.browser == 'mocked'
+
+        # os.kill(mediator_process.pid, signal.SIGINT)
+        os.kill(mediator_process.pid, signal.SIGTERM)
+        self.assertTrue(Waiter(api.pid_not_ready).wait(timeout=1.0))
+        mediator_process.join()
 
 
 # def _run_commands(commands):
