@@ -18,6 +18,7 @@ from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import BrowserRemoteAPI
 from brotab.mediator.runner import Runner
 from brotab.mediator.support import is_valid_integer
+from brotab.mediator.transport import TransportError
 from brotab.utils import decode_query
 
 
@@ -35,14 +36,15 @@ class MediatorHttpServer:
             mediator_logger.info('Serving mediator on %s:%s', host, port)
             self.http_server.serve_forever(poll_interval=poll_interval)
 
-        def shutdown():
+        def shutdown(join: bool):
             mediator_logger.info('Closing mediator http server on %s:%s', host, port)
             self.http_server.server_close()
             mediator_logger.info('Shutting down mediator http server on %s:%s', host, port)
             thread = Thread(target=self.http_server.shutdown)
             thread.daemon = True
             thread.start()
-            thread.join(3.0)
+            if join:
+                thread.join()
             mediator_logger.info('Done shutting down mediator (is_alive=%s) http server on %s:%s',
                                  thread.is_alive(), host, port)
 
@@ -53,6 +55,7 @@ class MediatorHttpServer:
         self.app.register_error_handler(ConnectionError, self.error_handler)
         self.app.register_error_handler(TimeoutError, self.error_handler)
         self.app.register_error_handler(ValueError, self.error_handler)
+        self.app.register_error_handler(TransportError, self.error_handler)
         self.app.route('/', methods=['GET'])(self.route_index)
         self.app.route('/shutdown', methods=['GET'])(self.shutdown)
         self.app.route('/list_tabs', methods=['GET'])(self.list_tabs)
@@ -73,7 +76,9 @@ class MediatorHttpServer:
 
     def error_handler(self, e: Exception):
         mediator_logger.exception('Shutting down mediator http server due to exception: %s', e)
-        self.run.shutdown()
+        # can't wait for shutdown here because we're processing a request right now,
+        # we will get deadlocked if we wait (join=True)
+        self.run.shutdown(join=False)
         return '<ERROR>'
 
     def route_index(self):
@@ -85,7 +90,9 @@ class MediatorHttpServer:
         return '\n'.join(links)
 
     def shutdown(self):
-        self.run.shutdown()
+        # can't wait for shutdown here because we're processing a request right now,
+        # we will get deadlocked if we wait (join=True)
+        self.run.shutdown(join=False)
         return 'OK'
 
     def list_tabs(self):

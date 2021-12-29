@@ -5,6 +5,7 @@ import logging.handlers
 import os
 import re
 import socket
+import sys
 
 from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
@@ -65,8 +66,8 @@ def mediator_main():
     disable_click_echo()
 
     port_range = list(get_mediator_ports())
-    # transport = transport_with_timeout(DEFAULT_TRANSPORT_TIMEOUT)
-    transport = transport_with_timeout(1.0)
+    # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
+    transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
     remote_api = default_remote_api(transport)
     host = DEFAULT_HTTP_IFACE
     poll_interval = DEFAULT_SHUTDOWN_POLL_INTERVAL
@@ -79,7 +80,9 @@ def mediator_main():
             server = MediatorHttpServer(host, port, remote_api, poll_interval)
             thread = server.run.in_thread()
             server.run.parent_watcher()
-            sig.setup(server.run.shutdown)
+            # it's okay to wait for shutdown here because the server
+            # is running in a different thread
+            sig.setup(lambda: server.run.shutdown(join=True))
             thread.join()
             mediator_logger.info('Exiting mediator pid=%s on %s:%s...', os.getpid(), host, port)
             break
@@ -89,7 +92,7 @@ def mediator_main():
         except BrokenPipeError as e:
             # TODO: probably also won't work with processes, also a race
             mediator_logger.exception('Pipe has been closed (%s)', e)
-            server.run.shutdown()
+            server.run.shutdown(join=True)
             break
 
     else:

@@ -16,16 +16,16 @@ class NotStarted(Exception):
 
 
 class Runner:
-    def __init__(self, serve, shutdown: Callable[[], None]):
+    def __init__(self, serve: Callable[[], None], shutdown: Callable[[bool], None]):
         self._serve = serve
         self._shutdown = shutdown
 
-    def shutdown(self) -> None:
+    def shutdown(self, join: bool) -> None:
         # TODO: break this to test ctrl-c
         if not self._shutdown:
             raise NotStarted('start the runner first')
         mediator_logger.info('Runner: calling terminate (pid=%s): %s', os.getpid(), self._shutdown)
-        self._shutdown()
+        self._shutdown(join)
 
     def here(self) -> None:
         mediator_logger.info('Started mediator process, pid=%s', os.getpid())

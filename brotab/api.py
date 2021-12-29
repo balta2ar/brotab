@@ -28,6 +28,39 @@ HTTP_TIMEOUT = 10.0
 MAX_NUMBER_OF_TABS = 5000
 
 
+class HttpClient:
+    def __init__(self, host='localhost', port=4625, timeout=HTTP_TIMEOUT):
+        self._host: str = host
+        self._port: int = port
+        self._timeout: float = timeout
+
+    def get(self, path, data=None):
+        url = 'http://%s:%s%s' % (self._host, self._port, path)
+        logger.info('GET %s' % url)
+        if data is not None:
+            data = data.encode('utf8')
+        request = Request(url=url, data=data, method='GET')
+
+        with urlopen(request, timeout=self._timeout) as response:
+            return response.read().decode('utf8')
+
+    def post(self, path, files=None):
+        url = 'http://%s:%s%s' % (self._host, self._port, path)
+        logger.info('POST %s' % url)
+        form = MultiPartForm()
+        for filename, content in files.items():
+            form.add_file(filename, filename,
+                          io.BytesIO(content.encode('utf8')))
+
+        data = bytes(form)
+        request = Request(url=url, data=data, method='POST')
+        request.add_header('Content-Type', form.get_content_type())
+        request.add_header('Content-Length', str(len(data)))
+
+        with urlopen(request, timeout=self._timeout) as response:
+            return response.read().decode('utf8')
+
+
 class StartupTimeout(BaseException):
     pass
 
@@ -37,10 +70,11 @@ class SingleMediatorAPI(object):
     This API is designed to work with a single mediator.
     """
 
-    def __init__(self, prefix, host='localhost', port=4625, startup_timeout=None):
+    def __init__(self, prefix, host='localhost', port=4625, startup_timeout=None, client: HttpClient = None):
         self._prefix = '%s.' % prefix
         self._host = host
         self._port = port
+        self._client = HttpClient(host=host, port=port) if client is None else client
         if startup_timeout is not None:
             if not self.wait_for_startup(startup_timeout):
                 raise StartupTimeout('Failed to start in %s seconds' % startup_timeout)
@@ -243,30 +277,10 @@ class SingleMediatorAPI(object):
         return self._get('/shutdown')
 
     def _get(self, path, data=None):
-        url = 'http://%s:%s%s' % (self._host, self._port, path)
-        logger.info('GET %s' % url)
-        if data is not None:
-            data = data.encode('utf8')
-        request = Request(url=url, data=data, method='GET')
-
-        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
-            return response.read().decode('utf8')
+        return self._client.get(path, data)
 
     def _post(self, path, files=None):
-        url = 'http://%s:%s%s' % (self._host, self._port, path)
-        logger.info('POST %s' % url)
-        form = MultiPartForm()
-        for filename, content in files.items():
-            form.add_file(filename, filename,
-                          io.BytesIO(content.encode('utf8')))
-
-        data = bytes(form)
-        request = Request(url=url, data=data, method='POST')
-        request.add_header('Content-Type', form.get_content_type())
-        request.add_header('Content-Length', len(data))
-
-        with urlopen(request, timeout=HTTP_TIMEOUT) as response:
-            return response.read().decode('utf8')
+        return self._client.post(path, files)
 
 
 class MultipleMediatorsAPI(object):

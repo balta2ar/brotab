@@ -4,6 +4,7 @@ import sys
 from abc import ABC
 from abc import abstractmethod
 from typing import BinaryIO
+from typing import Union
 
 from brotab.inout import TimeoutIO
 from brotab.mediator.log import mediator_logger
@@ -18,14 +19,18 @@ class Transport(ABC):
     def recv(self) -> dict:
         pass
 
+    @abstractmethod
+    def close(self) -> None:
+        pass
+
 
 def default_transport() -> Transport:
     return StdTransport(sys.stdin.buffer, sys.stdout.buffer)
 
 
-def transport_with_timeout(timeout: float) -> Transport:
-    return StdTransport(TimeoutIO(sys.stdin.buffer, timeout),
-                        TimeoutIO(sys.stdout.buffer, timeout))
+def transport_with_timeout(input_, output: Union[BinaryIO, int], timeout: float) -> Transport:
+    return StdTransport(TimeoutIO(input_, timeout),
+                        TimeoutIO(output, timeout))
 
 
 class TransportError(Exception):
@@ -63,3 +68,7 @@ class StdTransport(Transport):
         encoded_content = json.dumps(message).encode('utf8')
         encoded_length = struct.pack('@I', len(encoded_content))
         return {'length': encoded_length, 'content': encoded_content}
+
+    def close(self):
+        self._in.close()
+        self._out.close()

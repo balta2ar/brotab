@@ -12,6 +12,7 @@ from subprocess import check_call
 from tempfile import NamedTemporaryFile
 from typing import BinaryIO
 from typing import Iterable
+from typing import Union
 
 from brotab.platform import get_editor
 
@@ -172,24 +173,39 @@ class MultiPartForm:
 
 
 class TimeoutIO(io.BytesIO):
-    def __init__(self, file_: BinaryIO, timeout: float):
+    def __init__(self, file_: Union[BinaryIO, int], timeout: float):
+        super().__init__()
         self.file_ = file_
         self.timeout = timeout
-        super().__init__()
+        if isinstance(file_, int):
+            self._write = lambda *args, **kwargs: os.write(file_, *args, **kwargs)
+            self._read = lambda *args, **kwargs: os.read(file_, *args, **kwargs)
+            self._close = lambda: os.close(file_)
+            self._flush = lambda: None
+        elif isinstance(file_, BinaryIO):
+            self._write = file_.write
+            self._read = file_.read
+            self._close = file_.close
+            self._flush = file_.flush
+        else:
+            raise TypeError('file_ must be an int or BinaryIO: %', type(file_))
 
     def read(self, *args, **kwargs) -> bytes:
         rlist, _, _ = select([self.file_], [], [], self.timeout)
         if rlist:
-            return self.file_.read(*args, **kwargs)
+            return self._read(*args, **kwargs)
         else:
             raise TimeoutError('Read timeout ({}s)'.format(self.timeout))
 
     def write(self, *args, **kwargs) -> int:
         _, wlist, _ = select([], [self.file_], [], self.timeout)
         if wlist:
-            return self.file_.write(*args, **kwargs)
+            return self._write(*args, **kwargs)
         else:
             raise TimeoutError('Write timeout ({}s)'.format(self.timeout))
 
     def flush(self) -> None:
-        self.file_.flush()
+        self._flush()
+
+    def close(self) -> None:
+        self._close()
