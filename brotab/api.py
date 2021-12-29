@@ -16,6 +16,7 @@ from urllib.request import urlopen
 
 from brotab.inout import MultiPartForm
 from brotab.inout import edit_tabs_in_editor
+from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.operations import infer_delete_and_move_commands
 from brotab.parallel import call_parallel
 from brotab.tab import parse_tab_lines
@@ -284,6 +285,16 @@ class SingleMediatorAPI(object):
 
     def _post(self, path, files=None):
         return self._client.post(path, files)
+
+
+def api_must_ready(port: int, browser: str,
+                   prefix='a',
+                   client_timeout: float = 0.1,
+                   startup_timeout: float = 1.0) -> SingleMediatorAPI:
+    client = HttpClient(DEFAULT_HTTP_IFACE, port, timeout=client_timeout)
+    api = SingleMediatorAPI(prefix=prefix, port=port, startup_timeout=startup_timeout, client=client)
+    assert api.browser == browser
+    return api
 
 
 class MultipleMediatorsAPI(object):
