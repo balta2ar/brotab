@@ -132,13 +132,13 @@ class TestMediatorThreadTerminates(TestCase):
 
 
 class TestMediatorProcessTerminates(TestCase):
-    def test_when_sigint_received(self):
+    def test_when_parent_died(self):
         port = get_available_tcp_port()
-        mediator_logger.warning('starting test pid=%s', os.getpid())
-        initialized = Barrier(2)
+        mediator_logger.info('starting test pid=%s', os.getpid())
+        kill_parent = Barrier(2)
 
         def run_threaded_mediator():
-            mediator_logger.warning('starting mediator pid=%s', os.getpid())
+            mediator_logger.info('starting mediator pid=%s', os.getpid())
             input_r, input_w = os.pipe()
             output_r, self.output_w = os.pipe()
             transport_browser = transport_with_timeout(output_r, input_w, 0.050)
@@ -148,25 +148,25 @@ class TestMediatorProcessTerminates(TestCase):
             thread = server.run.in_thread()
             transport_browser.send('mocked')
 
-            server.run.parent_watcher(interval=0.050)  # this is crucial
-            # sig.setup(lambda: server.run.shutdown(join=True))
+            sig.setup(lambda: server.run.shutdown(join=False))
+            server.run.parent_watcher(thread.is_alive, interval=0.050)  # this is crucial
             thread.join()
 
         def run_doomed_parent_browser():
-            mediator_logger.warning('doomed_parent_browser pid=%s', os.getpid())
+            mediator_logger.info('doomed_parent_browser pid=%s', os.getpid())
             mediator_process = Process(target=run_threaded_mediator)
             mediator_process.start()
             mediator_process.join()
 
         def on_sig_child(signum, frame):
             pid, status = os.wait()
-            mediator_logger.warning('reaped child signum=%s pid=%s status=%s', signum, pid, status)
+            mediator_logger.info('reaped child signum=%s pid=%s status=%s', signum, pid, status)
 
         def run_supervisor():
             signal.signal(signal.SIGCHLD, on_sig_child)
             doomed_parent_browser = Process(target=run_doomed_parent_browser)
             doomed_parent_browser.start()
-            initialized.wait()
+            kill_parent.wait()
             doomed_parent_browser.terminate()
             doomed_parent_browser.join()
 
@@ -178,19 +178,11 @@ class TestMediatorProcessTerminates(TestCase):
         api = SingleMediatorAPI(prefix='a', port=port, startup_timeout=1, client=client)
         assert api.browser == 'mocked'
 
-        mediator_logger.warning('FINISHED')
         # kill parent and expect mediator to terminate as well
-        initialized.wait()
+        kill_parent.wait()
         condition = ConditionTrue(lambda: api.get_pid() == -1)
         self.assertTrue(Waiter(condition).wait(timeout=1.0))
         supervisor.join()
-
-        mediator_logger.warning('DONE')
-
-        # parent.terminate()
-        # parent.join()
-        #
-        # self.assertRaises(URLError, lambda: api.list_tabs([]))
 
 
 # def _run_commands(commands):

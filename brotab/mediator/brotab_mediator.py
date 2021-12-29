@@ -79,10 +79,8 @@ def mediator_main():
         try:
             server = MediatorHttpServer(host, port, remote_api, poll_interval)
             thread = server.run.in_thread()
+            sig.setup(lambda: server.run.shutdown(join=False))
             server.run.parent_watcher(interval=1.0)
-            # it's okay to wait for shutdown here because the server
-            # is running in a different thread
-            sig.setup(lambda: server.run.shutdown(join=True))
             thread.join()
             mediator_logger.info('Exiting mediator pid=%s on %s:%s...', os.getpid(), host, port)
             break

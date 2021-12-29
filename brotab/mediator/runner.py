@@ -38,40 +38,17 @@ class Runner:
         thread.start()
         return thread
 
-    # def in_process(self) -> Process:
-    #     process = Process(target=self.here)
-    #     process.daemon = True
-    #     process.start()
-    #
-    #     def shutdown():
-    #         mediator_logger.info('Runner: shutdown in in_process, process.terminate')
-    #         process.terminate()
-    #
-    #     self._shutdown = shutdown
-    #     self._watcher(os.getpid(), os.getppid(), interval=1.0)
-    #     return process
+    def parent_watcher(self, running: Callable, interval: float):
+        self._watcher(running, os.getppid(), interval=interval)
 
-    def parent_watcher(self, interval: float):
-        self._watcher(os.getpid(), os.getppid(), interval=interval)
-
-    def _watcher(self, target_pid, parent_pid: int, interval: float) -> Process:
-        def watch():
-            mediator_logger.info('Watching parent process target=%s parent=%s current pid=%s', target_pid, parent_pid, os.getpid())
-            while True:
-                time.sleep(interval)
-                if not pid_exists(parent_pid):
-                    mediator_logger.info('Parent process died pid=%s, shutting down mediator', parent_pid)
-                    self.shutdown(join=False)
-                    mediator_logger.info('Sending SIGTERM & SIGKILL to pid=%s', target_pid)
-                    try:
-                        os.killpg(target_pid, signal.SIGTERM)
-                        os.killpg(target_pid, signal.SIGKILL)
-                    except ProcessLookupError:
-                        mediator_logger.info('Process already died pid=%s', target_pid)
-                        pass
-                    break
-
-        process = Process(target=watch)
-        process.daemon = True
-        process.start()
-        return process
+    def _watcher(self, running: Callable, parent_pid: int, interval: float) -> None:
+        mediator_logger.info('Watching parent process parent=%s current pid=%s',
+                             parent_pid, os.getpid())
+        while True:
+            time.sleep(interval)
+            if not running():  # someone shutdown mediator, let's bail
+                break
+            if not pid_exists(parent_pid):
+                mediator_logger.info('Parent process died pid=%s, shutting down mediator', parent_pid)
+                self.shutdown(join=False)
+                break
