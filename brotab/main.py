@@ -576,7 +576,7 @@ def parse_args(args):
     parser_get_text = subparsers.add_parser(
         'text',
         help='''
-        show text form all tabs
+        show text from all tabs
         ''')
     parser_get_text.set_defaults(func=get_text)
     parser_get_text.add_argument('tab_ids', type=str, nargs='*',
@@ -596,7 +596,7 @@ def parse_args(args):
     parser_get_html = subparsers.add_parser(
         'html',
         help='''
-        show html form all tabs
+        show html from all tabs
         ''')
     parser_get_html.set_defaults(func=get_html)
     parser_get_html.add_argument('tab_ids', type=str, nargs='*',
