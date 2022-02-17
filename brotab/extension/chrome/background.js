@@ -172,19 +172,23 @@ var port = undefined;
 var tabs = undefined;
 var browserTabs = undefined;
 const NATIVE_APP_NAME = 'brotab_mediator';
+reconnect();
 
-if (typeof browser !== 'undefined') {
-  port = browser.runtime.connectNative(NATIVE_APP_NAME);
-  console.log("It's Firefox: " + port);
-  browserTabs = new FirefoxTabs(browser);
+function reconnect() {
+  console.log("Connecting to native app");
+  if (typeof browser !== 'undefined') {
+    port = browser.runtime.connectNative(NATIVE_APP_NAME);
+    console.log("It's Firefox: " + port);
+    browserTabs = new FirefoxTabs(browser);
 
-} else if (typeof chrome !== 'undefined') {
-  port = chrome.runtime.connectNative(NATIVE_APP_NAME);
-  console.log("It's Chrome/Chromium: " + port);
-  browserTabs = new ChromeTabs(chrome);
+  } else if (typeof chrome !== 'undefined') {
+    port = chrome.runtime.connectNative(NATIVE_APP_NAME);
+    console.log("It's Chrome/Chromium: " + port);
+    browserTabs = new ChromeTabs(chrome);
 
-} else {
-  console.log("Unknown browser detected");
+  } else {
+    console.log("Unknown browser detected");
+  }
 }
 
 
@@ -353,6 +357,13 @@ function getHtmlScript(delimiter_regex, replace_with) {
     .replace('#replace_with#', replace_with);
 }
 
+function listOr(list, default_value) {
+  if ((list.length == 1) && (list[0] == null)) {
+    return default_value;
+  }
+  return list;
+}
+
 function getWordsFromTabs(tabs, match_regex, join_with) {
   var promises = [];
   console.log(`Getting words from tabs: ${tabs}`);
@@ -362,6 +373,7 @@ function getWordsFromTabs(tabs, match_regex, join_with) {
     var promise = new Promise(
       (resolve, reject) => browserTabs.runScript(tab.id, script, null,
         (words, _payload) => {
+          words = listOr(words, []);
           console.log(`Got ${words.length} words from another tab`);
           resolve(words);
         },
@@ -392,7 +404,7 @@ function getWords(tab_id, match_regex, join_with) {
     const script = getWordsScript(match_regex, join_with);
     console.log(`Getting words, running a script: ${script}`);
     browserTabs.runScript(tab_id, script, null,
-      (words, _payload) => port.postMessage(words),
+      (words, _payload) => port.postMessage(listOr(words, [])),
       (error, _payload) => console.log(`getWords: tab_id=${tab_id}, could not run script (${script})`),
     );
   }
@@ -475,7 +487,9 @@ function getHtml(delimiter_regex, replace_with) {
 }
 
 function getBrowserName() {
-  port.postMessage(browserTabs.getBrowserName());
+  const name = browserTabs.getBrowserName();
+  console.log("Sending browser name: " + name);
+  port.postMessage(name);
 }
 
 /*
@@ -552,6 +566,9 @@ port.onDisconnect.addListener(function() {
   } else {
     console.warn("lastError is undefined");
   }
+  sleep(5000);
+  console.log("Trying to reconnect");
+  reconnect();
 });
 
 console.log("Connected to native app " + NATIVE_APP_NAME);
