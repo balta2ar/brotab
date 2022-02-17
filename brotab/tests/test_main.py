@@ -24,6 +24,38 @@ from brotab.tests.utils import assert_sqlite3_table_contents
 
 
 class MockedLoggingTransport(Transport):
+    def __init__(self):
+        self._sent = []
+        self._received = []
+
+    def reset(self):
+        self._sent = []
+        self._received = []
+
+    @property
+    def sent(self):
+        return self._sent
+
+    @property
+    def received(self):
+        return self._received
+
+    def received_extend(self, values) -> None:
+        for value in values:
+            self._received.append(value)
+
+    def send(self, message) -> None:
+        self._sent.append(message)
+
+    def recv(self):
+        if self._received:
+            return self._received.pop(0)
+
+    def close(self):
+        pass
+
+
+class MockedQueuedLoggingTransport(Transport):
     MAX_SIZE = 1000
 
     def __init__(self):
@@ -179,6 +211,17 @@ class WithMediator(TestCase):
             mocked.side_effect = [range(self.mediator.port, self.mediator.port + 1)]
             return run_commands(commands)
 
+    def _assert_init(self):
+        """Pop get_browser commands from the beginning until we have none."""
+        expected = {'name': 'get_browser'}
+        popped = 0
+        while self.mediator.transport.sent:
+            if expected != self.mediator.transport.sent[0]:
+                break
+            self.mediator.transport.sent.pop(0)
+            popped += 1
+        assert popped > 0, 'Expected to pop at least one get_browser command'
+
 
 class TestCreateClients(WithMediator):
     def test_default_target_hosts(self):
@@ -204,15 +247,15 @@ class TestCreateClients(WithMediator):
 class TestActivate(WithMediator):
     def test_activate_ok(self):
         self._run_commands(['activate', 'a.1.2'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'name': 'activate_tab', 'tab_id': 2, 'focused': False}
         ]
 
     def test_activate_focused_ok(self):
         self._run_commands(['activate', '--focused', 'a.1.2'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'name': 'activate_tab', 'tab_id': 2, 'focused': True}
         ]
 
@@ -227,8 +270,8 @@ class TestText(WithMediator):
         output = []
         with patch('brotab.main.stdout_buffer_write', output.append):
             self._run_commands(['text'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_text', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.1\ttitle\turl\tbody\n']
@@ -246,8 +289,8 @@ class TestText(WithMediator):
         output = []
         with patch('brotab.main.stdout_buffer_write', output.append):
             self._run_commands(['text', 'a.1.2', 'a.1.3'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_text', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
@@ -263,8 +306,8 @@ class TestHtml(WithMediator):
         output = []
         with patch('brotab.main.stdout_buffer_write', output.append):
             self._run_commands(['html'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_html', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.1\ttitle\turl\tbody\n']
@@ -282,8 +325,8 @@ class TestHtml(WithMediator):
         output = []
         with patch('brotab.main.stdout_buffer_write', output.append):
             self._run_commands(['html', 'a.1.2', 'a.1.3'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'delimiter_regex': '/\\n|\\r|\\t/g', 'name': 'get_html', 'replace_with': '" "'},
         ]
         assert output == [b'a.1.2\ttitle\turl\tbody\na.1.3\ttitle\turl\tbody\n']
@@ -303,8 +346,8 @@ class TestIndex(WithMediator):
         output = []
         with patch('brotab.main.stdout_buffer_write', output.append):
             self._run_commands(['index'])
+        self._assert_init()
         assert self.mediator.transport.sent == [
-            {'name': 'get_browser'},
             {'delimiter_regex': '/\\n|\\r|\\t/g',
              'name': 'get_text', 'replace_with': '" "'},
         ]
