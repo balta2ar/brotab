@@ -10,6 +10,7 @@ import sys
 from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
 from brotab.mediator import sig
+from brotab.mediator.const import DEFAULT_TRANSPORT_TIMEOUT
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.const import DEFAULT_SHUTDOWN_POLL_INTERVAL
 from brotab.mediator.http_server import MediatorHttpServer
@@ -17,6 +18,7 @@ from brotab.mediator.log import disable_click_echo
 from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
 from brotab.mediator.transport import transport_with_timeout
+from brotab.mediator.transport import default_transport
 
 
 # TODO:
@@ -66,8 +68,9 @@ def mediator_main():
     disable_click_echo()
 
     port_range = list(get_mediator_ports())
+    transport = default_transport()
     # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
-    transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
+    #transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
     remote_api = default_remote_api(transport)
     host = DEFAULT_HTTP_IFACE
     poll_interval = DEFAULT_SHUTDOWN_POLL_INTERVAL
@@ -80,7 +83,7 @@ def mediator_main():
             server = MediatorHttpServer(host, port, remote_api, poll_interval)
             thread = server.run.in_thread()
             sig.setup(lambda: server.run.shutdown(join=False))
-            server.run.parent_watcher(interval=1.0)
+            server.run.parent_watcher(thread.is_alive, interval=1.0)
             thread.join()
             mediator_logger.info('Exiting mediator pid=%s on %s:%s...', os.getpid(), host, port)
             break
