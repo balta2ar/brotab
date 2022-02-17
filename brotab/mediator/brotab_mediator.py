@@ -17,7 +17,7 @@ from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.log import disable_click_echo
 from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
-from brotab.mediator.transport import transport_with_timeout
+# from brotab.mediator.transport import transport_with_timeout
 from brotab.mediator.transport import default_transport
 
 
