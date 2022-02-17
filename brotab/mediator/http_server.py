@@ -56,7 +56,7 @@ class MediatorHttpServer:
         self.app.register_error_handler(TimeoutError, self.error_handler)
         self.app.register_error_handler(ValueError, self.error_handler)
         self.app.register_error_handler(TransportError, self.error_handler)
-        self.app.route('/', methods=['GET'])(self.route_index)
+        self.app.route('/', methods=['GET'])(self.root_handler)
         self.app.route('/shutdown', methods=['GET'])(self.shutdown)
         self.app.route('/list_tabs', methods=['GET'])(self.list_tabs)
         self.app.route('/query_tabs/<query_info>', methods=['GET'])(self.query_tabs)
@@ -81,12 +81,12 @@ class MediatorHttpServer:
         self.run.shutdown(join=False)
         return '<ERROR>'
 
-    def route_index(self):
+    def root_handler(self):
         links = []
         for rule in self.app.url_map.iter_rules():
-            args = {v: v for v in rule.arguments or {}}
-            url = url_for(rule.endpoint, **args)
-            links.append('%s\v%s' % (url, rule.endpoint))
+            methods = ','.join(rule.methods)
+            line = '{0}\t{1}\t{2}'.format(rule.endpoint, methods, rule)
+            links.append(line)
         return '\n'.join(links)
 
     def shutdown(self):
