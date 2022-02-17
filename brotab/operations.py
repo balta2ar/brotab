@@ -30,7 +30,7 @@ def _get_index_by_tab_id(tab_id, tabs: [Tab]):
 
 class KeyToIndexMapper:
     """
-    This class allows to build different kind of mappings to retrieve
+    This class allows building different kind of mappings to retrieve
     values faster later.
     """
     def __init__(self, make_key: Callable, tabs: [Tab]):
@@ -158,7 +158,7 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     f.8\ta          f.4\ta
     f.1\aa          f.1\ta
 
-    The correspoding move commands:
+    The corresponding move commands:
 
         move f.8 0
 
@@ -179,7 +179,6 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     correctly_ordered_new_indices = set(
         get_longest_increasing_subsequence(reordered_indices))
 
-    commands = []
     upward, downward = [], []
 
     #print('reordered_indices', reordered_indices)
