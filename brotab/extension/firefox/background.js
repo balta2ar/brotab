@@ -332,7 +332,7 @@ function createTab(url) {
   browserTabs.create({'url': url},
     (tab) => {
       console.log(`Created new tab: ${tab.id}`);
-      port.postMessage([tab.id]);
+      port.postMessage([`${tab.windowId}.${tab.id}`]);
   });
 }
 
