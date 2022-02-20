@@ -3,7 +3,6 @@ from urllib.parse import quote_plus
 
 from brotab.mediator.log import mediator_logger
 from brotab.mediator.transport import Transport
-from brotab.mediator.transport import default_transport
 
 
 class BrowserRemoteAPI:

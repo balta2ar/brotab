@@ -356,7 +356,7 @@ class MultipleMediatorsAPI(object):
 
     def move_tabs(self, args):
         """
-        This command allows to close tabs and move them around.
+        This command allows closing tabs and move them around.
 
         It lists current tabs, opens an editor, and when editor is done, it
         detects which tabs where deleted and which where moved. It closes/
