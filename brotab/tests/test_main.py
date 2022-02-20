@@ -1,4 +1,3 @@
-from multiprocessing import Queue
 from string import ascii_letters
 from time import sleep
 from typing import List
@@ -55,46 +54,6 @@ class MockedLoggingTransport(Transport):
         pass
 
 
-class MockedQueuedLoggingTransport(Transport):
-    MAX_SIZE = 1000
-
-    def __init__(self):
-        self._sent = Queue(self.MAX_SIZE)
-        self._received = Queue(self.MAX_SIZE)
-
-    def reset(self):
-        self._read_queue(self._sent)
-        self._read_queue(self._received)
-
-    def _read_queue(self, queue: Queue) -> list:
-        result = []
-        while not queue.empty():
-            result.append(queue.get())
-        return result
-
-    @property
-    def sent(self):
-        return self._read_queue(self._sent)
-
-    @property
-    def received(self):
-        return self._read_queue(self._received)
-
-    def received_extend(self, values) -> None:
-        for value in values:
-            self._received.put(value)
-
-    def send(self, message) -> None:
-        self._sent.put(message)
-
-    def recv(self):
-        if not self._received.empty():
-            return self._received.get()
-
-    def close(self):
-        pass
-
-
 class MockedMediator:
     def __init__(self, prefix='a', port=None, remote_api=None):
         self.port = get_available_tcp_port() if port is None else port
@@ -116,13 +75,6 @@ class MockedMediator:
 
     def __exit__(self, type_, value, tb):
         self.join()
-
-
-# def _run_commands(commands):
-#     with MockedMediator('a') as mediator:
-#         get_mediator_ports_mock.side_effect = \
-#             [range(mediator.port, mediator.port + 1)]
-#         run_commands(commands)
 
 
 class DummyBrowserRemoteAPI:

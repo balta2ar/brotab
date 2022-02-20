@@ -39,6 +39,7 @@ from brotab.mediator.transport import default_transport
 # TODO: all commands should be synchronous and should only terminate after
 #       the action has been actually executed in the browser.
 # TODO: logs from main and mediator should go into different files
+# TODO: bt html may cause "Uncaught (in promise) Error: Message length exceeded maximum allowed length."
 
 
 def monkeypatch_socket_bind_allow_port_reuse():

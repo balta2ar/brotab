@@ -1,19 +1,8 @@
-"""
-Run:
-
-    python3 -m unittest test_brotab
-    pytest brotab
-    pytest tests/test_brotab.py -k move_pair
-
-"""
 from unittest import TestCase
 
-# from brotab import brotab
-from brotab.operations import infer_delete_and_move_commands
-# from brotab import get_longest_contiguous_increasing_sequence
-from brotab.operations import get_longest_increasing_subsequence
-from brotab.operations import infer_move_commands, infer_delete_and_move_commands
 from brotab.operations import apply_move_commands
+from brotab.operations import infer_delete_and_move_commands
+from brotab.operations import infer_move_commands
 from brotab.tab import parse_tab_lines
 
 
@@ -125,7 +114,6 @@ class TestReconstruct(TestCase):
         self.assertEqual(commands, [(4, 0, 0), (5, 0, 8)])
         actual_after = apply_move_commands(before, commands)
         self.assertEqual(actual_after, after)
-
 
     def test_decreasing_ids_from_start_to_end(self):
         before = parse_tab_lines([
@@ -327,6 +315,7 @@ class TestReconstruct(TestCase):
     #     actual_after = apply_move_commands(before, move_commands)
     #     self.assertEqual(actual_after, after)
 
+
 # class TestSequence(TestCase):
 #     def test_get_longest_contiguous_increasing_sequence(self):
 #         tabs = [
@@ -381,7 +370,7 @@ class TestInferDeleteMoveCommands(TestCase):
     def _eq(self, tabs_before, tabs_after, expected_deletes, expected_moves):
         deletes, moves = infer_delete_and_move_commands(
             parse_tab_lines(tabs_before),
-            parse_tab_lines( tabs_after))
+            parse_tab_lines(tabs_after))
         self.assertEqual(expected_deletes, deletes)
         self.assertEqual(expected_moves, moves)
 

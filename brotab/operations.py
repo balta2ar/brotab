@@ -1,8 +1,6 @@
 from typing import Callable
-from itertools import groupby
 
 from brotab.tab import Tab
-from brotab.tab import iter_window_tabs
 
 
 # def _get_old_index(tab, tabs_before):
@@ -33,6 +31,7 @@ class KeyToIndexMapper:
     This class allows building different kind of mappings to retrieve
     values faster later.
     """
+
     def __init__(self, make_key: Callable, tabs: [Tab]):
         self._make_key = make_key
         self._mapping = {
@@ -63,28 +62,28 @@ def get_longest_increasing_subsequence(X):
     """Returns the Longest Increasing Subsequence in the Given List/Array"""
     N = len(X)
     P = [0] * N
-    M = [0] * (N+1)
+    M = [0] * (N + 1)
     L = 0
     for i in range(N):
-       lo = 1
-       hi = L
-       while lo <= hi:
-           mid = (lo+hi)//2
-           if (X[M[mid]] < X[i]):
-               lo = mid+1
-           else:
-               hi = mid-1
+        lo = 1
+        hi = L
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if (X[M[mid]] < X[i]):
+                lo = mid + 1
+            else:
+                hi = mid - 1
 
-       newL = lo
-       P[i] = M[newL-1]
-       M[newL] = i
+        newL = lo
+        P[i] = M[newL - 1]
+        M[newL] = i
 
-       if (newL > L):
-           L = newL
+        if (newL > L):
+            L = newL
 
     S = []
     k = M[L]
-    for i in range(L-1, -1, -1):
+    for i in range(L - 1, -1, -1):
         S.append(X[k])
         k = P[k]
     return S[::-1]
@@ -99,10 +98,10 @@ def infer_delete_commands(tabs_before: [Tab], tabs_after: [Tab]):
     for index in range(len(tabs_before) - 1, -1, -1):
         tab_before = tabs_before[index]
 
-        #if tab_before not in after:
+        # if tab_before not in after:
         if tab_before not in tab_id_title_url_to_index:
             # commands.append(_get_tab_id(tab_before))
-            #commands.append(tab_before.tab_id)
+            # commands.append(tab_before.tab_id)
             commands.append('%s.%s.%s' % (tab_before.prefix,
                                           tab_before.window_id,
                                           tab_before.tab_id))
@@ -169,7 +168,7 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     tab_id_title_url_to_index = TabIdIndexUrlToIndexMapper(tabs_before)
 
     # Now see how indices have been reordered by user
-    #reordered_indices = [line_to_index[tab.line] for tab in tabs_after]
+    # reordered_indices = [line_to_index[tab.line] for tab in tabs_after]
     reordered_indices = [_get_old_index(tab_after,
                                         line_to_index,
                                         tab_id_title_url_to_index,
@@ -181,8 +180,8 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
 
     upward, downward = [], []
 
-    #print('reordered_indices', reordered_indices)
-    #print('tab_id_title_url_to_index', tab_id_title_url_to_old_index)
+    # print('reordered_indices', reordered_indices)
+    # print('tab_id_title_url_to_index', tab_id_title_url_to_old_index)
 
     for new_index, old_index in enumerate(reordered_indices):
         tab_before = tabs_before[old_index]
@@ -200,11 +199,11 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
 
 def apply_delete_commands(tabs_before: [Tab], delete_commands):
     tabs = tabs_before[:]
-    #for tab_id in delete_commands:
+    # for tab_id in delete_commands:
     for delete_command in delete_commands:
         prefix, window_id, tab_id = delete_command.split('.')
         window_id, tab_id = int(window_id), int(tab_id)
-        #tab_id = int(command.split()[1])
+        # tab_id = int(command.split()[1])
         del tabs[_get_index_by_tab_id(tab_id, tabs)]
     return tabs
 
@@ -251,10 +250,10 @@ def infer_delete_and_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     #     chunk_before = apply_delete_commands(chunk_before, delete_commands)
     #     move_commands.extend(infer_move_commands(chunk_before, chunk_after))
 
-    # I've added moves across different exisitng (!) windows of the same
+    # I've added moves across different existing (!) windows of the same
     # browser to iter_window_tabs is not used.
 
-    # [_] detect a move to a new nonexisting window
+    # [_] detect a move to a new nonexistent window
 
     delete_commands.extend(infer_delete_commands(tabs_before, tabs_after))
     # print('DELETE', delete_commands)

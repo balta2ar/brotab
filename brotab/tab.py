@@ -1,5 +1,3 @@
-
-
 class Tab:
     def __init__(self, prefix, window_id, tab_id, title, url):
         self.prefix = prefix
