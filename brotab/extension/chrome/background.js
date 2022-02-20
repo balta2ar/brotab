@@ -308,22 +308,31 @@ function closeTabs(tab_ids) {
 function openUrls(urls, window_id) {
   if (urls.length == 0) {
     console.log('Opening urls done');
-    port.postMessage('OK');
+    port.postMessage([]);
     return;
   }
 
-  const url = urls[0];
-  console.log(`Opening another one url ${url}`);
-  browserTabs.create({'url': url, windowId: window_id},
-    (tab) => openUrls(urls.slice(1), window_id)
-  );
+  var promises = [];
+  for (let url of urls) {
+    console.log(`Opening another one url ${url}`);
+    promises.push(new Promise((resolve, reject) => {
+      browserTabs.create({'url': url, windowId: window_id},
+        (tab) => resolve(`${tab.windowId}.${tab.id}`)
+      );
+    }))
+  };
+  Promise.all(promises).then(result => {
+    const data = Array.prototype.concat(...result)
+    console.log(`Sending ids back: ${JSON.stringify(data)}`);
+    port.postMessage(data)
+  });
 }
 
 function createTab(url) {
   browserTabs.create({'url': url},
     (tab) => {
       console.log(`Created new tab: ${tab.id}`);
-      port.postMessage('OK');
+      port.postMessage([tab.id]);
   });
 }
 

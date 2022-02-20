@@ -71,7 +71,9 @@ from brotab.const import DEFAULT_GET_WORDS_MATCH_REGEX
 from brotab.inout import get_mediator_ports
 from brotab.inout import in_temp_dir
 from brotab.inout import is_port_accepting_connections
+from brotab.inout import marshal
 from brotab.inout import read_stdin
+from brotab.inout import read_stdin_lines
 from brotab.inout import stdout_buffer_write
 from brotab.mediator.log import brotab_logger
 from brotab.platform import is_windows
@@ -209,10 +211,11 @@ def new_tab(args):
     prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
     search_query = ' '.join(args.query)
     brotab_logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
-                search_query, prefix, window_id)
+                       search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    api.open_urls([url], prefix, window_id)
+    ids = api.open_urls([url], prefix, window_id)
+    stdout_buffer_write(marshal(ids))
 
 
 def open_urls(args):
@@ -220,14 +223,15 @@ def open_urls(args):
     curl -X POST 'http://localhost:4626/open_urls' -F 'urls=@urls.txt'
     curl -X POST 'http://localhost:4627/open_urls' -F 'urls=@urls.txt' -F 'window_id=749'
 
-    where urls.txt containe one url per line (not JSON)
+    where urls.txt contains one url per line (not JSON)
     """
     prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
-    urls = [line.strip() for line in sys.stdin.readlines()]
+    urls = read_stdin_lines()
     brotab_logger.info('Opening URLs from stdin, prefix "%s", window_id "%s": %s',
-                prefix, window_id, urls)
+                       prefix, window_id, urls)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    api.open_urls(urls, prefix, window_id)
+    ids = api.open_urls(urls, prefix, window_id)
+    stdout_buffer_write(marshal(ids))
 
 
 def get_words(args):
@@ -236,7 +240,7 @@ def get_words(args):
     # "})
     start = time.time()
     brotab_logger.info('Get words from tabs: %s, match_regex=%s, join_with=%s',
-                args.tab_ids, args.match_regex, args.join_with)
+                       args.tab_ids, args.match_regex, args.join_with)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     words = api.get_words(args.tab_ids, args.match_regex, args.join_with)
     print('\n'.join(words))

@@ -94,6 +94,19 @@ def read_stdin():
     return ''
 
 
+def read_stdin_lines():
+    return [line.strip() for line in sys.stdin.readlines()]
+
+
+def marshal(obj):
+    if isinstance(obj, str):
+        return obj.encode('utf-8')
+    if isinstance(obj, list):
+        data = '\n'.join(obj) + '\n'
+        return data.encode('utf-8')
+    return str(obj).encode('utf-8')
+
+
 def stdout_buffer_write(message):
     return sys.stdout.buffer.write(message)
 

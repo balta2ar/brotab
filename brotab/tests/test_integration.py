@@ -5,7 +5,6 @@ from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
 from subprocess import Popen
 from subprocess import check_output
-from time import sleep
 from unittest import TestCase
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
@@ -25,6 +24,14 @@ def run(args):
 
 def git_root():
     return run(['git rev-parse --show-toplevel'])[0]
+
+
+def requires_integration_env():
+    value = os.environ.get('INTEGRATION_TEST')
+    return pytest.mark.skipif(
+        value is None,
+        reason=f"Skipped because INTEGRATION_TEST=1 is not set"
+    )
 
 
 TIMEOUT = 60  # 15
@@ -89,22 +96,28 @@ class EchoServer:
             ECHO_SERVER_HOST, ECHO_SERVER_PORT, title, body)
 
 
-class BtCommandWrapper:
-    @staticmethod
-    def list():
-        return run('bt list')
+class Brotab:
+    def __init__(self, target_hosts: str):
+        """
+        target_hosts: e.g. 'localhost:4625,localhost:4626'
+        """
+        self.targets = target_hosts
+        self.options = '--target %s' % self.targets if self.targets else ''
 
-    @staticmethod
-    def tabs():
-        return parse_tab_lines(BtCommandWrapper.list())
+    def list(self):
+        return run(f'bt {self.options} list')
 
-    @staticmethod
-    def open(window_id, url):
-        return run('echo "%s" | bt open %s' % (url, window_id))
+    def tabs(self):
+        return parse_tab_lines(self.list())
 
-    @staticmethod
-    def active():
-        return run('bt active')
+    def open(self, window_id, url):
+        return run(f'echo "{url}" | bt {self.options} open {window_id}')
+
+    def active(self):
+        return run(f'bt {self.options} active')
+
+    def windows(self):
+        return run(f'bt {self.options} windows')
 
 
 class Browser:
@@ -131,48 +144,29 @@ class Browser:
         return self._browser.pid
 
 
-# class Firefox(Browser):
-#     #CMD = 'xvfb-run web-ext run --verbose --no-input --no-reload -p /dev/shm/firefox'
-#     CMD = 'web-ext run --verbose --no-reload -p /dev/shm/firefox'
-#     CWD = '/brotab/brotab/extension/firefox'
-#     PROFILE = 'firefox'
-#
-#
-# class Chromium(Browser):
-#     #CMD = ('xvfb-run chromium-browser --no-sandbox '
-#     CMD = ('chromium-browser --no-sandbox '
-#            '--no-first-run --disable-gpu '
-#            # '--enabled-logging=stderr '
-#            '--enabled-logging --v=1 '
-#            '--user-data-dir=/dev/shm/chromium '
-#            '--load-extension=/brotab/brotab/extension/chrome_tests ')
-#     #    '--user-data-dir=/dev/shm/chromium')
-#     CWD = '/brotab/brotab/extension/chrome'
-#     PROFILE = 'chromium'
-
-
 class Container:
     NAME = 'chrome/chromium'
 
     def __init__(self):
         root = git_root()
-        port = get_available_tcp_port()
+        self.guest_port = 4625
+        self.host_port = get_available_tcp_port()
         display = os.environ.get('DISPLAY', ':0')
         args = ['docker', 'run', '-v',
                 f'"{root}:/brotab"',
-                '-p', '19222:9222',
-                '-p', f'{port}:4625',
+                # '-p', '19222:9222',
+                '-p', f'{self.host_port}:{self.guest_port}',
                 '--detach --rm --cpuset-cpus 0',
                 '--memory 512mb -v /tmp/.X11-unix:/tmp/.X11-unix',
                 f'-e DISPLAY=unix{display}',
                 '-v /dev/shm:/dev/shm',
                 'brotab-integration']
         cmd = ' '.join(args)
-        self._container_id = run(cmd)[0]
-        api_must_ready(port, self.NAME, 'a', client_timeout=3.0, startup_timeout=10.0)
+        self.container_id = run(cmd)[0]
+        api_must_ready(self.host_port, self.NAME, 'a', client_timeout=3.0, startup_timeout=10.0)
 
     def stop(self):
-        run(f'docker kill {self._container_id}')
+        run(f'docker kill {self.container_id}')
 
     def __enter__(self):
         return self
@@ -180,11 +174,48 @@ class Container:
     def __exit__(self, type_, value, tb):
         self.stop()
 
+    @property
+    def guest_addr(self):
+        return f'localhost:{self.guest_port}'
 
+    @property
+    def host_addr(self):
+        return f'localhost:{self.host_port}'
+
+    def echo_url(self, title=None, body=None):
+        url = f'http://{self.guest_addr}/echo?'
+        url += 'title=' + title if title else ''
+        url += '&body=' + body if body else ''
+        return url
+
+
+def targets(containers: [Container]) -> str:
+    return ','.join([c.host_addr for c in containers])
+
+
+@requires_integration_env()
 class TestIntegration(TestCase):
-    def test_init(self):
+    def test_open_single(self):
         with Container() as c:
-            sleep(10)
+            bt = Brotab(targets([c]))
+            tabs = bt.list()
+            assert 'tab1' not in ''.join(tabs)
+            tab_ids = bt.open('a.1', c.echo_url('tab1'))
+            assert len(tab_ids) == 1
+
+            tabs = bt.list()
+            assert 'tab1' in ''.join(tabs)
+            assert tab_ids[0] in ''.join(tabs)
+
+    def test_active_tabs(self):
+        with Container() as c:
+            bt = Brotab(targets([c]))
+            bt.open('a.1', c.echo_url('tab1'))
+            bt.open('a.1', c.echo_url('tab2'))
+            bt.open('a.1', c.echo_url('tab3'))
+            assert len(bt.tabs()) == 4
+            active_id = bt.active()[0].split('\t')[0]
+            assert active_id == bt.tabs()[-1].id
 
 
 @pytest.mark.skip
@@ -203,27 +234,24 @@ class TestChromium(TestCase):
         print('CHROME', self._browser)
         print('BLOCK DONE')
 
-    # def test_smoke(self):
-    #     print('>>>>>>>>> SMOKE')
-
     def test_open_single(self):
         print('SINGLE START')
 
-        tabs = BtCommandWrapper.list()
+        tabs = Brotab.list()
         assert 'tab1' not in ''.join(tabs)
-        BtCommandWrapper.open('a.1', EchoServer.url('tab1'))
+        Brotab.open('a.1', EchoServer.url('tab1'))
 
-        tabs = BtCommandWrapper.list()
+        tabs = Brotab.list()
         assert 'tab1' in ''.join(tabs)
 
         print('SINGLE END')
 
     def test_active_tabs(self):
-        BtCommandWrapper.open('a.1', EchoServer.url('tab1'))
-        BtCommandWrapper.open('a.2', EchoServer.url('tab2'))
-        BtCommandWrapper.open('a.3', EchoServer.url('tab3'))
-        assert len(BtCommandWrapper.tabs()) == 4
-        assert BtCommandWrapper.active()[0] == BtCommandWrapper.tabs()[-1].id
+        Brotab.open('a.1', EchoServer.url('tab1'))
+        Brotab.open('a.2', EchoServer.url('tab2'))
+        Brotab.open('a.3', EchoServer.url('tab3'))
+        assert len(Brotab.tabs()) == 4
+        assert Brotab.active()[0] == Brotab.tabs()[-1].id
 
 
 if __name__ == '__main__':

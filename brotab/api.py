@@ -225,10 +225,11 @@ class SingleMediatorAPI(object):
         data = '\n'.join(urls)
         logger.info('SingleMediatorAPI: open_urls: %s', urls)
         files = {'urls': data}
-        self._post('/open_urls'
-                   if window_id is None
-                   else ('/open_urls/%s' % window_id),
-                   files)
+        ids = self._post('/open_urls'
+                         if window_id is None
+                         else ('/open_urls/%s' % window_id),
+                         files)
+        return self.prefix_tabs(ids.splitlines())
 
     def get_words(self, tab_ids, match_regex, join_with):
         words = set()
@@ -391,7 +392,7 @@ class MultipleMediatorsAPI(object):
             'There should be at least one client connected: %s' % self._apis
         # client = self._apis[0]
         client = self._get_api_by_prefix(prefix)
-        client.open_urls(urls, window_id)
+        return client.open_urls(urls, window_id)
 
     def get_words(self, tab_ids, match_regex, join_with):
         words = set()

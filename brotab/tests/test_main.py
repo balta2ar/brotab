@@ -381,3 +381,22 @@ class TestIndex(WithMediator):
             sqlite_filename, 'tabs', 'a.1.1\ttitle\turl\tbody')
         assert_file_absent(sqlite_filename)
         assert_file_absent(tsv_filename)
+
+
+class TestOpen(WithMediator):
+    def test_three_urls_ok(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.1', '1.2', '1.3'],
+        ])
+
+        urls = ['url1', 'url2', 'url3']
+        output = []
+        with patch('brotab.main.stdout_buffer_write', output.append):
+            with patch('brotab.main.read_stdin_lines', return_value=urls):
+                self._run_commands(['open', 'a.1'])
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'open_urls', 'urls': ['url1', 'url2', 'url3'], 'window_id': 1},
+        ]
+        assert output == [b'a.1.1\na.1.2\na.1.3\n']

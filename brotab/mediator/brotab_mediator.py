@@ -38,7 +38,7 @@ from brotab.mediator.transport import default_transport
 #       make sure this threaded reader and server reader are mutually exclusive.
 # TODO: all commands should be synchronous and should only terminate after
 #       the action has been actually executed in the browser.
-# TODO: open new tab/url should return the tab id.
+# TODO: logs from main and mediator should go into different files
 
 
 def monkeypatch_socket_bind_allow_port_reuse():

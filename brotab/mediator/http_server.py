@@ -111,7 +111,9 @@ class MediatorHttpServer:
             return 'ERROR: Please provide urls file in the request'
         urls = urls.stream.read().decode('utf8').splitlines()
         mediator_logger.info('Open urls (window_id = %s): %s', window_id, urls)
-        return self.remote_api.open_urls(urls, window_id)
+        result = self.remote_api.open_urls(urls, window_id)
+        mediator_logger.info('Open urls result: %s', str(result))
+        return '\n'.join(result)
 
     def close_tabs(self, tab_ids):
         return self.remote_api.close_tabs(tab_ids)
