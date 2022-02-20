@@ -16,8 +16,10 @@ Xvfb :99 -ac -screen 0 $XVFB_WHD -nolisten tcp &
 xvfb=$!
 
 export DISPLAY=:99
+export DBUS_SESSION_BUS_ADDRESS=/dev/null
 
-chromium-browser --no-sandbox $@ &
+#chromium-browser --no-sandbox $@ &
+chromium-browser $@ &
 chromium=$!
 
 wait $chromium

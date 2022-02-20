@@ -1,6 +1,9 @@
 import re
-
-from base64 import urlsafe_b64decode, urlsafe_b64encode
+import shutil
+from base64 import urlsafe_b64decode
+from base64 import urlsafe_b64encode
+from os.path import expanduser
+from os.path import expandvars
 from os.path import getsize
 
 
@@ -22,3 +25,12 @@ def get_file_size(path):
         return getsize(path)
     except FileNotFoundError:
         return None
+
+
+def which(program):
+    paths = [None, '/usr/local/bin', '/usr/bin', '/bin', '~/bin', '~/.local/bin']
+    for path in paths:
+        path = expanduser(expandvars(path)) if path else None
+        path = shutil.which(program, path=path)
+        if path:
+            return path

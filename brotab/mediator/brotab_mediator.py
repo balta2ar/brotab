@@ -33,11 +33,12 @@ from brotab.mediator.transport import default_transport
 #    - /get_active_tabs_text
 #
 # TODO: fix bug when the number of tabs > 1100
-# TODO: read stdin continuously in a separate thraed,
+# TODO: read stdin continuously in a separate thread,
 #       detect if it's closed, shutdown the server, and exit.
 #       make sure this threaded reader and server reader are mutually exclusive.
 # TODO: all commands should be synchronous and should only terminate after
 #       the action has been actually executed in the browser.
+# TODO: open new tab/url should return the tab id.
 
 
 def monkeypatch_socket_bind_allow_port_reuse():

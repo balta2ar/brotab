@@ -83,6 +83,7 @@ from brotab.search.index import index
 from brotab.search.query import query
 from brotab.utils import get_file_size
 from brotab.utils import split_tab_ids
+from brotab.utils import which
 
 
 def parse_target_hosts(target_hosts: str) -> Tuple[List[str], List[int]]:
@@ -317,7 +318,7 @@ def show_clients(args):
 
 def install_mediator(args):
     brotab_logger.info('Installing mediators')
-    bt_mediator_path = shutil.which('bt_mediator')
+    bt_mediator_path = which('bt_mediator')
     if is_windows():
         bt_mediator_path = make_windows_path_double_sep(bt_mediator_path)
 
