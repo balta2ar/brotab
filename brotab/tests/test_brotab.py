@@ -13,11 +13,6 @@ from brotab.tab import parse_tab_lines
 #         self.assertEqual([1, 3, 5, 6, 7], result)
 
 
-def slurp_lines(filename):
-    with open(filename) as file_:
-        return [line.strip() for line in file_.readlines()]
-
-
 class TestReconstruct(TestCase):
     def test_move_one_from_start_to_end(self):
         before = parse_tab_lines([

@@ -26,6 +26,11 @@ def slurp(filename):
         return file_.read()
 
 
+def slurp_lines(filename):
+    with open(filename) as file_:
+        return [line.strip() for line in file_.readlines()]
+
+
 def spit(filename, contents):
     with open(filename, 'w', encoding='utf-8') as file_:
         file_.write(contents)
