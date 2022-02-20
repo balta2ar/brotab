@@ -5,7 +5,7 @@ from multiprocessing import Process
 from threading import Thread
 from typing import Callable
 
-from psutil import pid_exists
+# from psutil import pid_exists
 
 from brotab.mediator.log import disable_logging
 from brotab.mediator.log import mediator_logger
@@ -38,17 +38,17 @@ class Runner:
         thread.start()
         return thread
 
-    def parent_watcher(self, running: Callable, interval: float):
-        self._watcher(running, os.getppid(), interval=interval)
-
-    def _watcher(self, running: Callable, parent_pid: int, interval: float) -> None:
-        mediator_logger.info('Watching parent process parent=%s current pid=%s',
-                             parent_pid, os.getpid())
-        while True:
-            time.sleep(interval)
-            if not running():  # someone shutdown mediator, let's bail
-                break
-            if not pid_exists(parent_pid):
-                mediator_logger.info('Parent process died pid=%s, shutting down mediator', parent_pid)
-                self.shutdown(join=False)
-                break
+    # def parent_watcher(self, running: Callable, interval: float):
+    #     self._watcher(running, os.getppid(), interval=interval)
+    #
+    # def _watcher(self, running: Callable, parent_pid: int, interval: float) -> None:
+    #     mediator_logger.info('Watching parent process parent=%s current pid=%s',
+    #                          parent_pid, os.getpid())
+    #     while True:
+    #         time.sleep(interval)
+    #         if not running():  # someone shutdown mediator, let's bail
+    #             break
+    #         if not pid_exists(parent_pid):
+    #             mediator_logger.info('Parent process died pid=%s, shutting down mediator', parent_pid)
+    #             self.shutdown(join=False)
+    #             break
