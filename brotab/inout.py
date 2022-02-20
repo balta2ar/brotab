@@ -1,18 +1,19 @@
 import io
 import mimetypes
 import os
-import select
 import socket
 import sys
 import tempfile
 import uuid
-from select import select
 from subprocess import CalledProcessError
 from subprocess import check_call
 from tempfile import NamedTemporaryFile
 from typing import BinaryIO
 from typing import Iterable
 from typing import Union
+
+import select
+from select import select
 
 from brotab.platform import get_editor
 
@@ -209,3 +210,42 @@ class TimeoutIO(io.BytesIO):
 
     def close(self) -> None:
         self._close()
+
+
+# http://code.activestate.com/recipes/576655-wait-for-network-service-to-appear/
+def wait_net_service(server, port, timeout=None):
+    """ Wait for network service to appear
+        @param timeout: in seconds, if None or 0 wait forever
+        @return: True of False, if timeout is None may return only True or
+                 throw unhandled network exception
+    """
+    s = socket.socket()
+    if timeout:
+        from time import time as now
+        # time module is needed to calc timeout shared between two exceptions
+        end = now() + timeout
+
+    while True:
+        try:
+            if timeout:
+                next_timeout = end - now()
+                if next_timeout < 0:
+                    raise TimeoutError('Timed out: %s' % timeout)
+                else:
+                    s.settimeout(next_timeout)
+
+            s.connect((server, port))
+
+        except socket.timeout as err:
+            # this exception occurs only if timeout is set
+            if timeout:
+                raise TimeoutError('Timed out: %s' % timeout)
+
+        except socket.error as err:
+            # catch timeout exception from underlying network library
+            # this one is different from socket.timeout
+            if type(err.args) != tuple:  # or err[0] != errno.ETIMEDOUT:
+                raise
+        else:
+            s.close()
+            return

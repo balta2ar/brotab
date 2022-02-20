@@ -1,23 +1,33 @@
 import os
 import signal
 import threading
-from subprocess import check_output, Popen
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
+from subprocess import Popen
+from subprocess import check_output
+from time import sleep
 from unittest import TestCase
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
+
 import pytest
 
-
-from brotab.tests.utils import wait_net_service
+from brotab.api import api_must_ready
+from brotab.inout import get_available_tcp_port
+from brotab.inout import wait_net_service
 from brotab.mediator.const import DEFAULT_MIN_HTTP_PORT
 from brotab.tab import parse_tab_lines
 
 
-def run(cmd):
-    return check_output(cmd, shell=True).decode('utf-8').strip().splitlines()
+def run(args):
+    return check_output(args, shell=True).decode('utf-8').strip().splitlines()
 
 
-TIMEOUT = 60 # 15
+def git_root():
+    return run(['git rev-parse --show-toplevel'])[0]
+
+
+TIMEOUT = 60  # 15
 ECHO_SERVER_PORT = 8087
 
 
@@ -57,6 +67,7 @@ class EchoServer:
     This EchoServer is used to customize page title and content using URL
     parameters.
     """
+
     def __init__(self):
         self._thread = None
         self._server = None
@@ -120,24 +131,60 @@ class Browser:
         return self._browser.pid
 
 
-class Firefox(Browser):
-    #CMD = 'xvfb-run web-ext run --verbose --no-input --no-reload -p /dev/shm/firefox'
-    CMD = 'web-ext run --verbose --no-reload -p /dev/shm/firefox'
-    CWD = '/brotab/brotab/extension/firefox'
-    PROFILE = 'firefox'
+# class Firefox(Browser):
+#     #CMD = 'xvfb-run web-ext run --verbose --no-input --no-reload -p /dev/shm/firefox'
+#     CMD = 'web-ext run --verbose --no-reload -p /dev/shm/firefox'
+#     CWD = '/brotab/brotab/extension/firefox'
+#     PROFILE = 'firefox'
+#
+#
+# class Chromium(Browser):
+#     #CMD = ('xvfb-run chromium-browser --no-sandbox '
+#     CMD = ('chromium-browser --no-sandbox '
+#            '--no-first-run --disable-gpu '
+#            # '--enabled-logging=stderr '
+#            '--enabled-logging --v=1 '
+#            '--user-data-dir=/dev/shm/chromium '
+#            '--load-extension=/brotab/brotab/extension/chrome_tests ')
+#     #    '--user-data-dir=/dev/shm/chromium')
+#     CWD = '/brotab/brotab/extension/chrome'
+#     PROFILE = 'chromium'
 
 
-class Chromium(Browser):
-    #CMD = ('xvfb-run chromium-browser --no-sandbox '
-    CMD = ('chromium-browser --no-sandbox '
-           '--no-first-run --disable-gpu '
-           # '--enabled-logging=stderr '
-           '--enabled-logging --v=1 '
-           '--user-data-dir=/dev/shm/chromium '
-           '--load-extension=/brotab/brotab/extension/chrome_tests ')
-    #    '--user-data-dir=/dev/shm/chromium')
-    CWD = '/brotab/brotab/extension/chrome'
-    PROFILE = 'chromium'
+class Container:
+    NAME = 'chrome/chromium'
+
+    def __init__(self):
+        root = git_root()
+        port = get_available_tcp_port()
+        display = os.environ.get('DISPLAY', ':0')
+        args = ['docker', 'run', '-v',
+                f'"{root}:/brotab"',
+                '-p', '19222:9222',
+                '-p', f'{port}:4625',
+                '--detach --rm --cpuset-cpus 0',
+                '--memory 512mb -v /tmp/.X11-unix:/tmp/.X11-unix',
+                f'-e DISPLAY=unix{display}',
+                '-v /dev/shm:/dev/shm',
+                'brotab-integration']
+        cmd = ' '.join(args)
+        self._container_id = run(cmd)[0]
+        api_must_ready(port, self.NAME, 'a', client_timeout=3.0, startup_timeout=10.0)
+
+    def stop(self):
+        run(f'docker kill {self._container_id}')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type_, value, tb):
+        self.stop()
+
+
+class TestIntegration(TestCase):
+    def test_init(self):
+        with Container() as c:
+            sleep(10)
 
 
 @pytest.mark.skip

@@ -1,12 +1,10 @@
 import os
-from functools import partial
 from threading import Thread
 from urllib.parse import unquote_plus
 from wsgiref.simple_server import make_server
 
 from flask import Flask
 from flask import request
-from flask import url_for
 
 from brotab.mediator.const import DEFAULT_GET_HTML_DELIMITER_REGEX
 from brotab.mediator.const import DEFAULT_GET_HTML_REPLACE_WITH
@@ -73,6 +71,7 @@ class MediatorHttpServer:
         self.app.route('/get_html', methods=['GET'])(self.get_html)
         self.app.route('/get_pid', methods=['GET'])(self.get_pid)
         self.app.route('/get_browser', methods=['GET'])(self.get_browser)
+        self.app.route('/echo', methods=['GET'])(self.echo)
 
     def error_handler(self, e: Exception):
         mediator_logger.exception('Shutting down mediator http server due to exception: %s', e)
@@ -160,3 +159,11 @@ class MediatorHttpServer:
     def get_browser(self):
         mediator_logger.info('getting browser name')
         return self.remote_api.get_browser()
+
+    def echo(self):
+        title = request.args.get('title', 'title')
+        body = request.args.get('body', 'body')
+        reply = ('<html><head><title>%s</title></head>'
+                 '<body>%s</body></html>'
+                 % (title, body))
+        return reply
