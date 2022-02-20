@@ -566,7 +566,7 @@ port.onDisconnect.addListener(function() {
   } else {
     console.warn("lastError is undefined");
   }
-  sleep(5000);
+  //sleep(5000);
   console.log("Trying to reconnect");
   reconnect();
 });
