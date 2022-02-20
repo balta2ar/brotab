@@ -1,3 +1,8 @@
+1.3.1 ???
+
+* Fix "bt open" and "bt new": now they print tab IDs of the created tabs, one
+  per line
+
 1.3.0 (2020-06-02)
 
 * Added "bt html" command #31, #34
