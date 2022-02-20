@@ -1,2 +1,3 @@
 Flask==2.0.2
 requests==2.24.0
+psutil==5.8.0
