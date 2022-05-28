@@ -17,7 +17,7 @@ from urllib.request import urlopen
 from brotab.inout import MultiPartForm
 from brotab.inout import edit_tabs_in_editor
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
-from brotab.operations import infer_delete_and_move_commands
+from brotab.operations import infer_all_commands
 from brotab.parallel import call_parallel
 from brotab.tab import parse_tab_lines
 from brotab.utils import encode_query
@@ -342,7 +342,7 @@ class MultipleMediatorsAPI(object):
         return tabs
 
     def _move_tabs_if_changed(self, api, tabs_before, tabs_after):
-        delete_commands, move_commands = infer_delete_and_move_commands(
+        delete_commands, move_commands = infer_all_commands(
             parse_tab_lines(tabs_before),
             parse_tab_lines(tabs_after))
 

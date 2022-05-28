@@ -1,7 +1,8 @@
 from unittest import TestCase
 
 from brotab.operations import apply_move_commands
-from brotab.operations import infer_delete_and_move_commands
+from brotab.operations import apply_update_commands
+from brotab.operations import infer_all_commands
 from brotab.operations import infer_move_commands
 from brotab.tab import parse_tab_lines
 
@@ -224,7 +225,7 @@ class TestReconstruct(TestCase):
             'f.1.0\ta\turl',
             'f.1.1\ta\turl',
         ])
-        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        delete_commands, move_commands, update_commands = infer_all_commands(before, after)
         self.assertGreater(len(move_commands), 0)
         actual_after = apply_move_commands(before, move_commands)
         self.assertEqual(actual_after, after)
@@ -240,7 +241,7 @@ class TestReconstruct(TestCase):
             'f.1.2\ta3\turl3',
             'f.1.0\ta1\turl1',
         ])
-        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        delete_commands, move_commands, update_commands = infer_all_commands(before, after)
         self.assertGreater(len(move_commands), 0)
         actual_after = apply_move_commands(before, move_commands)
         self.assertEqual(actual_after, after)
@@ -256,7 +257,7 @@ class TestReconstruct(TestCase):
             'f.0.0\ta1\turl1',
             'f.1.1\ta2\turl2',
         ])
-        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        delete_commands, move_commands, update_commands = infer_all_commands(before, after)
         self.assertGreater(len(move_commands), 0)
         actual_after = apply_move_commands(before, move_commands)
         self.assertEqual(actual_after, after)
@@ -274,7 +275,7 @@ class TestReconstruct(TestCase):
             'f.0.3\ta4\turl4',
             'f.1.2\ta3\turl3',
         ])
-        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        delete_commands, move_commands, update_commands = infer_all_commands(before, after)
         self.assertGreater(len(move_commands), 0)
         actual_after = apply_move_commands(before, move_commands)
         self.assertEqual(actual_after, after)
@@ -296,7 +297,7 @@ class TestReconstruct(TestCase):
             'f.1.0\ta1\turl1',
             'f.1.1\ta2\turl2',
         ])
-        delete_commands, move_commands = infer_delete_and_move_commands(before, after)
+        delete_commands, move_commands, update_commands = infer_all_commands(before, after)
         self.assertGreater(len(move_commands), 0)
         actual_after = apply_move_commands(before, move_commands)
         self.assertEqual(actual_after, after)
@@ -361,13 +362,14 @@ class TestReconstruct(TestCase):
 #         self.assertEqual(result, (1, 4))
 
 
-class TestInferDeleteMoveCommands(TestCase):
-    def _eq(self, tabs_before, tabs_after, expected_deletes, expected_moves):
-        deletes, moves = infer_delete_and_move_commands(
+class TestInferDeleteMoveUpdateCommands(TestCase):
+    def _eq(self, tabs_before, tabs_after, expected_deletes, expected_moves, expected_updates):
+        deletes, moves, updates = infer_all_commands(
             parse_tab_lines(tabs_before),
             parse_tab_lines(tabs_after))
         self.assertEqual(expected_deletes, deletes)
         self.assertEqual(expected_moves, moves)
+        self.assertEqual(expected_updates, updates)
 
     def test_only_deletes(self):
         self._eq(
@@ -376,6 +378,7 @@ class TestInferDeleteMoveCommands(TestCase):
              'f.0.2\ttitle\turl'],
             ['f.0.2\ttitle\turl'],
             ['f.0.1', 'f.0.0'],
+            [],
             []
         )
 
@@ -387,6 +390,7 @@ class TestInferDeleteMoveCommands(TestCase):
             ['f.0.0\ttitle\turl',
              'f.0.2\ttitle\turl'],
             ['f.0.3', 'f.0.1'],
+            [],
             []
         )
 
@@ -403,7 +407,8 @@ class TestInferDeleteMoveCommands(TestCase):
                 'f.0.1\ttitle\turl',
             ],
             [],
-            [(2, 0, 0)]
+            [(2, 0, 0)],
+            []
         )
 
         self._eq(
@@ -418,5 +423,22 @@ class TestInferDeleteMoveCommands(TestCase):
                 'f.0.0\ttitle\turl',
             ],
             [],
-            [(2, 0, 0), (1, 0, 1)]
+            [(2, 0, 0), (1, 0, 1)],
+            []
         )
+
+
+class TestUpdate(TestCase):
+    def test_update_only_url(self):
+        before = parse_tab_lines([
+            'f.0.0\ta\turl',
+        ])
+        after = parse_tab_lines([
+            'f.0.0\ta\turl_changed',
+        ])
+        deletes, moves, updates = infer_all_commands(before, after)
+        self.assertEqual([], deletes)
+        self.assertEqual([], moves)
+
+        actual_after = apply_update_commands(before, updates)
+        self.assertEqual(actual_after, after)

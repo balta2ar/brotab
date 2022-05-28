@@ -211,11 +211,10 @@ def new_tab(args):
     prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
     search_query = ' '.join(args.query)
     brotab_logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
-                       search_query, prefix, window_id)
+                search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    ids = api.open_urls([url], prefix, window_id)
-    stdout_buffer_write(marshal(ids))
+    api.open_urls([url], prefix, window_id)
 
 
 def open_urls(args):
@@ -340,8 +339,10 @@ def install_mediator(args):
     if args.tests:
         native_app_manifests.append(
             ('mediator/chromium_mediator_tests.json',
-             '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
-        )
+             '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'))
+        native_app_manifests.append(
+            ('mediator/chromium_mediator_tests.json',
+             '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'))
 
     from pkg_resources import resource_string
     for filename, destination in native_app_manifests:

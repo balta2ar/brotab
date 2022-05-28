@@ -53,9 +53,14 @@ class LineToIndexMapper(KeyToIndexMapper):
         super().__init__(lambda tab: tab.line, tabs)
 
 
-class TabIdIndexUrlToIndexMapper(KeyToIndexMapper):
+class TabIdTitleToIndexMapper(KeyToIndexMapper):
     def __init__(self, tabs: [Tab]):
-        super().__init__(lambda tab: (tab.tab_id, tab.title, tab.url), tabs)
+        super().__init__(lambda tab: (tab.tab_id, tab.title), tabs)
+
+
+# class TabIdIndexUrlToIndexMapper(KeyToIndexMapper):
+#     def __init__(self, tabs: [Tab]):
+#         super().__init__(lambda tab: (tab.tab_id, tab.title, tab.url), tabs)
 
 
 def get_longest_increasing_subsequence(X):
@@ -90,7 +95,7 @@ def get_longest_increasing_subsequence(X):
 
 
 def infer_delete_commands(tabs_before: [Tab], tabs_after: [Tab]):
-    tab_id_title_url_to_index = TabIdIndexUrlToIndexMapper(tabs_after)
+    tab_id_title_to_index = TabIdTitleToIndexMapper(tabs_after)
 
     commands = []
     after = set(tabs_after)
@@ -99,7 +104,7 @@ def infer_delete_commands(tabs_before: [Tab], tabs_after: [Tab]):
         tab_before = tabs_before[index]
 
         # if tab_before not in after:
-        if tab_before not in tab_id_title_url_to_index:
+        if tab_before not in tab_id_title_to_index:
             # commands.append(_get_tab_id(tab_before))
             # commands.append(tab_before.tab_id)
             commands.append('%s.%s.%s' % (tab_before.prefix,
@@ -110,7 +115,7 @@ def infer_delete_commands(tabs_before: [Tab], tabs_after: [Tab]):
 
 def _get_old_index(tab_after: Tab,
                    line_to_index: LineToIndexMapper,
-                   tab_id_title_url_to_index: TabIdIndexUrlToIndexMapper,
+                   tab_id_title_to_index: TabIdTitleToIndexMapper,
                    tabs_before: [Tab]):
     """
     Try to find out the index of the tab before the move.
@@ -120,8 +125,8 @@ def _get_old_index(tab_after: Tab,
         return line_to_index[tab_after]
 
     # The tab might have window ID changed. Try to look for the title only.
-    if tab_after in tab_id_title_url_to_index:
-        return tab_id_title_url_to_index[tab_after]
+    if tab_after in tab_id_title_to_index:
+        return tab_id_title_to_index[tab_after]
 
     # print('TAB AFTER', tab_after)
     # print('TAB AFTER LINE', tab_after.line)
@@ -164,14 +169,14 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     """
     # Remember which tab corresponds to which index in the old list
     line_to_index = LineToIndexMapper(tabs_before)
-    # XXX: use tab ID + title + URL as the key
-    tab_id_title_url_to_index = TabIdIndexUrlToIndexMapper(tabs_before)
+    # XXX: use tab ID + title as the key
+    tab_id_title_to_index = TabIdTitleToIndexMapper(tabs_before)
 
     # Now see how indices have been reordered by user
     # reordered_indices = [line_to_index[tab.line] for tab in tabs_after]
     reordered_indices = [_get_old_index(tab_after,
                                         line_to_index,
-                                        tab_id_title_url_to_index,
+                                        tab_id_title_to_index,
                                         tabs_before)
                          for tab_after in tabs_after]
     # These indices are in correct order, we should not touch them
@@ -181,7 +186,7 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     upward, downward = [], []
 
     # print('reordered_indices', reordered_indices)
-    # print('tab_id_title_url_to_index', tab_id_title_url_to_old_index)
+    # print('tab_id_title_to_index', tab_id_title_url_to_old_index)
 
     for new_index, old_index in enumerate(reordered_indices):
         tab_before = tabs_before[old_index]
@@ -195,6 +200,19 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
             upward.append(triplet) if new_index > old_index else downward.append(triplet)
     commands = downward + list(reversed(upward))
     return commands
+
+
+def infer_update_commands(tabs_before: [Tab], tabs_after: [Tab]):
+    updates = []
+    for tab_before, tab_after in zip(tabs_before, tabs_after):
+        if tab_before.url != tab_after.url:
+            updates.append({
+                'tab_id': tab_after.tab_id,
+                'properties': {
+                    'url': tab_after.url,
+                },
+            })
+    return updates
 
 
 def apply_delete_commands(tabs_before: [Tab], delete_commands):
@@ -219,7 +237,16 @@ def apply_move_commands(tabs_before: [Tab], move_commands):
     return tabs
 
 
-def infer_delete_and_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
+def apply_update_commands(tabs_before: [Tab], update_commands):
+    tabs = tabs_before[:]
+    for command in update_commands:
+        tab_id = command['tab_id']
+        index = _get_index_by_tab_id(tab_id, tabs)
+        tabs[index].url = command['properties']['url']
+    return tabs
+
+
+def infer_all_commands(tabs_before: [Tab], tabs_after: [Tab]):
     """
     This command takes browser tabs before the edit and after the edit and
     infers a sequence of commands that need to be executed in a browser
@@ -244,7 +271,7 @@ def infer_delete_and_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     # For now, let's work only within chunks of tabs grouped by
     # the windowId, i.e. moves between windows of the same browser are not
     # supported yet.
-    delete_commands, move_commands = [], []
+    delete_commands, move_commands, update_commands = [], [], []
     # for _window_id, chunk_before, chunk_after in iter_window_tabs(tabs_before, tabs_after):
     #     delete_commands.extend(infer_delete_commands(chunk_before, chunk_after))
     #     chunk_before = apply_delete_commands(chunk_before, delete_commands)
@@ -256,8 +283,9 @@ def infer_delete_and_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     # [_] detect a move to a new nonexistent window
 
     delete_commands.extend(infer_delete_commands(tabs_before, tabs_after))
-    # print('DELETE', delete_commands)
     tabs_before = apply_delete_commands(tabs_before, delete_commands)
     move_commands.extend(infer_move_commands(tabs_before, tabs_after))
+    tabs_before = apply_move_commands(tabs_before, move_commands)
+    update_commands.extend(infer_update_commands(tabs_before, tabs_after))
 
-    return delete_commands, move_commands
+    return delete_commands, move_commands, update_commands
