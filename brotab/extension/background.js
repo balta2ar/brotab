@@ -14,6 +14,10 @@ class BrowserTabs {
     this._browser = browser;
   }
 
+  runtime() {
+    return this._browser.runtime;
+  }
+
   list(queryInfo, onSuccess) {
     throw new Error('list is not implemented');
   }
@@ -28,6 +32,10 @@ class BrowserTabs {
 
   move(tabId, moveOptions, onSuccess) {
     throw new Error('move is not implemented');
+  }
+
+  update(tabId, options, onSuccess, onError) {
+    throw new Error('update is not implemented');
   }
 
   create(createOptions, onSuccess) {
@@ -78,6 +86,16 @@ class FirefoxTabs extends BrowserTabs {
       onSuccess,
       // (tab) => console.log(`Moved: ${tab}`),
       (error) => console.log(`Error moving tab: ${error}`)
+    );
+  }
+
+  update(tabId, options, onSuccess, onError) {
+    this._browser.tabs.update(tabId, options).then(
+      onSuccess,
+      (error) => {
+        console.log(`Error updating tab ${tabId}: ${error}`)
+        onError(error)
+      }
     );
   }
 
@@ -136,6 +154,18 @@ class ChromeTabs extends BrowserTabs {
 
   move(tabId, moveOptions, onSuccess) {
     this._browser.tabs.move(tabId, moveOptions, onSuccess);
+  }
+
+  update(tabId, options, onSuccess, onError) {
+    this._browser.tabs.update(tabId, options, tab => {
+      if (this._browser.runtime.lastError) {
+        let error = this._browser.runtime.lastError.message;
+        console.error(`Could not update tab: ${error}, tabId=${tabId}, options=${JSON.stringify(options)}`)
+        onError(error)
+      } else {
+        onSuccess(tab)
+      }
+    });
   }
 
   create(createOptions, onSuccess) {
@@ -333,6 +363,33 @@ function createTab(url) {
     (tab) => {
       console.log(`Created new tab: ${tab.id}`);
       port.postMessage([`${tab.windowId}.${tab.id}`]);
+  });
+}
+
+function updateTabs(updates) {
+  if (updates.length == 0) {
+    console.log('Updating tabs done');
+    port.postMessage([]);
+    return;
+  }
+
+  var promises = [];
+  for (let update of updates) {
+    console.log(`Updating tab ${JSON.stringify(update)}`);
+    promises.push(new Promise((resolve, reject) => {
+      browserTabs.update(update.tab_id, update.properties,
+        (tab) => { resolve(`${tab.windowId}.${tab.id}`) },
+        (error) => {
+          console.error(`Could not update tab: ${error}, update=${JSON.stringify(update)}`)
+          resolve()
+        }
+      );
+    }))
+  };
+  Promise.all(promises).then(result => {
+    const data = Array.prototype.concat(...result).filter(x => !!x)
+    console.log(`Sending ids back after update: ${JSON.stringify(data)}`);
+    port.postMessage(data)
   });
 }
 
@@ -535,6 +592,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'new_tab') {
     console.log('Creating tab:', command['url']);
     createTab(command['url']);
+  }
+
+  else if (command['name'] == 'update_tabs') {
+    console.log('Updating tabs:', command['updates']);
+    updateTabs(command['updates']);
   }
 
   else if (command['name'] == 'activate_tab') {

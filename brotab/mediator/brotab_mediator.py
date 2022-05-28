@@ -5,19 +5,16 @@ import logging.handlers
 import os
 import re
 import socket
-import sys
 
 from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
 from brotab.mediator import sig
-from brotab.mediator.const import DEFAULT_TRANSPORT_TIMEOUT
 from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.const import DEFAULT_SHUTDOWN_POLL_INTERVAL
 from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.log import disable_click_echo
 from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
-# from brotab.mediator.transport import transport_with_timeout
 from brotab.mediator.transport import default_transport
 
 
@@ -72,7 +69,7 @@ def mediator_main():
     port_range = list(get_mediator_ports())
     transport = default_transport()
     # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
-    #transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
+    # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
     remote_api = default_remote_api(transport)
     host = DEFAULT_HTTP_IFACE
     poll_interval = DEFAULT_SHUTDOWN_POLL_INTERVAL

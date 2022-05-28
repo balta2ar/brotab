@@ -1,4 +1,6 @@
-1.3.1 ???
+1.4.0 ???
+
+* Added "bt navigate" and "bt update" commands
 
 * Fix "bt open" and "bt new": now they print tab IDs of the created tabs, one
   per line

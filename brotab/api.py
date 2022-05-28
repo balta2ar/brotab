@@ -6,6 +6,7 @@ import sys
 from collections.abc import Mapping
 from functools import partial
 from http.client import RemoteDisconnected
+from json import dumps
 from traceback import print_exc
 from typing import List
 from urllib.error import HTTPError
@@ -117,11 +118,13 @@ class SingleMediatorAPI(object):
                 if tab.startswith(self._prefix)
                 else tab for tab in tabs]
 
+    def prefix_match(self, tab):
+        return tab.startswith(self._prefix)
+
     def filter_tabs(self, tabs):
         # N = len(self._prefix)
         # return [tab[N:] for tab in tabs
-        return [tab for tab in tabs
-                if tab.startswith(self._prefix)]
+        return [tab for tab in tabs if self.prefix_match(tab)]
 
     def _split_tabs(self, tabs):
         return [tab.split('.') for tab in tabs]
@@ -231,6 +234,12 @@ class SingleMediatorAPI(object):
                          files)
         return self.prefix_tabs(ids.splitlines())
 
+    def update_tabs(self, updates):
+        logger.info('SingleMediatorAPI: update_tabs: %s', updates)
+        files = {'updates': dumps(updates)}
+        ids = self._post('/update_tabs', files)
+        return self.prefix_tabs(ids.splitlines())
+
     def get_words(self, tab_ids, match_regex, join_with):
         words = set()
         match_regex = encode_query(match_regex)
@@ -298,6 +307,10 @@ def api_must_ready(port: int, browser: str,
     return api
 
 
+def int_tab_id(tab_id: str) -> int:
+    """Convert from str(b.20.123) to int(123)"""
+    return int(tab_id.split('.')[-1])
+
 class MultipleMediatorsAPI(object):
     """
     This API is designed to work with multiple mediators.
@@ -342,7 +355,7 @@ class MultipleMediatorsAPI(object):
         return tabs
 
     def _move_tabs_if_changed(self, api, tabs_before, tabs_after):
-        delete_commands, move_commands = infer_all_commands(
+        delete_commands, move_commands, update_commands = infer_all_commands(
             parse_tab_lines(tabs_before),
             parse_tab_lines(tabs_after))
 
@@ -353,6 +366,19 @@ class MultipleMediatorsAPI(object):
         if move_commands:
             print('MOVE', move_commands)
             api.move_tabs(move_commands)
+
+        if update_commands:
+            print('UPDATE', update_commands)
+            api.update_tabs(update_commands)
+
+    def update_tabs(self, all_updates):
+        results = []
+        for api in self._apis:
+            updates = [u for u in all_updates if api.prefix_match(u['tab_id'])]
+            for u in updates:
+                u['tab_id'] = int_tab_id(u['tab_id'])
+            results.extend(api.update_tabs(updates))
+        return results
 
     def move_tabs(self, args):
         """

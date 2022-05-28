@@ -12,7 +12,6 @@ from typing import BinaryIO
 from typing import Iterable
 from typing import Union
 
-import select
 from select import select
 
 from brotab.platform import get_editor
@@ -94,7 +93,7 @@ def edit_tabs_in_editor(tabs_before):
 
 
 def read_stdin():
-    if select.select([sys.stdin, ], [], [], 1.0)[0]:
+    if select([sys.stdin, ], [], [], 1.0)[0]:
         return sys.stdin.read()
     return ''
 

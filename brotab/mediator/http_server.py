@@ -1,4 +1,5 @@
 import os
+from json import loads
 from threading import Thread
 from urllib.parse import unquote_plus
 from wsgiref.simple_server import make_server
@@ -60,6 +61,7 @@ class MediatorHttpServer:
         self.app.route('/query_tabs/<query_info>', methods=['GET'])(self.query_tabs)
         self.app.route('/move_tabs/<query_info>', methods=['GET'])(self.move_tabs)
         self.app.route('/open_urls/<int:window_id>', methods=['POST'])(self.open_urls)
+        self.app.route('/update_tabs', methods=['POST'])(self.update_tabs)
         self.app.route('/open_urls', methods=['POST'])(self.open_urls)
         self.app.route('/close_tabs/<tab_ids>', methods=['GET'])(self.close_tabs)
         self.app.route('/new_tab/<query>', methods=['GET'])(self.new_tab)
@@ -113,6 +115,16 @@ class MediatorHttpServer:
         mediator_logger.info('Open urls (window_id = %s): %s', window_id, urls)
         result = self.remote_api.open_urls(urls, window_id)
         mediator_logger.info('Open urls result: %s', str(result))
+        return '\n'.join(result)
+
+    def update_tabs(self):
+        updates = request.files.get('updates')
+        if updates is None:
+            return 'ERROR: Please provide updates in the request'
+        updates = loads(updates.stream.read().decode('utf8'))
+        mediator_logger.info('Sending tab updates: %s', updates)
+        result = self.remote_api.update_tabs(updates)
+        mediator_logger.info('Update tabs result: %s', str(result))
         return '\n'.join(result)
 
     def close_tabs(self, tab_ids):

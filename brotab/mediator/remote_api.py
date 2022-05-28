@@ -53,6 +53,22 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
+    def update_tabs(self, updates: [object]):
+        """
+        Sends a list of updates to the browser. Format:
+        [ {
+            'tab_id': <tab_id>,
+            'properties': {
+                'url': <url>,
+            }
+        } ]
+        see https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/update
+        """
+        mediator_logger.info('update tabs: %s', updates)
+        command = {'name': 'update_tabs', 'updates': updates}
+        self._transport.send(command)
+        return self._transport.recv()
+
     def close_tabs(self, tab_ids: str):
         """
         :param tab_ids: Comma-separated list of tab IDs to close.

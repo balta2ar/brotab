@@ -202,16 +202,18 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     return commands
 
 
+def make_update(tab_id, url=None):
+    op = {'tab_id': tab_id, 'properties': {}}
+    if url:
+        op['properties']['url'] = url
+    return op
+
+
 def infer_update_commands(tabs_before: [Tab], tabs_after: [Tab]):
     updates = []
     for tab_before, tab_after in zip(tabs_before, tabs_after):
         if tab_before.url != tab_after.url:
-            updates.append({
-                'tab_id': tab_after.tab_id,
-                'properties': {
-                    'url': tab_after.url,
-                },
-            })
+            updates.append(make_update(tab_after.tab_id, tab_after.url))
     return updates
 
 

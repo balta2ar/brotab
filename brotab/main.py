@@ -55,6 +55,7 @@ import time
 from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
+from json import loads
 from string import ascii_lowercase
 from typing import List
 from typing import Tuple
@@ -211,7 +212,7 @@ def new_tab(args):
     prefix, window_id = parse_prefix_and_window_id(args.prefix_window_id)
     search_query = ' '.join(args.query)
     brotab_logger.info('Opening search for "%s", prefix "%s", window_id "%s"',
-                search_query, prefix, window_id)
+                       search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     api.open_urls([url], prefix, window_id)
@@ -231,6 +232,31 @@ def open_urls(args):
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     ids = api.open_urls(urls, prefix, window_id)
     stdout_buffer_write(marshal(ids))
+
+
+def navigate_urls(args):
+    """
+    curl -X POST 'http://localhost:4626/update_tabs' --data '{"tab_id": 20, "properties": { "url": "https://www.google.com" }}'
+    """
+    urls = read_stdin_lines()
+    updates = []
+    for tab_id, url in zip(args.tab_id, urls):
+        updates.append({'tab_id': tab_id, 'properties': {'url': url}})
+    brotab_logger.info('Navigating: %s', updates)
+    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    results = api.update_tabs(updates)
+    stdout_buffer_write(marshal(results))
+
+
+def update_tabs(args):
+    """
+    curl -X POST 'http://localhost:4626/update_tabs' --data '{"tab_id": 20, "properties": { "url": "https://www.google.com" }}'
+    """
+    updates = loads(read_stdin().strip())
+    brotab_logger.info('Updating tabs: %s', updates)
+    api = MultipleMediatorsAPI(create_clients(args.target_hosts))
+    results = api.update_tabs(updates)
+    stdout_buffer_write(marshal(results))
 
 
 def get_words(args):
@@ -561,6 +587,31 @@ def parse_args(args):
     parser_open_urls.add_argument(
         'prefix_window_id', type=str,
         help='Client prefix and (optionally) window id, e.g. b.20')
+
+    parser_navigate_urls = subparsers.add_parser(
+        'navigate',
+        help='''
+        navigate to URLs from the stdin (one URL per line). <tab_id> are
+        specified in the arguments, URLs are passed to stdin. There should
+        be matching number of arguments and lines in stdin, e.g.:
+        echo 'https://google.com' | bt navigate b.20.1
+        ''')
+    parser_navigate_urls.set_defaults(func=navigate_urls)
+    parser_navigate_urls.add_argument(
+        'tab_id', type=str, nargs='+',
+        help='Tab id e.g. b.20.130')
+
+    parser_update_tabs = subparsers.add_parser(
+        'update',
+        help='''
+        Update tabs state, e.g. URL. Arguments are a JSON of the form:
+        [{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}]
+        Where "properties" can be anything defined here:
+        https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/update
+        Example:
+        echo '[{"tab_id":"a.2118.2156", "properties":{"url":"https://google.com"}}]' | bt update
+        ''')
+    parser_update_tabs.set_defaults(func=update_tabs)
 
     parser_get_words = subparsers.add_parser(
         'words',

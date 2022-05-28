@@ -3,6 +3,7 @@ import signal
 import threading
 from http.server import BaseHTTPRequestHandler
 from http.server import HTTPServer
+from json import dumps
 from subprocess import Popen
 from subprocess import check_output
 from unittest import TestCase
@@ -15,6 +16,7 @@ from brotab.api import api_must_ready
 from brotab.inout import get_available_tcp_port
 from brotab.inout import wait_net_service
 from brotab.mediator.const import DEFAULT_MIN_HTTP_PORT
+from brotab.operations import make_update
 from brotab.tab import parse_tab_lines
 
 
@@ -119,6 +121,13 @@ class Brotab:
     def windows(self):
         return run(f'bt {self.options} windows')
 
+    def navigate(self, tab_id, url):
+        return run(f'echo "{url}" | bt {self.options} navigate {tab_id}')
+
+    def update(self, updates):
+        updates = dumps(updates)
+        return run(f'echo \'{updates}\' | bt {self.options} update')
+
 
 class Browser:
     CMD = ''
@@ -216,6 +225,39 @@ class TestIntegration(TestCase):
             assert len(bt.tabs()) == 4
             active_id = bt.active()[0].split('\t')[0]
             assert active_id == bt.tabs()[-1].id
+
+    def test_navigate_single(self):
+        with Container() as c:
+            bt = Brotab(targets([c]))
+            tab_ids = bt.open('a.1', c.echo_url('tab1'))
+            assert len(tab_ids) == 1
+
+            tabs = bt.list()
+            assert 'tab1' in ''.join(tabs)
+            assert tab_ids[0] in ''.join(tabs)
+
+            bt.navigate(tab_ids[0], c.echo_url('tab2'))
+            tabs = bt.list()
+            assert 'tab2' in ''.join(tabs)
+            assert tab_ids[0] in ''.join(tabs)
+
+    def test_update_three(self):
+        with Container() as c:
+            bt = Brotab(targets([c]))
+            bt.open('a.1', c.echo_url('tab1'))
+            bt.open('a.1', c.echo_url('tab1'))
+            lines = sorted(bt.list())
+            assert len(lines) == 3
+            assert 'tab2' not in ''.join(lines)
+
+            tabs = parse_tab_lines(lines)
+            bt.update([make_update(tabs[0].id, c.echo_url('tab2'))])
+            bt.update([make_update(tabs[1].id, c.echo_url('tab2'))])
+            bt.update([make_update(tabs[2].id, c.echo_url('tab2'))])
+
+            lines = bt.list()
+            assert 'tab1' not in ''.join(lines)
+            assert 'tab2' in ''.join(lines)
 
 
 @pytest.mark.skip
