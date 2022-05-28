@@ -18,6 +18,7 @@ integration-run-container:
 integration-test: export INTEGRATION_TEST = 1
 
 integration-test:
+	xhost +local:docker
 	pytest -v -k test_integration -s
 
 test-all: unit-test smoke-build smoke-test integration-build integration-test
