@@ -4,6 +4,7 @@ import logging
 import socket
 import sys
 from collections.abc import Mapping
+from copy import deepcopy
 from functools import partial
 from http.client import RemoteDisconnected
 from json import dumps
@@ -373,8 +374,9 @@ class MultipleMediatorsAPI(object):
 
     def update_tabs(self, all_updates):
         results = []
+        print(all_updates)
         for api in self._apis:
-            updates = [u for u in all_updates if api.prefix_match(u['tab_id'])]
+            updates = [deepcopy(u) for u in all_updates if api.prefix_match(u['tab_id'])]
             for u in updates:
                 u['tab_id'] = int_tab_id(u['tab_id'])
             results.extend(api.update_tabs(updates))

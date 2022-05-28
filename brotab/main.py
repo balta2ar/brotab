@@ -49,7 +49,6 @@ News:
 
 import os
 import re
-import shutil
 import sys
 import time
 from argparse import ArgumentParser
@@ -77,6 +76,7 @@ from brotab.inout import read_stdin
 from brotab.inout import read_stdin_lines
 from brotab.inout import stdout_buffer_write
 from brotab.mediator.log import brotab_logger
+from brotab.operations import make_update
 from brotab.platform import is_windows
 from brotab.platform import make_windows_path_double_sep
 from brotab.platform import register_native_manifest_windows_brave
@@ -241,7 +241,7 @@ def navigate_urls(args):
     urls = read_stdin_lines()
     updates = []
     for tab_id, url in zip(args.tab_id, urls):
-        updates.append({'tab_id': tab_id, 'properties': {'url': url}})
+        updates.append(make_update(tab_id, url))
     brotab_logger.info('Navigating: %s', updates)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     results = api.update_tabs(updates)
