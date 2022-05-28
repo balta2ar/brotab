@@ -43,6 +43,17 @@ positional arguments:
                         argument is required: <prefix>.<window_id> OR <client>. If
                         window_id is not specified, URL will be opened in the active
                         window of the specifed client
+    navigate            navigate to URLs from the stdin (one URL per line). <tab_id> are
+                        specified in the arguments, URLs are passed to stdin. There should be
+                        matching number of arguments and lines in stdin, e.g.: echo
+                        'https://google.com' | bt navigate b.20.1
+    update              Update tabs state, e.g. URL. Arguments are a JSON of the form:
+                        [{"tab_id": "b.20.130", "properties": {"url":
+                        "http://www.google.com"}}] Where "properties" can be anything defined
+                        here: https://developer.mozilla.org/en-US/docs/Mozilla/Add-
+                        ons/WebExtensions/API/tabs/update Example: echo
+                        '[{"tab_id":"a.2118.2156",
+                        "properties":{"url":"https://google.com"}}]' | bt update
     words               show sorted unique words from all active tabs of all
                         clients. This is a helper for webcomplete deoplete plugin
                         that helps complete words from the browser
