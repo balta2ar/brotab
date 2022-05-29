@@ -122,11 +122,14 @@ class Brotab:
         return run(f'bt {self.options} windows')
 
     def navigate(self, tab_id, url):
-        return run(f'echo "{url}" | bt {self.options} navigate {tab_id}')
+        return run(f'bt {self.options} navigate {tab_id} "{url}"')
 
-    def update(self, updates):
+    def update_stdin(self, updates):
         updates = dumps(updates)
         return run(f'echo \'{updates}\' | bt {self.options} update')
+
+    def update(self, args):
+        return run(f'bt {self.options} update {args}')
 
 
 class Browser:
@@ -251,9 +254,9 @@ class TestIntegration(TestCase):
             assert 'tab2' not in ''.join(lines)
 
             tabs = parse_tab_lines(lines)
-            bt.update([make_update(tabs[0].id, c.echo_url('tab2'))])
-            bt.update([make_update(tabs[1].id, c.echo_url('tab2'))])
-            bt.update([make_update(tabs[2].id, c.echo_url('tab2'))])
+            bt.update_stdin([make_update(tabId=tabs[0].id, url=c.echo_url('tab2'))])
+            bt.update_stdin([make_update(tabId=tabs[1].id, url=c.echo_url('tab2'))])
+            bt.update('-tabId {0} -url="{1}"'.format(tabs[2].id, c.echo_url('tab2')))
 
             lines = bt.list()
             assert 'tab1' not in ''.join(lines)

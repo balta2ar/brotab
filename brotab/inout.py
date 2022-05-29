@@ -92,8 +92,8 @@ def edit_tabs_in_editor(tabs_before):
             return None
 
 
-def read_stdin():
-    if select([sys.stdin, ], [], [], 1.0)[0]:
+def read_stdin(timeout=1.0):
+    if select([sys.stdin, ], [], [], timeout)[0]:
         return sys.stdin.read()
     return ''
 

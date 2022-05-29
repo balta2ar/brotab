@@ -184,7 +184,8 @@ def query_tabs(args):
     if d['info'] is not None:
         queryInfo = d['info']
     else:
-        queryInfo = {k: v for k, v in d.items() if v is not None and k not in ['func', 'info']}
+        queryInfo = {k: v for k, v in d.items()
+                     if v is not None and k not in ['func', 'info', 'target_hosts']}
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     for tab in api.query_tabs(queryInfo):
         print(tab)
@@ -215,7 +216,8 @@ def new_tab(args):
                        search_query, prefix, window_id)
     url = "https://www.google.com/search?q=%s" % quote_plus(search_query)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    api.open_urls([url], prefix, window_id)
+    ids = api.open_urls([url], prefix, window_id)
+    stdout_buffer_write(marshal(ids))
 
 
 def open_urls(args):
@@ -238,10 +240,12 @@ def navigate_urls(args):
     """
     curl -X POST 'http://localhost:4626/update_tabs' --data '{"tab_id": 20, "properties": { "url": "https://www.google.com" }}'
     """
-    urls = read_stdin_lines()
-    updates = []
-    for tab_id, url in zip(args.tab_id, urls):
-        updates.append(make_update(tab_id, url))
+    raw = read_stdin(timeout=0.05)
+    if raw:
+        pairs = [x.strip().split('\t') for x in raw.splitlines()]
+        updates = [make_update(tabId=tab_id, url=url) for tab_id, url in pairs]
+    else:
+        updates = [make_update(tabId=args.tab_id, url=args.url)]
     brotab_logger.info('Navigating: %s', updates)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     results = api.update_tabs(updates)
@@ -252,7 +256,18 @@ def update_tabs(args):
     """
     curl -X POST 'http://localhost:4626/update_tabs' --data '{"tab_id": 20, "properties": { "url": "https://www.google.com" }}'
     """
-    updates = loads(read_stdin().strip())
+    raw = read_stdin(timeout=0.01).strip()
+    if raw:
+        updates = loads(raw)
+    else:
+        d = vars(args)
+        if d['info'] is not None:
+            updates = [d['info']]
+        else:
+            updates = {k: v for k, v in d.items()
+                       if v is not None and k not in ['func', 'info', 'target_hosts']}
+            if 'tabId' not in updates: raise ValueError('tabId is required')
+            updates = [make_update(**updates)]
     brotab_logger.info('Updating tabs: %s', updates)
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     results = api.update_tabs(updates)
@@ -482,9 +497,7 @@ def parse_args(args):
 
     parser_query_tabs = subparsers.add_parser(
         'query',
-        help='''
-        Filter tabs using chrome.tabs api.
-        ''',
+        help='Filter tabs using chrome.tabs api.',
         prefix_chars='-+')
     parser_query_tabs.set_defaults(func=query_tabs)
     parser_query_tabs.add_argument('+active', action='store_const', const=True, default=None,
@@ -591,27 +604,62 @@ def parse_args(args):
     parser_navigate_urls = subparsers.add_parser(
         'navigate',
         help='''
-        navigate to URLs from the stdin (one URL per line). <tab_id> are
-        specified in the arguments, URLs are passed to stdin. There should
-        be matching number of arguments and lines in stdin, e.g.:
-        echo 'https://google.com' | bt navigate b.20.1
+        navigate to URLs. There are two ways to specify tab ids and URLs:
+        1. stdin: lines with pairs of "tab_id<tab>url"
+        2. arguments: bt navigate <tab_id> "<url>", e.g. bt navigate b.20.1 "https://google.com"
+        stdin has the priority.
         ''')
     parser_navigate_urls.set_defaults(func=navigate_urls)
-    parser_navigate_urls.add_argument(
-        'tab_id', type=str, nargs='+',
-        help='Tab id e.g. b.20.130')
+    parser_navigate_urls.add_argument('tab_id', type=str, help='Tab id e.g. b.20.130')
+    parser_navigate_urls.add_argument('url', type=str, help='URL to navigate to')
 
     parser_update_tabs = subparsers.add_parser(
         'update',
         help='''
-        Update tabs state, e.g. URL. Arguments are a JSON of the form:
+        Update tabs state, e.g. URL. There are two ways to specify updates:
+        1. stdin, pass JSON of the form:
         [{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}]
         Where "properties" can be anything defined here:
         https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/update
         Example:
         echo '[{"tab_id":"a.2118.2156", "properties":{"url":"https://google.com"}}]' | bt update
-        ''')
+        
+        2. arguments, e.g.: bt update -tabId b.1.862 -url="http://www.google.com" +muted
+        ''',
+        prefix_chars='-+')
     parser_update_tabs.set_defaults(func=update_tabs)
+    parser_update_tabs.add_argument('-tabId', type=str,
+                                    help='tab id to apply updates to')
+    parser_update_tabs.add_argument('-url', type=str,
+                                    help='a URL to navigate the tab to. JavaScript URLs are not supported')
+    parser_update_tabs.add_argument('-openerTabId', type=str,
+                                    help='the ID of the tab that opened this tab. If specified, the opener tab must be in the same window as this tab')
+    parser_update_tabs.add_argument('+active', action='store_const', const=True, default=None,
+                                    help='make tab active')
+    parser_update_tabs.add_argument('-active', action='store_const', const=False, default=None,
+                                    help='does nothing')
+    parser_update_tabs.add_argument('+autoDiscardable', action='store_const', const=True, default=None,
+                                    help='whether the tab should be discarded automatically by the browser when resources are low')
+    parser_update_tabs.add_argument('-autoDiscardable', action='store_const', const=False, default=None,
+                                    help='whether the tab should be discarded automatically by the browser when resources are low')
+    parser_update_tabs.add_argument('+highlighted', action='store_const', const=True, default=None,
+                                    help='adds the tab to the current selection')
+    parser_update_tabs.add_argument('-highlighted', action='store_const', const=False, default=None,
+                                    help='removes the tab from the current selection')
+    parser_update_tabs.add_argument('+muted', action='store_const', const=True, default=None,
+                                    help='mute tab')
+    parser_update_tabs.add_argument('-muted', action='store_const', const=False, default=None,
+                                    help='unmute tab')
+    parser_update_tabs.add_argument('+pinned', action='store_const', const=True, default=None,
+                                    help='pin tab')
+    parser_update_tabs.add_argument('-pinned', action='store_const', const=False, default=None,
+                                    help='unpin tab')
+    parser_update_tabs.add_argument('-info', type=str,
+                                    help='''
+        JSON in the following format:
+        $ bt update -info '[{"tab_id": "b.20.130", "properties": {"url": "http://www.google.com"}}]'
+        all other update arguments are ignored if this argument is present.
+        ''')
 
     parser_get_words = subparsers.add_parser(
         'words',

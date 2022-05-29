@@ -202,10 +202,23 @@ def infer_move_commands(tabs_before: [Tab], tabs_after: [Tab]):
     return commands
 
 
-def make_update(tab_id, url=None):
-    op = {'tab_id': tab_id, 'properties': {}}
-    if url:
-        op['properties']['url'] = url
+def make_update(tabId=None,
+                active=None,
+                autoDiscardable=None,
+                highlighted=None,
+                muted=None,
+                pinned=None,
+                url=None,
+                openerTabId=None):
+    if tabId is None: raise ValueError('tabId is not specified')
+    op = {'tab_id': tabId, 'properties': {}}
+    if active is not None: op['properties']['active'] = active
+    if autoDiscardable is not None: op['properties']['autoDiscardable'] = autoDiscardable
+    if highlighted is not None: op['properties']['highlighted'] = highlighted
+    if muted is not None: op['properties']['muted'] = muted
+    if pinned is not None: op['properties']['pinned'] = pinned
+    if url is not None: op['properties']['url'] = url
+    if openerTabId is not None: op['properties']['openerTabId'] = openerTabId
     return op
 
 
@@ -213,7 +226,7 @@ def infer_update_commands(tabs_before: [Tab], tabs_after: [Tab]):
     updates = []
     for tab_before, tab_after in zip(tabs_before, tabs_after):
         if tab_before.url != tab_after.url:
-            updates.append(make_update(tab_after.tab_id, tab_after.url))
+            updates.append(make_update(tabId=tab_after.tab_id, url=tab_after.url))
     return updates
 
 
