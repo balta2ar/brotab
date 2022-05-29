@@ -60,8 +60,8 @@ positional arguments:
     words               show sorted unique words from all active tabs of all
                         clients. This is a helper for webcomplete deoplete plugin
                         that helps complete words from the browser
-    text                show text form all tabs
-    html                show html form all tabs
+    text                show text from all tabs
+    html                show html from all tabs
     dup                 display reminder on how to close duplicate tabs using
                         command-line tools
     windows             display available prefixes and window IDs, along with the
