@@ -6,10 +6,11 @@ import os
 import re
 import socket
 
+from brotab.env import http_iface
+from brotab.env import load_dotenv
 from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
 from brotab.mediator import sig
-from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.const import DEFAULT_SHUTDOWN_POLL_INTERVAL
 from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.log import disable_click_echo
@@ -66,12 +67,13 @@ def mediator_main():
     monkeypatch_socket_bind_allow_port_reuse()
     disable_click_echo()
 
+    load_dotenv()
     port_range = list(get_mediator_ports())
     transport = default_transport()
     # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
     # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
     remote_api = default_remote_api(transport)
-    host = DEFAULT_HTTP_IFACE
+    host = http_iface()
     poll_interval = DEFAULT_SHUTDOWN_POLL_INTERVAL
 
     for port in port_range:

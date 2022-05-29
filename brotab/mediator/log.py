@@ -2,7 +2,7 @@ import logging
 import logging.handlers
 from traceback import format_stack
 
-from brotab.inout import in_temp_dir
+from brotab.files import in_temp_dir
 
 
 def _init_logger(tag, filename: str):

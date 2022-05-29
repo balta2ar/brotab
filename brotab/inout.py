@@ -3,8 +3,8 @@ import mimetypes
 import os
 import socket
 import sys
-import tempfile
 import uuid
+from select import select
 from subprocess import CalledProcessError
 from subprocess import check_call
 from tempfile import NamedTemporaryFile
@@ -12,36 +12,13 @@ from typing import BinaryIO
 from typing import Iterable
 from typing import Union
 
-from select import select
-
+from brotab.env import max_http_port
+from brotab.env import min_http_port
 from brotab.platform import get_editor
-
-MIN_MEDIATOR_PORT = 4625
-MAX_MEDIATOR_PORT = MIN_MEDIATOR_PORT + 10
-
-
-def slurp(filename):
-    with open(filename) as file_:
-        return file_.read()
-
-
-def slurp_lines(filename):
-    with open(filename) as file_:
-        return [line.strip() for line in file_.readlines()]
-
-
-def spit(filename, contents):
-    with open(filename, 'w', encoding='utf-8') as file_:
-        file_.write(contents)
-
-
-def in_temp_dir(filename) -> str:
-    temp_dir = tempfile.gettempdir()
-    return os.path.join(temp_dir, filename)
 
 
 def get_mediator_ports() -> Iterable:
-    return range(MIN_MEDIATOR_PORT, MAX_MEDIATOR_PORT)
+    return range(min_http_port(), max_http_port())
 
 
 def get_available_tcp_port(start=1025, end=65536, host='127.0.0.1'):

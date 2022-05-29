@@ -16,9 +16,9 @@ from urllib.parse import quote_plus
 from urllib.request import Request
 from urllib.request import urlopen
 
+from brotab.env import http_iface
 from brotab.inout import MultiPartForm
 from brotab.inout import edit_tabs_in_editor
-from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.operations import infer_all_commands
 from brotab.parallel import call_parallel
 from brotab.tab import parse_tab_lines
@@ -302,7 +302,7 @@ def api_must_ready(port: int, browser: str,
                    prefix='a',
                    client_timeout: float = 0.1,
                    startup_timeout: float = 1.0) -> SingleMediatorAPI:
-    client = HttpClient(DEFAULT_HTTP_IFACE, port, timeout=client_timeout)
+    client = HttpClient(http_iface(), port, timeout=client_timeout)
     api = SingleMediatorAPI(prefix=prefix, port=port, startup_timeout=startup_timeout, client=client)
     assert api.browser == browser
     return api
@@ -311,6 +311,7 @@ def api_must_ready(port: int, browser: str,
 def int_tab_id(tab_id: str) -> int:
     """Convert from str(b.20.123) to int(123)"""
     return int(tab_id.split('.')[-1])
+
 
 class MultipleMediatorsAPI(object):
     """

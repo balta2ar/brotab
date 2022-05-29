@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import pytest
 
 from brotab.api import api_must_ready
+from brotab.env import min_http_port
 from brotab.inout import get_available_tcp_port
 from brotab.inout import wait_net_service
 from brotab.mediator.const import DEFAULT_MIN_HTTP_PORT
@@ -144,7 +145,7 @@ class Browser:
         self._browser = Popen(self.CMD, shell=True,
                               cwd=self.CWD, preexec_fn=os.setsid)
         print('PID', self._browser.pid)
-        wait_net_service('localhost', DEFAULT_MIN_HTTP_PORT, TIMEOUT)
+        wait_net_service('localhost', min_http_port(), TIMEOUT)
         print('init done PID', self._browser.pid)
 
     def stop(self):
