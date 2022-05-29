@@ -1,3 +1,5 @@
+1.4.1 (2022-05-29)
+
 * Better syntax for navigate and update:
   > bt navigate b.1.862 "https://google.com"
   > bt update -tabId b.1.862 -url="http://www.google.com" 
