@@ -68,8 +68,8 @@ from brotab.const import DEFAULT_GET_TEXT_DELIMITER_REGEX
 from brotab.const import DEFAULT_GET_TEXT_REPLACE_WITH
 from brotab.const import DEFAULT_GET_WORDS_JOIN_WITH
 from brotab.const import DEFAULT_GET_WORDS_MATCH_REGEX
-from brotab.inout import get_mediator_ports
 from brotab.files import in_temp_dir
+from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import marshal
 from brotab.inout import read_stdin
@@ -326,11 +326,11 @@ def show_duplicates(args):
     # I'm not using uniq here because it's not easy to get duplicates
     # only by a single column. awk is much easier in this regard.
     # print('bt list | sort -k3 | uniq -f2 -D | cut -f1 | bt close')
-    print("Show duplicates by Title:")
+    print("Close duplicates by Title:")
     print(
         "bt list | sort -k2 | awk -F$'\\t' '{ if (a[$2]++ > 0) print }' | cut -f1 | bt close")
     print("")
-    print("Show duplicates by URL:")
+    print("Close duplicates by URL:")
     print(
         "bt list | sort -k3 | awk -F$'\\t' '{ if (a[$3]++ > 0) print }' | cut -f1 | bt close")
 

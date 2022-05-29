@@ -62,7 +62,7 @@ positional arguments:
                         that helps complete words from the browser
     text                show text form all tabs
     html                show html form all tabs
-    dup                 display reminder on how to show duplicate tabs using
+    dup                 display reminder on how to close duplicate tabs using
                         command-line tools
     windows             display available prefixes and window IDs, along with the
                         number of tabs in every window
