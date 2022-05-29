@@ -115,6 +115,11 @@ Features to show:
 
 see [DEVELOPMENT.md](DEVELOPMENT.md)
 
+## Related projects
+
+* ![TabFS](https://github.com/osnr/TabFS)
+* ![dudetab](https://github.com/CRImier/dudetab)
+
 ## Author
 
 Yuri Bochkarev
