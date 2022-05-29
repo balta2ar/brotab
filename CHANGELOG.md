@@ -1,3 +1,11 @@
+* Support config file in `$XDG_CONFIG_HOME/brotab/brotab.env`:
+```env
+HTTP_IFACE=0.0.0.0
+MIN_HTTP_PORT=4625 
+MAX_HTTP_PORT=4635 
+```
+  This is useful if you want to change interface mediator is binding to.
+
 1.4.1 (2022-05-29)
 
 * Better syntax for navigate and update:

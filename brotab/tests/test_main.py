@@ -6,13 +6,13 @@ from unittest.mock import patch
 from uuid import uuid4
 
 from brotab.api import SingleMediatorAPI
-from brotab.inout import MIN_MEDIATOR_PORT
+from brotab.env import http_iface
+from brotab.env import min_http_port
+from brotab.files import in_temp_dir
+from brotab.files import spit
 from brotab.inout import get_available_tcp_port
-from brotab.inout import in_temp_dir
-from brotab.inout import spit
 from brotab.main import create_clients
 from brotab.main import run_commands
-from brotab.mediator.const import DEFAULT_HTTP_IFACE
 from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.remote_api import default_remote_api
 from brotab.mediator.transport import Transport
@@ -59,7 +59,7 @@ class MockedMediator:
         self.port = get_available_tcp_port() if port is None else port
         self.transport = MockedLoggingTransport()
         self.remote_api = default_remote_api(self.transport) if remote_api is None else remote_api
-        self.server = MediatorHttpServer(DEFAULT_HTTP_IFACE, self.port, self.remote_api, 0.050)
+        self.server = MediatorHttpServer(http_iface(), self.port, self.remote_api, 0.050)
         self.thread = self.server.run.in_thread()
         self.transport.received_extend(['mocked'])
         self.api = SingleMediatorAPI(prefix, port=self.port, startup_timeout=1)
@@ -128,7 +128,7 @@ def run_mocked_mediators(count, default_port_offset, delay):
     """
     assert count > 0
     print('Creating %d mediators' % count)
-    start_port = MIN_MEDIATOR_PORT + default_port_offset
+    start_port = min_http_port() + default_port_offset
     ports = range(start_port, start_port + count)
     mediators = [MockedMediator(letter, port, DummyBrowserRemoteAPI())
                  for i, letter, port in zip(range(count), ascii_letters, ports)]
@@ -147,7 +147,7 @@ def run_mocked_mediator_current_thread(port):
     """
     remote_api = DummyBrowserRemoteAPI()
     port = get_available_tcp_port() if port is None else port
-    server = MediatorHttpServer(DEFAULT_HTTP_IFACE, port, remote_api, 0.050)
+    server = MediatorHttpServer(http_iface(), port, remote_api, 0.050)
     server.run.here()
 
 

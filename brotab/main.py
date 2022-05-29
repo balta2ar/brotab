@@ -69,7 +69,7 @@ from brotab.const import DEFAULT_GET_TEXT_REPLACE_WITH
 from brotab.const import DEFAULT_GET_WORDS_JOIN_WITH
 from brotab.const import DEFAULT_GET_WORDS_MATCH_REGEX
 from brotab.inout import get_mediator_ports
-from brotab.inout import in_temp_dir
+from brotab.files import in_temp_dir
 from brotab.inout import is_port_accepting_connections
 from brotab.inout import marshal
 from brotab.inout import read_stdin
