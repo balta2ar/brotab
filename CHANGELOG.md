@@ -1,3 +1,5 @@
+1.4.2 (2022-05-29)
+
 * Support config file in `$XDG_CONFIG_HOME/brotab/brotab.env`:
 ```env
 HTTP_IFACE=0.0.0.0
