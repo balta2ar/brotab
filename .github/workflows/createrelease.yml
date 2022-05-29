@@ -19,13 +19,8 @@ jobs:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: echo "$GITHUB_CONTEXT"
 
-      - name: Get commit message
-        run: |
-           #echo ::set-env name=COMMITMSG::$(git log --format=%B -n 1 ${{ github.event.after }})
-           echo ::set-env name=COMMITMSG::$(git log --format=%B -n 1)
-
       - name: Show commit message
-        run : echo $COMMITMSG
+        run : echo "${{ github.event.head_commit.message }}"
 
       - name: Create Release
         id: create_release
@@ -35,6 +30,6 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: "${{ env.COMMITMSG }}"
+          body: "${{ github.event.head_commit.message }}"
           draft: true
           prerelease: false
