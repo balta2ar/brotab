@@ -11,18 +11,16 @@ import os
 import time
 import subprocess
 
-from albertv0 import *
+from albert import Item, info, ProcAction
 
 from brotab.search.query import query as brotab_query
 
-__iid__ = "PythonInterface/v0.1"
-__prettyname__ = "BroTab Search"
-__version__ = "1.0"
-__trigger__ = "s "
-__author__ = "Yuri Bochkarev"
+__title__ = "BroTab Search"
+__version__ = "0.1.0"
+__triggers__ = "s "
+__authors__ = ["Yuri Bochkarev"]
 __dependencies__ = []
-
-iconPath = iconLookup("preferences-system-network")
+__exec_deps__ = ["bt"]
 
 SQL_DB_FILENAME = '/tmp/tabs.sqlite'
 SQL_DB_TTL_SECONDS = 5 * 60
@@ -65,7 +63,7 @@ def handleQuery(query):
     tokens = user_query.split()
     if tokens and tokens[0] == 'index':
         items.append(Item(
-            id=__prettyname__,
+            id=__name__,
             text='Reindex browser tabs',
             subtext='> bt index',
             actions=[
@@ -79,8 +77,7 @@ def handleQuery(query):
     info('brotab search: %s results' % len(query_results))
     for query_result in query_results:
         items.append(Item(
-            id=__prettyname__,
-            # icon=iconPath,
+            id=__name__,
             text=query_result.snippet,
             subtext=query_result.title,
             actions=[
