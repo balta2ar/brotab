@@ -119,6 +119,7 @@ see [DEVELOPMENT.md](DEVELOPMENT.md)
 
 * ![TabFS](https://github.com/osnr/TabFS) -- mounts tabs info a filesystem using FUSE
 * ![dudetab](https://github.com/CRImier/dudetab) -- collection of useful scripts on top of brotab
+* ![ulauncher-brotab](https://github.com/brpaz/ulauncher-brotab) -- Ulauncher extension for brotab
 * ![tab-search](https://github.com/reblws/tab-search) -- shows a nice icon with a number of tabs (Firefox)
 * ![vimium-c](https://github.com/gdh1995/vimium-c) -- switch between tabs/history, close tabs with shift-del
 
