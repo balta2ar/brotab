@@ -104,12 +104,16 @@ Features to show:
 
 ## Installation
 
-1. Install command-line client: `pip install --user brotab` (alternatively:
-   `sudo pip install brotab`)
-1. Install native app manifests: `bt install`
-1. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/
-1. Install Chrome (Chromium) / Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/
-1. Enjoy! (try `bt clients`, `bt windows`, `bt list`, `bt words`)
+1. Install command-line client:
+```
+$ pipx brotab                # preferred method
+$ pip install --user brotab  # alternative
+$ sudo pip install brotab    # alternative
+```
+2. Install native app manifests: `bt install`
+3. Install Firefox extension: https://addons.mozilla.org/en-US/firefox/addon/brotab/
+4. Install Chrome (Chromium) / Brave extension: https://chrome.google.com/webstore/detail/brotab/mhpeahbikehnfkfnmopaigggliclhmnc/
+5. Enjoy! (try `bt clients`, `bt windows`, `bt list`, `bt words`)
 
 ## Build, test and manual installation
 
