@@ -7,6 +7,8 @@ _fzf_complete_bt() {
   ARGS="$@"
   if [[ $ARGS == 'bt close'* ]] || \
         [[ $ARGS == 'bt activate'* ]] || \
+        [[ $ARGS == 'bt text'* ]] || \
+        [[ $ARGS == 'bt html'* ]] || \
         [[ $ARGS == 'bt words'* ]]; \
   then
     _fzf_complete --multi --no-sort --inline-info --toggle-sort=\` -- "$@" < <(
