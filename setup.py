@@ -127,7 +127,9 @@ setup(
     # ),
     data_files=[
         ('config', ['brotab/mediator/chromium_mediator.json',
-                    'brotab/mediator/firefox_mediator.json']),
+                    'brotab/mediator/firefox_mediator.json',
+                    'brotab/albert/Brotab.qss',
+                   ]),
     ],
     # If your package is a single module, use this instead of 'packages':
     # py_modules=['mypackage'],
