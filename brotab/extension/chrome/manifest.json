@@ -5,7 +5,7 @@
   "name": "BroTab",
   "version": "1.4.0",
   "background": {
-    "scripts": ["../background.js"]
+    "scripts": ["../background.ts"]
   },
   "icons": {
       "128": "../brotab-icon-128x128.png"
