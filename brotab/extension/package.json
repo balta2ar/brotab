@@ -1,0 +1,16 @@
+{
+  "devDependencies": {
+    "@parcel/config-webextension": "^2.6.2",
+    "@types/webextension-polyfill": "^0.9.0",
+    "parcel": "^2.6.2"
+  },
+  "scripts": {
+    "build:firefox": "parcel build firefox/manifest.json --dist-dir ./dist/firefox",
+    "watch:firefox": "parcel watch firefox/manifest.json --dist-dir ./dist/firefox",
+    "build:chrome": "parcel build chrome/manifest.json --dist-dir ./dist/chrome",
+    "watch:chrome": "parcel watch chrome/manifest.json --dist-dir ./dist/chrome"
+  },
+  "dependencies": {
+    "webextension-polyfill": "^0.9.0"
+  }
+}

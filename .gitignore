@@ -13,3 +13,4 @@ node_modules
 tags
 npm-debug.log
 tmp
+.parcel-cache
