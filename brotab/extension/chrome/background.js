@@ -192,7 +192,12 @@ class ChromeTabs extends BrowserTabs {
   }
 
   getBrowserName() {
-      return "chrome/chromium";
+      chrome.storage.sync.get({
+          instanceIdentifier: '[none]'
+        }, function(items) {
+          instanceIdentifier = items.instanceIdentifier;
+      });
+      return "chrome/chromium\t"+instanceIdentifier;
   }
 }
 
@@ -201,6 +206,7 @@ console.log("Detecting browser");
 var port = undefined;
 var tabs = undefined;
 var browserTabs = undefined;
+var instanceIdentifier = undefined;
 const NATIVE_APP_NAME = 'brotab_mediator';
 reconnect();
 
