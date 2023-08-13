@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html>
-<head><title>My Test Extension Options</title></head>
+<head>
+  <title>BroTab Options</title>
+  <link rel="stylesheet" type="text/css" href="options.css">
+</head>
 <body>
+  <div class="container">
+    <h1>BroTab options</h1>
+    <form id="optionsForm">
+      <div id="status"></div>
+      <label for="instanceInput">Instance Identifier:</label>
+      <input type="text" id="instanceInput">
+      <button type="submit" id="save">Save</button>
+    </form>
+  </div>
 
-<select id="instanceIdentifier">
- <option value="[none]">[none]</option>
-  <option value="chrome1">chrome1</option>
- <option value="chrome2">chrome2</option>
-</select>
-
-<div id="status"></div>
-<button id="save">Save</button>
-
-<script src="options.js"></script>
+  <script src="options.js"></script>
 </body>
 </html>
