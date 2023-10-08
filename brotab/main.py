@@ -612,7 +612,7 @@ def parse_args(args):
         open URLs from the stdin (one URL per line). One positional argument is
         required: <prefix>.<window_id> OR <client>. If window_id is not
         specified, URL will be opened in the active window of the specifed
-        client
+        client. If window_id is 0, URLs will be opened in new window.
         ''')
     parser_open_urls.set_defaults(func=open_urls)
     parser_open_urls.add_argument(

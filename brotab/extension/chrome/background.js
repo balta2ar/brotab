@@ -104,10 +104,17 @@ class FirefoxTabs extends BrowserTabs {
   }
 
   create(createOptions, onSuccess) {
-    this._browser.tabs.create(createOptions).then(
-      onSuccess,
-      (error) => console.log(`Error: ${error}`)
-    );
+    if (createOptions.windowId === 0) {
+      this._browser.windows.create({ url: createOptions.url }).then(
+        onSuccess,
+        (error) => console.log(`Error: ${error}`)
+      );
+    } else {
+      this._browser.tabs.create(createOptions).then(
+        onSuccess,
+        (error) => console.log(`Error: ${error}`)
+      );
+    }
   }
 
   getActive(onSuccess) {
@@ -196,7 +203,11 @@ class ChromeTabs extends BrowserTabs {
   }
 
   create(createOptions, onSuccess) {
-    this._browser.tabs.create(createOptions, onSuccess);
+    if (createOptions.windowId === 0) {
+      this._browser.windows.create({ url: createOptions.url }, onSuccess);
+    } else {
+      this._browser.tabs.create(createOptions, onSuccess);
+    }
   }
 
   getActive(onSuccess) {
@@ -380,10 +391,20 @@ function closeTabs(tab_ids) {
   browserTabs.close(tab_ids, () => port.postMessage('OK'));
 }
 
-function openUrls(urls, window_id) {
+function openUrls(urls, window_id, first_result="") {
   if (urls.length == 0) {
     console.log('Opening urls done');
     port.postMessage([]);
+    return;
+  }
+
+  if (window_id === 0) {
+    browserTabs.create({'url': urls[0], windowId: 0}, (window) => {
+      result = `${window.id}.${window.tabs[0].id}`;
+      console.log(`Opened first window: ${result}`);
+      urls = urls.slice(1);
+      openUrls(urls, window.id, result);
+    });
     return;
   }
 
@@ -397,6 +418,9 @@ function openUrls(urls, window_id) {
     }))
   };
   Promise.all(promises).then(result => {
+    if (first_result !== "") {
+      result.unshift(first_result);
+    }
     const data = Array.prototype.concat(...result)
     console.log(`Sending ids back: ${JSON.stringify(data)}`);
     port.postMessage(data)
