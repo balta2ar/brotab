@@ -67,6 +67,7 @@ class MediatorHttpServer:
         self.app.route('/new_tab/<query>', methods=['GET'])(self.new_tab)
         self.app.route('/activate_tab/<int:tab_id>', methods=['GET'])(self.activate_tab)
         self.app.route('/get_active_tabs', methods=['GET'])(self.get_active_tabs)
+        self.app.route('/get_screenshot', methods=['GET'])(self.get_screenshot)
         self.app.route('/get_words/<string:tab_id>', methods=['GET'])(self.get_words)
         self.app.route('/get_words', methods=['GET'])(self.get_words)
         self.app.route('/get_text', methods=['GET'])(self.get_text)
@@ -140,6 +141,9 @@ class MediatorHttpServer:
 
     def get_active_tabs(self):
         return self.remote_api.get_active_tabs()
+
+    def get_screenshot(self):
+        return self.remote_api.get_screenshot()
 
     def get_words(self, tab_id=None):
         tab_id = int(tab_id) if is_valid_integer(tab_id) else None

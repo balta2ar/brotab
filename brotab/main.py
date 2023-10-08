@@ -54,7 +54,7 @@ import time
 from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
-from json import loads
+from json import loads, dumps
 from string import ascii_lowercase
 from typing import List
 from typing import Tuple
@@ -172,6 +172,17 @@ def show_active_tabs(args):
         for tab in tabs:
             print('%s\t%s' % (tab, api))
 
+
+def screenshot(args):
+    brotab_logger.info('Getting screenshot: %s', args)
+    apis = create_clients(args.target_hosts)
+    for api in apis:
+        result = api.get_screenshot(args)
+        # print(result, api)
+        result = loads(result)
+        result['api'] = api._prefix[:1]
+        result = dumps(result)
+        print(result)
 
 def search_tabs(args):
     for result in query(args.sqlite, args.query):
@@ -485,6 +496,13 @@ def parse_args(args):
         ''')
     parser_active_tab.set_defaults(func=show_active_tabs)
 
+    parser_screenshot = subparsers.add_parser(
+        'screenshot',
+        help='''
+        return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api)
+        ''')
+    parser_screenshot.set_defaults(func=screenshot)
+
     parser_search_tabs = subparsers.add_parser(
         'search',
         help='''
@@ -536,6 +554,10 @@ def parse_args(args):
                                    help='tabs are in the last focused window.')
     parser_query_tabs.add_argument('-lastFocusedWindow', action='store_const', const=False, default=None,
                                    help='tabs are not in the last focused window.')
+    parser_query_tabs.add_argument('+windowFocused', action='store_const', const=True, default=None,
+                                   help='tabs are in the focused window.')
+    parser_query_tabs.add_argument('-windowFocused', action='store_const', const=False, default=None,
+                                   help='tabs are not in the focused window.')
     parser_query_tabs.add_argument('-status', type=str, choices=['loading', 'complete'],
                                    help='whether the tabs have completed loading i.e. loading or complete.')
     parser_query_tabs.add_argument('-title', type=str,
@@ -594,7 +616,7 @@ def parse_args(args):
         open URLs from the stdin (one URL per line). One positional argument is
         required: <prefix>.<window_id> OR <client>. If window_id is not
         specified, URL will be opened in the active window of the specifed
-        client
+        client. If window_id is 0, URLs will be opened in new window.
         ''')
     parser_open_urls.set_defaults(func=open_urls)
     parser_open_urls.add_argument(
