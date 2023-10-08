@@ -97,6 +97,12 @@ class BrowserRemoteAPI:
         self._transport.send(command)
         return self._transport.recv()
 
+    def get_screenshot(self) -> str:
+        mediator_logger.info('getting screemsjpt')
+        command = {'name': 'get_screenshot'}
+        self._transport.send(command)
+        return self._transport.recv()
+
     def get_words(self, tab_id: str, match_regex: str, join_with: str):
         mediator_logger.info('getting tab words: %s', tab_id)
         command = {

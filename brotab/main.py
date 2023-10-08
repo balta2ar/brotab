@@ -54,7 +54,7 @@ import time
 from argparse import ArgumentParser
 from functools import partial
 from itertools import groupby
-from json import loads
+from json import loads, dumps
 from string import ascii_lowercase
 from typing import List
 from typing import Tuple
@@ -172,6 +172,17 @@ def show_active_tabs(args):
         for tab in tabs:
             print('%s\t%s' % (tab, api))
 
+
+def screenshot(args):
+    brotab_logger.info('Getting screenshot: %s', args)
+    apis = create_clients(args.target_hosts)
+    for api in apis:
+        result = api.get_screenshot(args)
+        # print(result, api)
+        result = loads(result)
+        result['api'] = api._prefix[:1]
+        result = dumps(result)
+        print(result)
 
 def search_tabs(args):
     for result in query(args.sqlite, args.query):
@@ -484,6 +495,13 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id>"
         ''')
     parser_active_tab.set_defaults(func=show_active_tabs)
+
+    parser_screenshot = subparsers.add_parser(
+        'screenshot',
+        help='''
+        return base64 screenshot in json object with keys: 'data' (base64 png), 'tab' (tab id of visible tab), 'window' (window id of visible tab), 'api' (prefix of client api)
+        ''')
+    parser_screenshot.set_defaults(func=screenshot)
 
     parser_search_tabs = subparsers.add_parser(
         'search',

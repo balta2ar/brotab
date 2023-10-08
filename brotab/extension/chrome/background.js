@@ -50,6 +50,10 @@ class BrowserTabs {
     throw new Error('getActive is not implemented');
   }
 
+  getActiveScreenshot(onSuccess) {
+    throw new Error('getActiveScreenshot is not implemented');
+  }
+
   runScript(tab_id, script, payload, onSuccess, onError) {
     throw new Error('runScript is not implemented');
   }
@@ -109,6 +113,29 @@ class FirefoxTabs extends BrowserTabs {
   getActive(onSuccess) {
     this._browser.tabs.query({active: true}).then(
       onSuccess,
+      (error) => console.log(`Error: ${error}`)
+    );
+  }
+
+  getActiveScreenshot(onSuccess) {
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    this._browser.tabs.query(queryOptions).then(
+      (tabs) => {
+        let tab = tabs[0];
+        let windowId = tab.windowId;
+        let tabId = tab.id;
+        this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }).then(
+          function(data) {
+            const message = {
+              tab: tabId,
+              window: windowId,
+              data: data
+            };
+            onSuccess(message);
+          },
+          (error) => console.log(`Error: ${error}`)
+        );
+      },
       (error) => console.log(`Error: ${error}`)
     );
   }
@@ -174,6 +201,24 @@ class ChromeTabs extends BrowserTabs {
 
   getActive(onSuccess) {
     this._browser.tabs.query({active: true}, onSuccess);
+  }
+
+  getActiveScreenshot(onSuccess) {
+    // this._browser.tabs.captureVisibleTab(null, { format: 'png' }, onSuccess);
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    this._browser.tabs.query(queryOptions, (tabs) => {
+      let tab = tabs[0];
+      let windowId = tab.windowId;
+      let tabId = tab.id;
+      this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }, function(data) {
+        const message = {
+          tab: tabId,
+          window: windowId,
+          data: data
+        };
+        onSuccess(message);
+      });
+    });
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
@@ -405,6 +450,12 @@ function getActiveTabs() {
   });
 }
 
+function getActiveScreenshot() {
+  browserTabs.getActiveScreenshot(data => {
+    port.postMessage(data);
+  });
+}
+
 function getWordsScript(match_regex, join_with) {
   return GET_WORDS_SCRIPT
     .replace('#match_regex#', match_regex)
@@ -607,6 +658,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'get_active_tabs') {
     console.log('Getting active tabs');
     getActiveTabs();
+  }
+
+  else if (command['name'] == 'get_screenshot') {
+    console.log('Getting visible screenshot');
+    getActiveScreenshot();
   }
 
   else if (command['name'] == 'get_words') {
