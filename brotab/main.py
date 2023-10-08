@@ -554,6 +554,10 @@ def parse_args(args):
                                    help='tabs are in the last focused window.')
     parser_query_tabs.add_argument('-lastFocusedWindow', action='store_const', const=False, default=None,
                                    help='tabs are not in the last focused window.')
+    parser_query_tabs.add_argument('+windowFocused', action='store_const', const=True, default=None,
+                                   help='tabs are in the focused window.')
+    parser_query_tabs.add_argument('-windowFocused', action='store_const', const=False, default=None,
+                                   help='tabs are not in the focused window.')
     parser_query_tabs.add_argument('-status', type=str, choices=['loading', 'complete'],
                                    help='whether the tabs have completed loading i.e. loading or complete.')
     parser_query_tabs.add_argument('-title', type=str,

@@ -72,10 +72,30 @@ class FirefoxTabs extends BrowserTabs {
   }
 
   query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo).then(
-      onSuccess,
-      (error) => console.log(`Error executing queryTabs: ${error}`)
-    );
+    if (queryInfo.hasOwnProperty('windowFocused')) {
+      let keepFocused = queryInfo['windowFocused']
+      delete queryInfo.windowFocused;
+      this._browser.tabs.query(queryInfo).then(
+        tabs => {
+          Promise.all(tabs.map(tab => {
+            return new Promise(resolve => {
+              this._browser.windows.get(tab.windowId, {populate: false}, window => {
+                resolve(window.focused === keepFocused ? tab : null);
+              });
+            });
+          })).then(result => {
+            tabs = result.filter(tab => tab !== null);
+            onSuccess(tabs);
+          });
+        },
+        (error) => console.log(`Error executing queryTabs: ${error}`)
+      );
+    } else {
+      this._browser.tabs.query(queryInfo).then(
+        onSuccess,
+        (error) => console.log(`Error executing queryTabs: ${error}`)
+      );
+    }
   }
 
   close(tab_ids, onSuccess) {
@@ -179,7 +199,24 @@ class ChromeTabs extends BrowserTabs {
   }
 
   query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo, onSuccess);
+    if (queryInfo.hasOwnProperty('windowFocused')) {
+      let keepFocused = queryInfo['windowFocused']
+      delete queryInfo.windowFocused;
+      this._browser.tabs.query(queryInfo, tabs => {
+        Promise.all(tabs.map(tab => {
+          return new Promise(resolve => {
+            this._browser.windows.get(tab.windowId, {populate: false}, window => {
+              resolve(window.focused === keepFocused ? tab : null);
+            });
+          });
+        })).then(result => {
+          tabs = result.filter(tab => tab !== null);
+          onSuccess(tabs);
+        });
+      });
+    } else {
+      this._browser.tabs.query(queryInfo, onSuccess);
+    }
   }
 
   close(tab_ids, onSuccess) {
@@ -338,7 +375,7 @@ function queryTabs(query_info) {
 
     integerKeys = {'windowId': null, 'index': null};
     booleanKeys = {'active': null, 'pinned': null, 'audible': null, 'muted': null, 'highlighted': null,
-      'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null};
+      'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null, 'windowFocused': null};
 
     query = Object.entries(query).reduce((o, [k,v]) => {
       if (booleanKeys.hasOwnProperty(k) && typeof v != 'boolean') {
