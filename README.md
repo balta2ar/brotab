@@ -126,6 +126,7 @@ see [DEVELOPMENT.md](DEVELOPMENT.md)
 * [ulauncher-brotab](https://github.com/brpaz/ulauncher-brotab) -- Ulauncher extension for brotab
 * [cmp-brotab](https://github.com/pschmitt/cmp-brotab) -- brotab completion for nvim-cmp
 * [tab-search](https://github.com/reblws/tab-search) -- shows a nice icon with a number of tabs (Firefox)
+* [tab_wrangler](https://github.com/doctorcolossus/tab_wrangler) -- a text-based tab browser for tabaholics
 * [vimium-c](https://github.com/gdh1995/vimium-c) -- switch between tabs/history, close tabs with shift-del
 
 ## Author
