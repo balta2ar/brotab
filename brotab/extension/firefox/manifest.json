@@ -6,10 +6,11 @@
   "background": {
     "scripts": ["background.js"]
   },
+  "options_page": "options.html",
   "icons": {
       "128": "brotab-icon-128x128.png"
   },
-  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>"],
+  "permissions": ["nativeMessaging", "tabs", "activeTab", "<all_urls>", "storage"],
   "applications": {
     "gecko": {
       "id": "brotab_mediator@example.org",
