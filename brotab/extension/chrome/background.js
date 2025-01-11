@@ -50,6 +50,10 @@ class BrowserTabs {
     throw new Error('getActive is not implemented');
   }
 
+  getActiveScreenshot(onSuccess) {
+    throw new Error('getActiveScreenshot is not implemented');
+  }
+
   runScript(tab_id, script, payload, onSuccess, onError) {
     throw new Error('runScript is not implemented');
   }
@@ -68,10 +72,30 @@ class FirefoxTabs extends BrowserTabs {
   }
 
   query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo).then(
-      onSuccess,
-      (error) => console.log(`Error executing queryTabs: ${error}`)
-    );
+    if (queryInfo.hasOwnProperty('windowFocused')) {
+      let keepFocused = queryInfo['windowFocused']
+      delete queryInfo.windowFocused;
+      this._browser.tabs.query(queryInfo).then(
+        tabs => {
+          Promise.all(tabs.map(tab => {
+            return new Promise(resolve => {
+              this._browser.windows.get(tab.windowId, {populate: false}, window => {
+                resolve(window.focused === keepFocused ? tab : null);
+              });
+            });
+          })).then(result => {
+            tabs = result.filter(tab => tab !== null);
+            onSuccess(tabs);
+          });
+        },
+        (error) => console.log(`Error executing queryTabs: ${error}`)
+      );
+    } else {
+      this._browser.tabs.query(queryInfo).then(
+        onSuccess,
+        (error) => console.log(`Error executing queryTabs: ${error}`)
+      );
+    }
   }
 
   close(tab_ids, onSuccess) {
@@ -100,15 +124,45 @@ class FirefoxTabs extends BrowserTabs {
   }
 
   create(createOptions, onSuccess) {
-    this._browser.tabs.create(createOptions).then(
-      onSuccess,
-      (error) => console.log(`Error: ${error}`)
-    );
+    if (createOptions.windowId === 0) {
+      this._browser.windows.create({ url: createOptions.url }).then(
+        onSuccess,
+        (error) => console.log(`Error: ${error}`)
+      );
+    } else {
+      this._browser.tabs.create(createOptions).then(
+        onSuccess,
+        (error) => console.log(`Error: ${error}`)
+      );
+    }
   }
 
   getActive(onSuccess) {
     this._browser.tabs.query({active: true}).then(
       onSuccess,
+      (error) => console.log(`Error: ${error}`)
+    );
+  }
+
+  getActiveScreenshot(onSuccess) {
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    this._browser.tabs.query(queryOptions).then(
+      (tabs) => {
+        let tab = tabs[0];
+        let windowId = tab.windowId;
+        let tabId = tab.id;
+        this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }).then(
+          function(data) {
+            const message = {
+              tab: tabId,
+              window: windowId,
+              data: data
+            };
+            onSuccess(message);
+          },
+          (error) => console.log(`Error: ${error}`)
+        );
+      },
       (error) => console.log(`Error: ${error}`)
     );
   }
@@ -145,7 +199,24 @@ class ChromeTabs extends BrowserTabs {
   }
 
   query(queryInfo, onSuccess) {
-    this._browser.tabs.query(queryInfo, onSuccess);
+    if (queryInfo.hasOwnProperty('windowFocused')) {
+      let keepFocused = queryInfo['windowFocused']
+      delete queryInfo.windowFocused;
+      this._browser.tabs.query(queryInfo, tabs => {
+        Promise.all(tabs.map(tab => {
+          return new Promise(resolve => {
+            this._browser.windows.get(tab.windowId, {populate: false}, window => {
+              resolve(window.focused === keepFocused ? tab : null);
+            });
+          });
+        })).then(result => {
+          tabs = result.filter(tab => tab !== null);
+          onSuccess(tabs);
+        });
+      });
+    } else {
+      this._browser.tabs.query(queryInfo, onSuccess);
+    }
   }
 
   close(tab_ids, onSuccess) {
@@ -169,11 +240,33 @@ class ChromeTabs extends BrowserTabs {
   }
 
   create(createOptions, onSuccess) {
-    this._browser.tabs.create(createOptions, onSuccess);
+    if (createOptions.windowId === 0) {
+      this._browser.windows.create({ url: createOptions.url }, onSuccess);
+    } else {
+      this._browser.tabs.create(createOptions, onSuccess);
+    }
   }
 
   getActive(onSuccess) {
     this._browser.tabs.query({active: true}, onSuccess);
+  }
+
+  getActiveScreenshot(onSuccess) {
+    // this._browser.tabs.captureVisibleTab(null, { format: 'png' }, onSuccess);
+    let queryOptions = { active: true, lastFocusedWindow: true };
+    this._browser.tabs.query(queryOptions, (tabs) => {
+      let tab = tabs[0];
+      let windowId = tab.windowId;
+      let tabId = tab.id;
+      this._browser.tabs.captureVisibleTab(windowId, { format: 'png' }, function(data) {
+        const message = {
+          tab: tabId,
+          window: windowId,
+          data: data
+        };
+        onSuccess(message);
+      });
+    });
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
@@ -282,7 +375,7 @@ function queryTabs(query_info) {
 
     integerKeys = {'windowId': null, 'index': null};
     booleanKeys = {'active': null, 'pinned': null, 'audible': null, 'muted': null, 'highlighted': null,
-      'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null};
+      'discarded': null, 'autoDiscardable': null, 'currentWindow': null, 'lastFocusedWindow': null, 'windowFocused': null};
 
     query = Object.entries(query).reduce((o, [k,v]) => {
       if (booleanKeys.hasOwnProperty(k) && typeof v != 'boolean') {
@@ -335,10 +428,20 @@ function closeTabs(tab_ids) {
   browserTabs.close(tab_ids, () => port.postMessage('OK'));
 }
 
-function openUrls(urls, window_id) {
+function openUrls(urls, window_id, first_result="") {
   if (urls.length == 0) {
     console.log('Opening urls done');
     port.postMessage([]);
+    return;
+  }
+
+  if (window_id === 0) {
+    browserTabs.create({'url': urls[0], windowId: 0}, (window) => {
+      result = `${window.id}.${window.tabs[0].id}`;
+      console.log(`Opened first window: ${result}`);
+      urls = urls.slice(1);
+      openUrls(urls, window.id, result);
+    });
     return;
   }
 
@@ -352,6 +455,9 @@ function openUrls(urls, window_id) {
     }))
   };
   Promise.all(promises).then(result => {
+    if (first_result !== "") {
+      result.unshift(first_result);
+    }
     const data = Array.prototype.concat(...result)
     console.log(`Sending ids back: ${JSON.stringify(data)}`);
     port.postMessage(data)
@@ -402,6 +508,12 @@ function getActiveTabs() {
       var result = tabs.map(tab => tab.windowId + "." + tab.id).toString()
       console.log(`Active tabs: ${result}`);
       port.postMessage(result);
+  });
+}
+
+function getActiveScreenshot() {
+  browserTabs.getActiveScreenshot(data => {
+    port.postMessage(data);
   });
 }
 
@@ -607,6 +719,11 @@ port.onMessage.addListener((command) => {
   else if (command['name'] == 'get_active_tabs') {
     console.log('Getting active tabs');
     getActiveTabs();
+  }
+
+  else if (command['name'] == 'get_screenshot') {
+    console.log('Getting visible screenshot');
+    getActiveScreenshot();
   }
 
   else if (command['name'] == 'get_words') {

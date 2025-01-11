@@ -162,6 +162,9 @@ class SingleMediatorAPI(object):
     def get_active_tabs(self, args) -> List[str]:
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
+    def get_screenshot(self, args):
+        return self._get('/get_screenshot')
+
     def query_tabs(self, args):
         query = args
         if isinstance(query, str):
