@@ -107,6 +107,7 @@ Features to show:
 1. Install command-line client:
 ```
 $ pipx install brotab        # preferred method, if pipx not installed: $ sudo apt install pipx
+$ uv tool install brotab     # alternative
 $ pip install --user brotab  # alternative
 $ sudo pip install brotab    # alternative
 ```
