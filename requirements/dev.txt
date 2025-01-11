@@ -1,5 +1,6 @@
 -r test.txt
 
+fastentrypoints
 ipython
 ipdb
 pudb

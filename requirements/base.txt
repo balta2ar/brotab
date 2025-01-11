@@ -1,4 +1,5 @@
-Flask==2.0.2
+Flask==2.2.2
 requests==2.24.0
 psutil==5.8.0
-Werkzeug==2.2.2
+Werkzeug<3.0
+setuptools==75.8.0
