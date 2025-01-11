@@ -11,16 +11,25 @@ import os
 import time
 import subprocess
 
-from albert import Item, info, ProcAction
+from albert import QueryHandler, Item, info, Action, runDetachedProcess
 
 from brotab.search.query import query as brotab_query
 
 __title__ = "BroTab Search"
-__version__ = "0.1.0"
+__version__ = "0.1"
 __triggers__ = "s "
 __authors__ = ["Yuri Bochkarev"]
 __dependencies__ = []
 __exec_deps__ = ["bt"]
+
+md_iid = "0.5"
+md_version = "0.1"
+md_id = "brotab"
+md_name = "BroTab Search"
+md_description = "Search your indexed browser tabs' contents."
+md_license = "BSD-2"
+md_url = "https://github.com/balta2ar/brotab"
+md_maintainers = "@balta2ar"
 
 SQL_DB_FILENAME = '/tmp/tabs.sqlite'
 SQL_DB_TTL_SECONDS = 5 * 60
@@ -42,8 +51,8 @@ def need_refresh_index():
 
 def handleQuery(query):
     # it's not our query
-    if not query.isTriggered:
-        return None
+    # if not query.isTriggered:
+    #     return None
 
     # query is empty
     user_query = query.string.strip()
@@ -67,7 +76,11 @@ def handleQuery(query):
             text='Reindex browser tabs',
             subtext='> bt index',
             actions=[
-                ProcAction('Activate', ['bt', 'index'])
+                Action(
+                    id='reindex',
+                    text='Reindex browser tabs',
+                    callable=lambda: runDetachedProcess(cmdln=['bt', 'index'], workdir='~'),
+                )
             ]
         ))
 
@@ -81,8 +94,24 @@ def handleQuery(query):
             text=query_result.snippet,
             subtext=query_result.title,
             actions=[
-                ProcAction('Activate', ['bt', 'activate', query_result.tab_id])
+                Action(
+                    id='activate',
+                    text='Activate',
+                    callable=lambda: runDetachedProcess(cmdln=['bt', 'activate', query_result.tab_id], workdir='~'),
+                )
             ]
         ))
 
-    return items
+    #return items
+    query.add(items)
+
+class Plugin(QueryHandler):
+    def id(self): return md_id
+    def name(self): return md_name
+    def description(self): return md_description
+    def initialize(self): info('brotab initialize')
+    def finalize(self): info('brotab finalize')
+    def defaultTrigger(self): return __triggers__
+    def handleQuery(self, query):
+        info('brotab handleQuery')
+        return handleQuery(query)
