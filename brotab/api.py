@@ -382,6 +382,7 @@ class MultipleMediatorsAPI(object):
             updates = [deepcopy(u) for u in all_updates if api.prefix_match(u['tab_id'])]
             for u in updates:
                 u['tab_id'] = int_tab_id(u['tab_id'])
+                u['properties']['openerTabId'] = int_tab_id(u['properties']['openerTabId'])
             results.extend(api.update_tabs(updates))
         return results
 
