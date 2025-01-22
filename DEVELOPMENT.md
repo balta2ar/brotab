@@ -161,6 +161,7 @@ set -o allexport; source .env; set +o allexport
 ## Old steps of release procedure
 
 $ python setup.py sdist bdist_wheel
+$ uv build # this one is faster
 $ twine upload dist/*
 
 ## Commands

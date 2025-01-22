@@ -1,3 +1,8 @@
+1.5.0 (2025-01-22)
+
+* Added "bt screenshot" command
+* Fixed some dependencies in requirements/base.txt
+
 1.4.2 (2022-05-29)
 
 * Support config file in `$XDG_CONFIG_HOME/brotab/brotab.env`:
