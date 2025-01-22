@@ -47,6 +47,7 @@ News:
 
 """
 
+import json
 import os
 import re
 import sys
@@ -143,8 +144,15 @@ def list_tabs(args):
     brotab_logger.info('Listing tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.list_tabs([])
-    message = '\n'.join(tabs) + '\n'
-    sys.stdout.buffer.write(message.encode('utf8'))
+    if args.json:
+        tabs_json = [
+            {"id": x[0], "title": x[1], "url": x[2]}
+            for x in [y.split("\t") for y in tabs]
+        ]
+        print(json.dumps(tabs_json))
+    else:
+        message = "\n".join(tabs) + "\n"
+        sys.stdout.buffer.write(message.encode("utf8"))
 
 
 def close_tabs(args):
@@ -464,6 +472,8 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
         ''')
     parser_list_tabs.set_defaults(func=list_tabs)
+    parser_list_tabs.add_argument('--json', action='store_const', const=True, default=False,
+                                  help='JSON output (default=False)')
 
     parser_close_tabs = subparsers.add_parser(
         'close',
