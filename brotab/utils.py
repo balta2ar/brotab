@@ -1,3 +1,5 @@
+import os
+import sys
 import re
 import shutil
 from base64 import urlsafe_b64decode
@@ -29,6 +31,8 @@ def get_file_size(path):
 
 def which(program):
     paths = [None, '/usr/local/bin', '/usr/bin', '/bin', '~/bin', '~/.local/bin']
+    if sys.executable:  # add the path of the Python interpreter itself
+        paths.append(os.path.dirname(sys.executable))
     for path in paths:
         path = expanduser(expandvars(path)) if path else None
         path = shutil.which(program, path=path)
