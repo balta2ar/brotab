@@ -377,15 +377,26 @@ def install_mediator(args):
     if is_windows():
         bt_mediator_path = make_windows_path_double_sep(bt_mediator_path)
 
+    mozilla_path = '~/.mozilla/native-messaging-hosts/'
+    chrome_path = '~/.config/google-chrome/NativeMessagingHosts'
+    chromium_path = '~/.config/chromium/NativeMessagingHosts'
+    brave_path = '~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/'
+
+    if is_macos():
+        mozilla_path = '~/Library/Application Support/Mozilla/'
+        chrome_path = '~/Library/Application Support/Google/Chrome/'
+        chromium_path = '~/Library/Application Support/Chromium/'
+        brave_path = chrome_path
+
     native_app_manifests = [
         ('mediator/firefox_mediator.json',
-         '~/.mozilla/native-messaging-hosts/brotab_mediator.json'),
+         f"{mozilla_path}/brotab_mediator.json"),
         ('mediator/chromium_mediator.json',
-         '~/.config/chromium/NativeMessagingHosts/brotab_mediator.json'),
+         f"{chromium_path}/brotab_mediator.json"),
         ('mediator/chromium_mediator.json',
-         '~/.config/google-chrome/NativeMessagingHosts/brotab_mediator.json'),
+         f"{chrome_path}/brotab_mediator.json"),
         ('mediator/chromium_mediator.json',
-         '~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/brotab_mediator.json'),
+         f"{brave_path}/brotab_mediator.json"),
     ]
 
     if args.tests:

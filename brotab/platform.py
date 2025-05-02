@@ -46,6 +46,8 @@ def register_native_manifest_windows_firefox(manifest_filename):
 def is_windows() -> bool:
     return platform.system() == 'Windows'
 
+def is_macos() -> bool:
+    return platform.system() == 'Darwin'
 
 def get_editor() -> str:
     mapping = {
