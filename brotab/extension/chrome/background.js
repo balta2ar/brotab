@@ -270,15 +270,26 @@ class ChromeTabs extends BrowserTabs {
   }
 
   runScript(tab_id, script, payload, onSuccess, onError) {
-    this._browser.tabs.executeScript(
-      tab_id, {code: script},
-      (result) => {
-        // https://stackoverflow.com/a/45603880/258421
-        let lastError = chrome.runtime.lastError;
+    // Manifest V3: use chrome.scripting.executeScript instead of tabs.executeScript
+    this._browser.scripting.executeScript(
+      {
+        target: { tabId: tab_id },
+        func: (code) => {
+          // Execute provided code string in the page context
+          // and return its result. This mirrors MV2 behavior where
+          // executeScript returned an array with a single result.
+          // eslint-disable-next-line no-eval
+          return eval(code);
+        },
+        args: [script]
+      },
+      (injectionResults) => {
+        const lastError = chrome.runtime.lastError;
         if (lastError) {
           onError(lastError, payload);
         } else {
-          onSuccess(result, payload);
+          const results = (injectionResults || []).map(r => r.result);
+          onSuccess(results, payload);
         }
       }
     );
@@ -296,6 +307,41 @@ var tabs = undefined;
 var browserTabs = undefined;
 const NATIVE_APP_NAME = 'brotab_mediator';
 reconnect();
+
+// In MV3, the service worker can be suspended when idle.
+// Use an alarm to periodically wake it and re-establish the native connection
+// without sending unsolicited messages to the native app.
+try {
+  if (typeof chrome !== 'undefined' && chrome.alarms) {
+    const KEEPALIVE_ALARM = 'bt-keepalive';
+
+    function scheduleKeepAlive() {
+      // Minimum is 1 minute; keep it modest to avoid excessive wakeups
+      chrome.alarms.create(KEEPALIVE_ALARM, { periodInMinutes: 1 });
+    }
+
+    chrome.runtime.onInstalled.addListener(() => {
+      scheduleKeepAlive();
+      // Ensure we have a connection on install/refresh
+      if (!port) reconnect();
+    });
+
+    chrome.runtime.onStartup.addListener(() => {
+      scheduleKeepAlive();
+      // Ensure we have a connection on browser startup
+      if (!port) reconnect();
+    });
+
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      if (alarm && alarm.name === KEEPALIVE_ALARM) {
+        // If there is no active port, re-connect; do not send messages
+        if (!port) reconnect();
+      }
+    });
+  }
+} catch (e) {
+  console.warn('Keepalive scheduling failed:', e);
+}
 
 function reconnect() {
   console.log("Connecting to native app");
