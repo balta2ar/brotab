@@ -344,7 +344,7 @@ function listTabsOnSuccess(tabs) {
   // Make sure tabs are sorted by their index within a window
   tabs.sort(compareWindowIdTabId);
   for (let tab of tabs) {
-    var line = + tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url;
+    var line = + tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url + "\t" + (tab.lastAccessed || 0);
     console.log(line);
     lines.push(line);
   }
@@ -358,7 +358,7 @@ function listTabs() {
 
 function queryTabsOnSuccess(tabs) {
   tabs.sort(compareWindowIdTabId);
-  let lines = tabs.map(tab => `${tab.windowId}.${tab.id}\t${tab.title}\t${tab.url}`)
+  let lines = tabs.map(tab => `${tab.windowId}.${tab.id}\t${tab.title}\t${tab.url}\t${tab.lastAccessed || 0}`)
   console.log(lines);
   port.postMessage(lines);
 }
@@ -632,7 +632,7 @@ function getTextOnRunScriptSuccess(all_results) {
     tab = result['tab'];
     text = result['text'];
     // console.log(`Result: ${tab.id}, ${text.length}`);
-    let line = tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url + "\t" + text;
+    let line = tab.windowId + "." + tab.id + "\t" + tab.title + "\t" + tab.url + "\t" + (tab.lastAccessed || 0) + "\t" + text;
     lines.push(line);
   }
   // lines = lines.sort(naturalCompare);

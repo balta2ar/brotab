@@ -135,6 +135,11 @@ def move_tabs(args):
     api.move_tabs([])
 
 
+def strip_last_accessed(tabs):
+    """Strip the lastAccessed field (4th column) from tab lines."""
+    return ['\t'.join(tab.split('\t')[:3]) for tab in tabs]
+
+
 def list_tabs(args):
     """
     Use this to show duplicates:
@@ -143,6 +148,8 @@ def list_tabs(args):
     brotab_logger.info('Listing tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
     tabs = api.list_tabs([])
+    if not args.last_accessed:
+        tabs = strip_last_accessed(tabs)
     message = '\n'.join(tabs) + '\n'
     sys.stdout.buffer.write(message.encode('utf8'))
 
@@ -196,9 +203,12 @@ def query_tabs(args):
         queryInfo = d['info']
     else:
         queryInfo = {k: v for k, v in d.items()
-                     if v is not None and k not in ['func', 'info', 'target_hosts']}
+                     if v is not None and k not in ['func', 'info', 'target_hosts', 'last_accessed']}
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    for tab in api.query_tabs(queryInfo):
+    tabs = list(api.query_tabs(queryInfo))
+    if not args.last_accessed:
+        tabs = strip_last_accessed(tabs)
+    for tab in tabs:
         print(tab)
 
 
@@ -464,6 +474,8 @@ def parse_args(args):
         "<prefix>.<window_id>.<tab_id><Tab>Page title<Tab>URL"
         ''')
     parser_list_tabs.set_defaults(func=list_tabs)
+    parser_list_tabs.add_argument('--last-accessed', '-L', action='store_true',
+                                  help='Include lastAccessed timestamp in output')
 
     parser_close_tabs = subparsers.add_parser(
         'close',
@@ -518,6 +530,8 @@ def parse_args(args):
         help='Filter tabs using chrome.tabs api.',
         prefix_chars='-+')
     parser_query_tabs.set_defaults(func=query_tabs)
+    parser_query_tabs.add_argument('--last-accessed', '-L', action='store_true',
+                                   help='Include lastAccessed timestamp in output')
     parser_query_tabs.add_argument('+active', action='store_const', const=True, default=None,
                                    help='tabs are active in their windows')
     parser_query_tabs.add_argument('-active', action='store_const', const=False, default=None,
