@@ -1,10 +1,11 @@
 class Tab:
-    def __init__(self, prefix, window_id, tab_id, title, url):
+    def __init__(self, prefix, window_id, tab_id, title, url, last_accessed=0):
         self.prefix = prefix
         self.window_id = window_id
         self.tab_id = tab_id
         self.title = title
         self.url = url
+        self.last_accessed = last_accessed
 
     @property
     def id(self):
@@ -35,9 +36,11 @@ class Tab:
 
     @staticmethod
     def from_line(line):
-        ids, title, url = line.split('\t')
+        parts = line.split('\t')
+        ids, title, url = parts[0], parts[1], parts[2]
+        last_accessed = int(parts[3]) if len(parts) > 3 else 0
         prefix, window_id, tab_id = ids.split('.')
-        return Tab(prefix, int(window_id), int(tab_id), title, url)
+        return Tab(prefix, int(window_id), int(tab_id), title, url, last_accessed)
 
 
 def parse_tab_lines(tab_lines):
