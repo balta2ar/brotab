@@ -17,11 +17,11 @@ def http_iface():
 
 
 def min_http_port():
-    return environ.get('MIN_HTTP_PORT', DEFAULT_MIN_HTTP_PORT)
+    return int(environ.get('MIN_HTTP_PORT', DEFAULT_MIN_HTTP_PORT))
 
 
 def max_http_port():
-    return environ.get('MAX_HTTP_PORT', DEFAULT_MAX_HTTP_PORT)
+    return int(environ.get('MAX_HTTP_PORT', DEFAULT_MAX_HTTP_PORT))
 
 
 def load_dotenv(filename=None):
