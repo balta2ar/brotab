@@ -18,7 +18,7 @@ from brotab.platform import get_editor
 
 
 def get_mediator_ports() -> Iterable:
-    return range(min_http_port(), max_http_port())
+    return range(min_http_port(), max_http_port() + 1)
 
 
 def get_available_tcp_port(start=1025, end=65536, host='127.0.0.1'):
