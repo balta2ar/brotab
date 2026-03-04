@@ -190,5 +190,5 @@ run Chromium in Xvfb in integration tests:
    brotab/mediator/chromium_mediator_tests.json, which is used in `bt install`.
 
 firefox: use web-ext run
-https://developer.mozilla.org/en-US/Add-ons/WebExtensions/Getting_started_with_web-ext
+https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Getting_started_with_web-ext
 
