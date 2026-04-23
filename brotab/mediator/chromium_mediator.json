@@ -5,6 +5,7 @@
   "type": "stdio",
   "allowed_extensions": [ "brotab_mediator@example.org" ],
   "allowed_origins": [
-    "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/"
+    "chrome-extension://mhpeahbikehnfkfnmopaigggliclhmnc/",
+    "chrome-extension://knldjmfmopnpolahpmmgbagdohdnhkik/"
   ]
 }

@@ -2,11 +2,76 @@
 On startup, connect to the "brotab_mediator" app.
 */
 
-//const GET_WORDS_SCRIPT = '[...new Set(document.body.innerText.match(/\\w+/g))].sort().join("\\n");';
-const GET_WORDS_SCRIPT = '[...new Set(document.documentElement.innerText.match(#match_regex#))].sort().join(#join_with#);';
-//const GET_TEXT_SCRIPT = 'document.body.innerText.replace(/\\n|\\r|\\t/g, " ");';
-const GET_TEXT_SCRIPT = 'document.documentElement.innerText.replace(#delimiter_regex#, #replace_with#);';
-const GET_HTML_SCRIPT = 'document.documentElement.innerHTML.replace(#delimiter_regex#, #replace_with#);';
+function runInPage(operation, firstArg, secondArg) {
+  function parseRegexLiteral(regexLiteral) {
+    if (regexLiteral instanceof RegExp) {
+      return regexLiteral;
+    }
+
+    if (typeof regexLiteral !== 'string') {
+      throw new Error(`Unsupported regex literal: ${regexLiteral}`);
+    }
+
+    if (!regexLiteral.startsWith('/')) {
+      return new RegExp(regexLiteral);
+    }
+
+    let delimiterIndex = -1;
+    for (let i = regexLiteral.length - 1; i > 0; i -= 1) {
+      if (regexLiteral[i] === '/' && regexLiteral[i - 1] !== '\\') {
+        delimiterIndex = i;
+        break;
+      }
+    }
+
+    if (delimiterIndex === -1) {
+      throw new Error(`Invalid regex literal: ${regexLiteral}`);
+    }
+
+    return new RegExp(
+      regexLiteral.slice(1, delimiterIndex),
+      regexLiteral.slice(delimiterIndex + 1),
+    );
+  }
+
+  function parseStringLiteral(serializedValue) {
+    if (typeof serializedValue !== 'string') {
+      return serializedValue;
+    }
+
+    try {
+      return JSON.parse(serializedValue);
+    } catch (_error) {
+      return serializedValue;
+    }
+  }
+
+  const documentElement = document.documentElement;
+  if (!documentElement) {
+    return '';
+  }
+
+  if (operation === 'get_words') {
+    const matches = documentElement.innerText.match(parseRegexLiteral(firstArg)) || [];
+    return [...new Set(matches)].sort().join(parseStringLiteral(secondArg));
+  }
+
+  if (operation === 'get_text') {
+    return documentElement.innerText.replace(
+      parseRegexLiteral(firstArg),
+      parseStringLiteral(secondArg),
+    );
+  }
+
+  if (operation === 'get_html') {
+    return documentElement.innerHTML.replace(
+      parseRegexLiteral(firstArg),
+      parseStringLiteral(secondArg),
+    );
+  }
+
+  throw new Error(`Unknown operation: ${operation}`);
+}
 
 
 class BrowserTabs {
@@ -54,7 +119,7 @@ class BrowserTabs {
     throw new Error('getActiveScreenshot is not implemented');
   }
 
-  runScript(tab_id, script, payload, onSuccess, onError) {
+  runScript(tab_id, operation, firstArg, secondArg, payload, onSuccess, onError) {
     throw new Error('runScript is not implemented');
   }
 
@@ -167,7 +232,13 @@ class FirefoxTabs extends BrowserTabs {
     );
   }
 
-  runScript(tab_id, script, payload, onSuccess, onError) {
+  runScript(tab_id, operation, firstArg, secondArg, payload, onSuccess, onError) {
+    const script = operation === 'get_words'
+      ? getWordsScript(firstArg, secondArg)
+      : operation === 'get_text'
+        ? getTextScript(firstArg, secondArg)
+        : getHtmlScript(firstArg, secondArg);
+
     this._browser.tabs.executeScript(tab_id, {code: script}).then(
       (result) => onSuccess(result, payload),
       (error) => onError(error, payload)
@@ -269,17 +340,21 @@ class ChromeTabs extends BrowserTabs {
     });
   }
 
-  runScript(tab_id, script, payload, onSuccess, onError) {
-    this._browser.tabs.executeScript(
-      tab_id, {code: script},
+  runScript(tab_id, operation, firstArg, secondArg, payload, onSuccess, onError) {
+    this._browser.scripting.executeScript(
+      {
+        args: [operation, firstArg, secondArg],
+        func: runInPage,
+        target: {tabId: tab_id},
+      },
       (result) => {
-        // https://stackoverflow.com/a/45603880/258421
-        let lastError = chrome.runtime.lastError;
+        const lastError = chrome.runtime.lastError;
         if (lastError) {
           onError(lastError, payload);
-        } else {
-          onSuccess(result, payload);
+          return;
         }
+
+        onSuccess(result.map(item => item.result), payload);
       }
     );
   }
@@ -297,17 +372,110 @@ var browserTabs = undefined;
 const NATIVE_APP_NAME = 'brotab_mediator';
 reconnect();
 
+function bindPortListeners(currentPort) {
+  currentPort.onMessage.addListener((command) => {
+    console.log("Received: " + JSON.stringify(command, null, 4));
+
+    if (command['name'] == 'list_tabs') {
+      console.log('Listing tabs...');
+      listTabs();
+    }
+
+    else if (command['name'] == 'query_tabs') {
+      console.log('Querying tabs...');
+      queryTabs(command['query_info']);
+    }
+
+    else if (command['name'] == 'close_tabs') {
+      console.log('Closing tabs:', command['tab_ids']);
+      closeTabs(command['tab_ids']);
+    }
+
+    else if (command['name'] == 'move_tabs') {
+      console.log('Moving tabs:', command['move_triplets']);
+      moveTabs(command['move_triplets']);
+    }
+
+    else if (command['name'] == 'open_urls') {
+      console.log('Opening URLs:', command['urls'], command['window_id']);
+      openUrls(command['urls'], command['window_id']);
+    }
+
+    else if (command['name'] == 'new_tab') {
+      console.log('Creating tab:', command['url']);
+      createTab(command['url']);
+    }
+
+    else if (command['name'] == 'update_tabs') {
+      console.log('Updating tabs:', command['updates']);
+      updateTabs(command['updates']);
+    }
+
+    else if (command['name'] == 'activate_tab') {
+      console.log('Activating tab:', command['tab_id']);
+      activateTab(command['tab_id'], !!command['focused']);
+    }
+
+    else if (command['name'] == 'get_active_tabs') {
+      console.log('Getting active tabs');
+      getActiveTabs();
+    }
+
+    else if (command['name'] == 'get_screenshot') {
+      console.log('Getting visible screenshot');
+      getActiveScreenshot();
+    }
+
+    else if (command['name'] == 'get_words') {
+      console.log('Getting words from tab:', command['tab_id']);
+      getWords(command['tab_id'], command['match_regex'], command['join_with']);
+    }
+
+    else if (command['name'] == 'get_text') {
+      console.log('Getting texts from all tabs');
+      getText(command['delimiter_regex'], command['replace_with']);
+    }
+
+    else if (command['name'] == 'get_html') {
+      console.log('Getting HTML from all tabs');
+      getHtml(command['delimiter_regex'], command['replace_with']);
+    }
+
+    else if (command['name'] == 'get_browser') {
+      console.log('Getting browser name');
+      getBrowserName();
+    }
+  });
+
+  currentPort.onDisconnect.addListener(function() {
+    console.log("Disconnected");
+    if (chrome.runtime.lastError) {
+      console.warn("Reason: " + chrome.runtime.lastError.message);
+    } else {
+      console.warn("lastError is undefined");
+    }
+    console.log("Trying to reconnect");
+    reconnect();
+  });
+}
+
 function reconnect() {
   console.log("Connecting to native app");
-  if (typeof browser !== 'undefined') {
-    port = browser.runtime.connectNative(NATIVE_APP_NAME);
-    console.log("It's Firefox: " + port);
-    browserTabs = new FirefoxTabs(browser);
+  const isChrome = typeof chrome !== 'undefined' && !!chrome.runtime?.id;
+  const isFirefox = typeof browser !== 'undefined' && typeof browser.runtime?.getBrowserInfo === 'function';
 
-  } else if (typeof chrome !== 'undefined') {
+  if (isChrome) {
+    console.log("Chrome extension id: " + chrome.runtime.id);
     port = chrome.runtime.connectNative(NATIVE_APP_NAME);
     console.log("It's Chrome/Chromium: " + port);
     browserTabs = new ChromeTabs(chrome);
+    bindPortListeners(port);
+
+  } else if (isFirefox) {
+    port = browser.runtime.connectNative(NATIVE_APP_NAME);
+    console.log("It's Firefox: " + port);
+    browserTabs = new FirefoxTabs(browser);
+    bindPortListeners(port);
 
   } else {
     console.log("Unknown browser detected");
@@ -518,21 +686,15 @@ function getActiveScreenshot() {
 }
 
 function getWordsScript(match_regex, join_with) {
-  return GET_WORDS_SCRIPT
-    .replace('#match_regex#', match_regex)
-    .replace('#join_with#', join_with);
+  return '[...new Set(document.documentElement.innerText.match(' + match_regex + '))].sort().join(' + join_with + ');';
 }
 
 function getTextScript(delimiter_regex, replace_with) {
-  return GET_TEXT_SCRIPT
-    .replace('#delimiter_regex#', delimiter_regex)
-    .replace('#replace_with#', replace_with);
+  return 'document.documentElement.innerText.replace(' + delimiter_regex + ', ' + replace_with + ');';
 }
 
 function getHtmlScript(delimiter_regex, replace_with) {
-  return GET_HTML_SCRIPT
-    .replace('#delimiter_regex#', delimiter_regex)
-    .replace('#replace_with#', replace_with);
+  return 'document.documentElement.innerHTML.replace(' + delimiter_regex + ', ' + replace_with + ');';
 }
 
 function listOr(list, default_value) {
@@ -545,11 +707,9 @@ function listOr(list, default_value) {
 function getWordsFromTabs(tabs, match_regex, join_with) {
   var promises = [];
   console.log(`Getting words from tabs: ${tabs}`);
-  const script = getWordsScript(match_regex, join_with);
-
   for (let tab of tabs) {
     var promise = new Promise(
-      (resolve, reject) => browserTabs.runScript(tab.id, script, null,
+      (resolve, reject) => browserTabs.runScript(tab.id, 'get_words', match_regex, join_with, null,
         (words, _payload) => {
           words = listOr(words, []);
           console.log(`Got ${words.length} words from another tab`);
@@ -579,25 +739,24 @@ function getWords(tab_id, match_regex, join_with) {
       (tabs) => getWordsFromTabs(tabs, match_regex, join_with),
     );
   } else {
-    const script = getWordsScript(match_regex, join_with);
-    console.log(`Getting words, running a script: ${script}`);
-    browserTabs.runScript(tab_id, script, null,
+    console.log(`Getting words with regex: ${match_regex}`);
+    browserTabs.runScript(tab_id, 'get_words', match_regex, join_with, null,
       (words, _payload) => port.postMessage(listOr(words, [])),
-      (error, _payload) => console.log(`getWords: tab_id=${tab_id}, could not run script (${script})`),
+      (error, _payload) => console.log(`getWords: tab_id=${tab_id}, could not run script (${match_regex})`),
     );
   }
 }
 
 function getTextOrHtmlFromTabs(tabs, scriptGetter, delimiter_regex, replace_with, onSuccess) {
   var promises = [];
-  const script = scriptGetter(delimiter_regex, replace_with)
-  console.log(`Getting text from tabs: ${tabs.length}, script (${script})`);
+  const operation = scriptGetter === getTextScript ? 'get_text' : 'get_html';
+  console.log(`Getting text from tabs: ${tabs.length}, operation (${operation})`);
 
   lines = [];
   for (let tab of tabs) {
     // console.log(`Processing tab ${tab.id}`);
     var promise = new Promise(
-      (resolve, reject) => browserTabs.runScript(tab.id, script, tab,
+      (resolve, reject) => browserTabs.runScript(tab.id, operation, delimiter_regex, replace_with, tab,
         (text, current_tab) => {
           // let as_text = JSON.stringify(text);
           // I don't know why, but an array of one item is sent here, so I take
@@ -669,95 +828,6 @@ function getBrowserName() {
   console.log("Sending browser name: " + name);
   port.postMessage(name);
 }
-
-/*
-Listen for messages from the app.
-*/
-port.onMessage.addListener((command) => {
-  console.log("Received: " + JSON.stringify(command, null, 4));
-
-  if (command['name'] == 'list_tabs') {
-    console.log('Listing tabs...');
-    listTabs();
-  }
-
-  else if (command['name'] == 'query_tabs') {
-    console.log('Querying tabs...');
-    queryTabs(command['query_info']);
-  }
-
-  else if (command['name'] == 'close_tabs') {
-    console.log('Closing tabs:', command['tab_ids']);
-    closeTabs(command['tab_ids']);
-  }
-
-  else if (command['name'] == 'move_tabs') {
-    console.log('Moving tabs:', command['move_triplets']);
-    moveTabs(command['move_triplets']);
-  }
-
-  else if (command['name'] == 'open_urls') {
-    console.log('Opening URLs:', command['urls'], command['window_id']);
-    openUrls(command['urls'], command['window_id']);
-  }
-
-  else if (command['name'] == 'new_tab') {
-    console.log('Creating tab:', command['url']);
-    createTab(command['url']);
-  }
-
-  else if (command['name'] == 'update_tabs') {
-    console.log('Updating tabs:', command['updates']);
-    updateTabs(command['updates']);
-  }
-
-  else if (command['name'] == 'activate_tab') {
-    console.log('Activating tab:', command['tab_id']);
-    activateTab(command['tab_id'], !!command['focused']);
-  }
-
-  else if (command['name'] == 'get_active_tabs') {
-    console.log('Getting active tabs');
-    getActiveTabs();
-  }
-
-  else if (command['name'] == 'get_screenshot') {
-    console.log('Getting visible screenshot');
-    getActiveScreenshot();
-  }
-
-  else if (command['name'] == 'get_words') {
-    console.log('Getting words from tab:', command['tab_id']);
-    getWords(command['tab_id'], command['match_regex'], command['join_with']);
-  }
-
-  else if (command['name'] == 'get_text') {
-    console.log('Getting texts from all tabs');
-    getText(command['delimiter_regex'], command['replace_with']);
-  }
-
-  else if (command['name'] == 'get_html') {
-    console.log('Getting HTML from all tabs');
-    getHtml(command['delimiter_regex'], command['replace_with']);
-  }
-
-  else if (command['name'] == 'get_browser') {
-    console.log('Getting browser name');
-    getBrowserName();
-  }
-});
-
-port.onDisconnect.addListener(function() {
-  console.log("Disconnected");
-  if(chrome.runtime.lastError) {
-    console.warn("Reason: " + chrome.runtime.lastError.message);
-  } else {
-    console.warn("lastError is undefined");
-  }
-  //sleep(5000);
-  console.log("Trying to reconnect");
-  reconnect();
-});
 
 console.log("Connected to native app " + NATIVE_APP_NAME);
 
