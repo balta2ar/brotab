@@ -59,6 +59,7 @@ from string import ascii_lowercase
 from typing import List
 from typing import Tuple
 from urllib.parse import quote_plus
+import asyncio
 
 from brotab.api import MultipleMediatorsAPI
 from brotab.api import SingleMediatorAPI
@@ -788,6 +789,8 @@ def run_commands(args):
 
 
 def main():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     exit(run_commands(sys.argv[1:]))
 
 
