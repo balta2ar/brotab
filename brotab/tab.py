@@ -15,6 +15,13 @@ class Tab:
         )
 
     @property
+    def window(self):
+        return '{prefix}.{window_id}'.format(
+            prefix=self.prefix,
+            window_id=self.window_id,
+        )
+
+    @property
     def line(self):
         return '{prefix}.{window_id}.{tab_id}\t{title}\t{url}'.format(
             prefix=self.prefix,
@@ -42,6 +49,29 @@ class Tab:
 
 def parse_tab_lines(tab_lines):
     return [Tab.from_line(line) for line in tab_lines]
+
+
+def get_per_window_indices(tabs):
+    """Create a dict mapping each tab to its index within its window.
+
+    This differs from the KeyToIndexMapper family of maps since those
+    deal only in global positions.
+
+    Args:
+        tab_lines(list[str]): The list of tabs detailing window ID, tab
+            ID, and title.
+
+    Returns:
+        dict[str, int]: A map from tab ID to per-window index.
+    """
+    window_index_counter = {}
+    indices = {}
+    for tab in tabs:
+        index = window_index_counter.setdefault(tab.window, 0)
+        indices[tab.tab_id] = index
+        window_index_counter[tab.window] += 1
+
+    return indices
 
 
 def iter_window_tabs(left: [Tab], right: [Tab]):
