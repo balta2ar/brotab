@@ -132,7 +132,7 @@ def parse_prefix_and_window_id(prefix_window_id):
 def move_tabs(args):
     brotab_logger.info('Moving tabs')
     api = MultipleMediatorsAPI(create_clients(args.target_hosts))
-    api.move_tabs([])
+    api.move_tabs(args)
 
 
 def list_tabs(args):
@@ -454,6 +454,8 @@ def parse_args(args):
         specified windows
         ''')
     parser_move_tabs.set_defaults(func=move_tabs)
+    parser_move_tabs.add_argument('--grouped', action='store_true',
+                                  help='Edit tabs in window->tab grouped mode (default: False)')
 
     parser_list_tabs = subparsers.add_parser(
         'list',

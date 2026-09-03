@@ -74,6 +74,64 @@ def get_per_window_indices(tabs):
     return indices
 
 
+def parse_groups(tab_lines):
+    """Converts an array of flat {window_id}.{tab_id} lines into a
+    grouped format. Each section describes the tabs of a certain
+    window, starting with a line "Window {window_id}", followed by
+    indented lines of the form "{tab_id} {title} {url}".
+
+    This enables easier editing: tabs can still be deleted and moved
+    around a window as in the classic editing style, but moving tabs
+    from window to window is now simpler (the tab line can just be cut
+    and pasted under a different Window heading; see
+    `flatten_groups()` for more details).
+    """
+    tabs = parse_tab_lines(tab_lines)
+
+    groups = {}
+    for tab in tabs:
+        win = groups.setdefault(tab.window, [])
+        win.append(tab)
+
+    lines = []
+    for win, wintabs in groups.items():
+        lines.append('Window {win}'.format(win=win))
+        for tab in wintabs:
+            tabline = '    {tab_id}\t{title}\t{url}'.format(
+                tab_id=tab.tab_id,
+                title=tab.title,
+                url=tab.url,
+            )
+            lines.append(tabline)
+        lines.append('')
+
+    # Just omit that very last blank line.
+    return lines[:-1]
+
+
+def flatten_groups(lines):
+    """Converts a list of parsed group tab lines back into the flat
+    form. Essentially, this undoes the action of `parse_groups()`
+    above.
+
+    This is needed to convert an edited groupwise tab lines file back
+    into the flat format the core logic of this program understands.
+    """
+    lines_out = []
+    win = None
+    for line in lines:
+        if line == '':
+            continue
+        elif line.startswith('Window '):
+            win = line.split(' ')[1]
+        else:
+            tab_parts = line.split('\t')
+            tab_id = win + '.' + tab_parts[0]
+            lines_out.append('\t'.join([tab_id] + tab_parts[1:]))
+
+    return lines_out
+
+
 def iter_window_tabs(left: [Tab], right: [Tab]):
     # get_window_id = attrgetter('window_id')
     # left = sorted(left, key=get_window_id)
