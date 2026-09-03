@@ -1,5 +1,6 @@
 from typing import Callable
 
+from brotab.tab import get_per_window_indices
 from brotab.tab import Tab
 
 
@@ -302,5 +303,9 @@ def infer_all_commands(tabs_before: [Tab], tabs_after: [Tab]):
     move_commands.extend(infer_move_commands(tabs_before, tabs_after))
     tabs_before = apply_move_commands(tabs_before, move_commands)
     update_commands.extend(infer_update_commands(tabs_before, tabs_after))
+
+    # Fix up the move command list to have proper, per-window indices.
+    local_index = get_per_window_indices(tabs_after)
+    move_commands = [(c[0], c[1], local_index.get(c[0])) for c in move_commands]
 
     return delete_commands, move_commands, update_commands

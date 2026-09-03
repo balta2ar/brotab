@@ -21,6 +21,8 @@ from brotab.inout import MultiPartForm
 from brotab.inout import edit_tabs_in_editor
 from brotab.operations import infer_all_commands
 from brotab.parallel import call_parallel
+from brotab.tab import flatten_groups
+from brotab.tab import parse_groups
 from brotab.tab import parse_tab_lines
 from brotab.utils import encode_query
 from brotab.wait import ConditionTrue
@@ -401,8 +403,14 @@ class MultipleMediatorsAPI(object):
             - insert that tab
         3. continue until no input tabs out of order are left
         """
-        tabs_before = self.list_tabs(args, print_error=True)
+        tabs_before = self.list_tabs([], print_error=True)
+        if args.grouped:
+            tabs_before = parse_groups(tabs_before)
+
         tabs_after = edit_tabs_in_editor(tabs_before)
+        if args.grouped:
+            tabs_before = flatten_groups(tabs_before)
+            tabs_after = flatten_groups(tabs_after)
         if tabs_after is None:
             return
 
