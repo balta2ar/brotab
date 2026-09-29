@@ -738,7 +738,7 @@ def update_tabs(args):
     else:
         d = vars(args)
         if d['info'] is not None:
-            updates = [d['info']]
+            updates = loads(d['info'])
         else:
             updates = command_specific_args(args)
             if 'tabId' not in updates: raise ValueError('tabId is required')
