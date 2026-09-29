@@ -380,7 +380,9 @@ class MultipleMediatorsAPI(object):
 
     def close_tabs(self, args):
         for api in self._apis:
-            api.close_tabs(args)
+            tabs = [tab for tab in args if api.prefix_match(tab)]
+            if tabs:
+                api.close_tabs(tabs)
 
     def activate_tab(self, args: List[str], focused: bool):
         if len(args) == 0:

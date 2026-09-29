@@ -10,6 +10,7 @@ from uuid import uuid4
 from rich.console import Console
 from rich.json import JSON
 
+from bruvtab.api import MultipleMediatorsAPI
 from bruvtab.api import SingleMediatorAPI
 from bruvtab.env import http_iface
 from bruvtab.env import min_http_port
@@ -325,6 +326,41 @@ class TestQueryUpdate(WithMediator):
         assert self.mediator.transport.sent == [
             {'name': 'update_tabs', 'updates': [{'tab_id': 2, 'properties': {'pinned': True}}]},
         ]
+
+
+class RecordingHttpClient:
+    def __init__(self):
+        self.paths = []
+
+    def get(self, path, data=None):
+        self.paths.append(path)
+        return '1' if path == '/get_pid' else ''
+
+
+class TestCloseTabsPerClient(TestCase):
+    def test_close_sends_each_tab_only_to_its_client(self):
+        clients = {prefix: RecordingHttpClient() for prefix in 'ab'}
+        api = MultipleMediatorsAPI([SingleMediatorAPI(prefix, client=client)
+                                    for prefix, client in clients.items()])
+        for client in clients.values():
+            client.paths.clear()
+
+        api.close_tabs(['a.1.2', 'b.5.7', 'a.1.3'])
+
+        assert clients['a'].paths == ['/close_tabs/2,3']
+        assert clients['b'].paths == ['/close_tabs/7']
+
+    def test_close_skips_clients_without_matching_tabs(self):
+        clients = {prefix: RecordingHttpClient() for prefix in 'ab'}
+        api = MultipleMediatorsAPI([SingleMediatorAPI(prefix, client=client)
+                                    for prefix, client in clients.items()])
+        for client in clients.values():
+            client.paths.clear()
+
+        api.close_tabs(['a.1.2'])
+
+        assert clients['a'].paths == ['/close_tabs/2']
+        assert clients['b'].paths == []
 
 
 class TestMediaControls(WithMediator):
