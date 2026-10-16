@@ -373,7 +373,7 @@ class ChromeTabs extends BrowserTabs {
           const text = documentElement ? (documentElement.innerText || '') : '';
           const html = documentElement ? (documentElement.innerHTML || '') : '';
 
-          const wordsMatch = code.match(/innerText\.match\((\/(?:\\.|[^/])*\/[a-z]*)\)\]\.sort\(\)\.join\(("[\s\S]*")\);?$/);
+          const wordsMatch = code.match(/innerText\.match\((\/(?:\\.|[^/])*\/[a-z]*)\)\)\]\.sort\(\)\.join\(("[\s\S]*")\);?$/);
           if (wordsMatch) {
             const matchRegex = parseRegexLiteral(wordsMatch[1]);
             const joinWith = parseStringLiteral(wordsMatch[2]);

@@ -2,6 +2,7 @@ Unreleased
 
 * Bring back the work of the [bruvtab](https://github.com/pschmitt/bruvtab) fork up to its 2.0.15 release, under the brotab name again: the package, the `brotab`/`bt` commands, the `brotab_mediator` native messaging host and the extension IDs are brotab's again.
 * `brotab install` also registers a `bruvtab_mediator` native host, so the signed bruvtab extensions from addons.mozilla.org and the Chrome Web Store work with brotab
+* Fix `brotab words` returning nothing in Chrome
 
 The 2.0.x releases below were made by the bruvtab fork.
 
