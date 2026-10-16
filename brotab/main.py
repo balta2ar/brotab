@@ -982,6 +982,42 @@ def show_clients(args):
         print(client)
 
 
+# The signed extensions of the bruvtab fork, published on addons.mozilla.org
+# and in the Chrome Web Store, connect to a native host named bruvtab_mediator.
+BRUVTAB_COMPAT_HOST = 'bruvtab_mediator'
+BRUVTAB_FIREFOX_IDS = ['bruvtab_mediator@example.org']
+BRUVTAB_CHROME_ORIGINS = [
+    'chrome-extension://edpgjheobdplebiikjgjgpmonakingef/',
+    'chrome-extension://bkifkhiemhgpnomgdcbcbkifekkecnhk/',
+]
+
+
+def install_bruvtab_compat_manifest(manifest, destination):
+    """Let the bruvtab store extensions talk to the brotab mediator."""
+    compat = loads(manifest)
+    compat['name'] = BRUVTAB_COMPAT_HOST
+    if 'allowed_extensions' in compat:
+        compat['allowed_extensions'] = BRUVTAB_FIREFOX_IDS
+    if 'allowed_origins' in compat:
+        compat['allowed_origins'] = BRUVTAB_CHROME_ORIGINS
+    if 'mozilla' in destination:
+        compat.pop('allowed_origins', None)
+    else:
+        compat.pop('allowed_extensions', None)
+    compat_destination = os.path.join(os.path.dirname(destination),
+                                      BRUVTAB_COMPAT_HOST + '.json')
+    try:
+        with open(compat_destination) as file_:
+            previous_path = loads(file_.read()).get('path')
+    except (OSError, ValueError):
+        previous_path = None
+    if previous_path and previous_path != compat['path']:
+        print_info('Replacing %s, which pointed at %s' % (compat_destination, previous_path))
+    print_info('Installing mediator manifest %s' % compat_destination)
+    with open(compat_destination, 'w') as file_:
+        file_.write(dumps(compat, indent=2) + '\n')
+
+
 def install_mediator(args):
     brotab_logger.info('Installing mediators')
     mediator_path = which('brotab_mediator')
@@ -1035,6 +1071,9 @@ def install_mediator(args):
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         with open(destination, 'w') as file_:
             file_.write(manifest)
+
+        if not is_windows() and 'tests' not in filename:
+            install_bruvtab_compat_manifest(manifest, destination)
 
         if is_windows() and 'mozilla' in destination:
             register_native_manifest_windows_firefox(destination)

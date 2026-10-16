@@ -151,6 +151,7 @@ brotab install
 
 * **Firefox**: the brotab 2 extension is not published on addons.mozilla.org yet.  Load `brotab/extension/firefox` as a temporary add-on from `about:debugging`.
 * **Chrome/Brave/Chromium**: the brotab 2 extension is not published in the Chrome Web Store yet.  Enable developer mode in `chrome://extensions` and use "Load unpacked" on `brotab/extension/chrome`.
+* **Either browser, signed**: the extension of the [bruvtab](https://github.com/pschmitt/bruvtab) fork is published on [addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/469b5c80160a48cda84c/) and in the Chrome Web Store.  `brotab install` also registers a `bruvtab_mediator` native host, so that extension works with brotab too (not for installs from the Nix flake).  Extension fixes and features made in brotab do not reach it: `brotab words`, for one, returns nothing with the Chrome Web Store version.
 
 ### Shell completions
 
