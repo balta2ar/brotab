@@ -1,3 +1,9 @@
+Unreleased
+
+* Bring back the work of the [bruvtab](https://github.com/pschmitt/bruvtab) fork up to its 2.0.15 release, under the brotab name again: the package, the `brotab`/`bt` commands, the `brotab_mediator` native messaging host and the extension IDs are brotab's again.
+
+The 2.0.x releases below were made by the bruvtab fork.
+
 2.0.15 (2026-10-17)
 
 * Add `bruvtab close --playing` and `bruvtab close --muted` to close all audible or muted tabs
@@ -91,12 +97,12 @@
 
 1.5.0 (2025-01-22)
 
-* Added "bruvtab screenshot" command
+* Added "brotab screenshot" command
 * Fixed some dependencies in requirements/base.txt
 
 1.4.2 (2022-05-29)
 
-* Support config file in `$XDG_CONFIG_HOME/bruvtab/bruvtab.env`:
+* Support config file in `$XDG_CONFIG_HOME/brotab/brotab.env`:
 ```env
 HTTP_IFACE=0.0.0.0
 MIN_HTTP_PORT=4625 
@@ -107,19 +113,19 @@ MAX_HTTP_PORT=4635
 1.4.1 (2022-05-29)
 
 * Better syntax for navigate and update:
-  > bruvtab navigate b.1.862 "https://google.com"
-  > bruvtab update -tabId b.1.862 -url="http://www.google.com" 
+  > brotab navigate b.1.862 "https://google.com"
+  > brotab update -tabId b.1.862 -url="http://www.google.com" 
 
 1.4.0 (2022-05-29)
 
-* Added "bruvtab navigate" and "bruvtab update" commands
+* Added "brotab navigate" and "brotab update" commands
 
-* Fix "bruvtab open" and "bruvtab new": now they print tab IDs of the created tabs, one
+* Fix "brotab open" and "brotab new": now they print tab IDs of the created tabs, one
   per line
 
 1.3.0 (2020-06-02)
 
-* Added "bruvtab html" command #31, #34
+* Added "brotab html" command #31, #34
 
 1.2.2 (2020-05-05)
 
@@ -137,10 +143,10 @@ MAX_HTTP_PORT=4635
 * add "--focused" argument to "activate" tab command. This will bring browser
   into focus
 * automatically register native app manifest in the Windows Registry when doing
-  "bruvtab install" (Windows only)
+  "brotab install" (Windows only)
 * detect user's temporary directory (Windows-related fix)
-* use "notepad" editor for "bruvtab move" command on Windows
-* add optional tab_ids filter to "bruvtab text [tab_id]" command
+* use "notepad" editor for "brotab move" command on Windows
+* add optional tab_ids filter to "brotab text [tab_id]" command
 
 1.1.0 (2019-12-15)
 
@@ -151,7 +157,7 @@ MAX_HTTP_PORT=4635
 * print all active tabs from all windows (#8)
 * autorotate mediator logs to make sure it doesn't grow too large
 * make sure mediator (flask) works in single-threaded mode
-* bruvtab words, bruvtab text, bruvtab index now support customization of regexpes
+* brotab words, brotab text, brotab index now support customization of regexpes
   that are used to match words, split text and replacement/join strings
 
 0.0.5 (2019-10-27)

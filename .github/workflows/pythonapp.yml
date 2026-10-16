@@ -4,7 +4,8 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
+      - v2-dev
 
 jobs:
   tests:
@@ -34,4 +35,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest bruvtab -s -vvv --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html --ignore bruvtab/albert --ignore bruvtab/tests/integration
+          pytest brotab -s -vvv --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html --ignore brotab/albert --ignore brotab/tests/integration

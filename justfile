@@ -12,18 +12,18 @@ build:
 
 smoke-test: build
   uv pip install --force-reinstall dist/*.whl
-  uv run python -c 'from bruvtab.tests.test_main import run_mocked_mediators as run; run(count=3, default_port_offset=0, delay=0)' & \
+  uv run python -c 'from brotab.tests.test_main import run_mocked_mediators as run; run(count=3, default_port_offset=0, delay=0)' & \
   sleep 3 && \
-  uv run bruvtab list && \
-  uv run bruvtab windows && \
-  uv run bruvtab clients && \
-  uv run bruvtab active && \
-  uv run bruvtab words && \
-  uv run bruvtab text && \
-  uv run bruvtab html
+  uv run brotab list && \
+  uv run brotab windows && \
+  uv run brotab clients && \
+  uv run brotab active && \
+  uv run brotab words && \
+  uv run brotab text && \
+  uv run brotab html
 
 integration-build:
-  docker build -t bruvtab-integration -f bruvtab/tests/integration/Dockerfile .
+  docker build -t brotab-integration -f brotab/tests/integration/Dockerfile .
 
 integration-test:
   INTEGRATION_TEST=1 uv run pytest -v -k test_integration -s

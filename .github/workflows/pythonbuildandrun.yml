@@ -4,7 +4,8 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
+      - v2-dev
 
 jobs:
   smoke:
@@ -27,12 +28,12 @@ jobs:
       - name: Run smoke test
         run: |
           pip install dist/*.whl
-          python -c 'from bruvtab.tests.test_main import run_mocked_mediators as run; run(count=3, default_port_offset=0, delay=0)' &
+          python -c 'from brotab.tests.test_main import run_mocked_mediators as run; run(count=3, default_port_offset=0, delay=0)' &
           sleep 3
-          bruvtab list
-          bruvtab windows
-          bruvtab clients
-          bruvtab active
-          bruvtab words
-          bruvtab text
-          bruvtab html
+          brotab list
+          brotab windows
+          brotab clients
+          brotab active
+          brotab words
+          brotab text
+          brotab html

@@ -4,10 +4,10 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [--no-tag] [VERSION]
 
-Update the BruvTab version in:
-  - bruvtab/__version__.py
-  - bruvtab/extension/chrome/manifest.json
-  - bruvtab/extension/firefox/manifest.json
+Update the BroTab version in:
+  - brotab/__version__.py
+  - brotab/extension/chrome/manifest.json
+  - brotab/extension/firefox/manifest.json
 
 If VERSION is omitted, increment the patch component of the current version.
 Creates a "Bump version to VERSION" commit.
@@ -54,7 +54,7 @@ main() {
   fi
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-    echo "Must be run from inside the bruvtab git repository" >&2
+    echo "Must be run from inside the brotab git repository" >&2
     return 2
   }
 
@@ -63,7 +63,7 @@ import pathlib
 import re
 import sys
 
-version_file = pathlib.Path(sys.argv[1]) / "bruvtab" / "__version__.py"
+version_file = pathlib.Path(sys.argv[1]) / "brotab" / "__version__.py"
 match = re.search(r"^__version__ = ['\"]([^'\"]+)['\"]$", version_file.read_text(encoding="utf-8"), re.MULTILINE)
 if match is None:
     raise SystemExit(f"Could not read version from {version_file}")
@@ -107,9 +107,9 @@ import sys
 repo_root = pathlib.Path(sys.argv[1])
 version = sys.argv[2]
 
-version_file = repo_root / "bruvtab" / "__version__.py"
-chrome_manifest = repo_root / "bruvtab" / "extension" / "chrome" / "manifest.json"
-firefox_manifest = repo_root / "bruvtab" / "extension" / "firefox" / "manifest.json"
+version_file = repo_root / "brotab" / "__version__.py"
+chrome_manifest = repo_root / "brotab" / "extension" / "chrome" / "manifest.json"
+firefox_manifest = repo_root / "brotab" / "extension" / "firefox" / "manifest.json"
 
 version_text = version_file.read_text(encoding="utf-8")
 updated_text, count = re.subn(
@@ -130,13 +130,13 @@ for manifest_path in (chrome_manifest, firefox_manifest):
 PY
 
   git -C "$repo_root" add \
-    bruvtab/__version__.py \
-    bruvtab/extension/chrome/manifest.json \
-    bruvtab/extension/firefox/manifest.json
+    brotab/__version__.py \
+    brotab/extension/chrome/manifest.json \
+    brotab/extension/firefox/manifest.json
   git -C "$repo_root" commit --only -m "Bump version to $version" -- \
-    bruvtab/__version__.py \
-    bruvtab/extension/chrome/manifest.json \
-    bruvtab/extension/firefox/manifest.json
+    brotab/__version__.py \
+    brotab/extension/chrome/manifest.json \
+    brotab/extension/firefox/manifest.json
 
   if [[ "$create_tag" -eq 1 ]]
   then

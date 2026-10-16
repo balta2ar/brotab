@@ -1,5 +1,5 @@
 {
-  description = "BruvTab browser tab control with Nix-friendly browser integration outputs";
+  description = "BroTab browser tab control with Nix-friendly browser integration outputs";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -7,15 +7,8 @@
 
   outputs = { self, nixpkgs }:
     let
-      version = "2.0.15";
-      chromeCrxVersion = version;
-      chromeCrxHash = "sha256-Tp6LYKynK8jL/MR9O/xTXsob+i+BHc4qWTcNW7J/ylo=";
-      firefoxXpiVersion = version;
-      firefoxXpiHash = "sha256-1Tg+mBDmtLRSt/oMFwdzxyT9S+sifujDcjRrYtaIoRE=";
-      chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
-      chromeWebStoreExtensionId = "bkifkhiemhgpnomgdcbcbkifekkecnhk";
-      firefoxAddonId = "bruvtab_mediator@example.org";
-      firefoxAppId = "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
+      version = builtins.head (builtins.match ".*__version__ = ['\"]([^'\"]+)['\"].*"
+        (builtins.readFile ./brotab/__version__.py));
       lib = nixpkgs.lib;
       projectSource = lib.cleanSourceWith {
         src = self;
@@ -28,7 +21,7 @@
             ".git"
             ".pytest_cache"
             ".venv"
-            "bruvtab.egg-info"
+            "brotab.egg-info"
             "build"
             "dist"
           ])
@@ -45,21 +38,8 @@
         let
           pkgs = import nixpkgs { inherit system; };
           py = pkgs.python3Packages;
-          chromeCrxAsset = pkgs.fetchurl {
-            url = "https://github.com/pschmitt/bruvtab/releases/download/${chromeCrxVersion}/bruvtab-chrome-${chromeCrxVersion}.crx";
-            hash = chromeCrxHash;
-          };
-          firefoxXpiAsset = pkgs.fetchurl {
-            url = "https://github.com/pschmitt/bruvtab/releases/download/${firefoxXpiVersion}/bruvtab-firefox-${firefoxXpiVersion}.xpi";
-            hash = firefoxXpiHash;
-          };
-          chromeCrx = pkgs.runCommand "bruvtab-chrome-crx-${chromeCrxVersion}" { } ''
-              mkdir -p $out
-              cp ${chromeCrxAsset} $out/bruvtab.crx
-              printf '%s' '${chromeExtensionId}' > $out/extension-id
-            '';
-          bruvtab = py.buildPythonApplication {
-            pname = "bruvtab";
+          brotab = py.buildPythonApplication {
+            pname = "brotab";
             inherit version;
             format = "pyproject";
             src = projectSource;
@@ -89,75 +69,45 @@
             postInstall = ''
               mkdir -p $out/lib/mozilla/native-messaging-hosts $out/lib/chromium/NativeMessagingHosts
               mkdir -p $out/etc/chromium/native-messaging-hosts
-              mkdir -p $out/lib/bruvtab/extensions/chrome $out/lib/bruvtab/extensions/firefox
+              mkdir -p $out/lib/brotab/extensions/chrome $out/lib/brotab/extensions/firefox
 
-              jq --arg out "$out" '.path = "\($out)/bin/bruvtab_mediator"' \
-                bruvtab/mediator/firefox_mediator.json \
-                > $out/lib/mozilla/native-messaging-hosts/bruvtab_mediator.json
+              jq --arg out "$out" '.path = "\($out)/bin/brotab_mediator"' \
+                brotab/mediator/firefox_mediator.json \
+                > $out/lib/mozilla/native-messaging-hosts/brotab_mediator.json
 
               jq \
                 --arg out "$out" \
-                --arg ext "${chromeExtensionId}" \
-                --arg webStoreExt "${chromeWebStoreExtensionId}" \
-                '
-                .path = "\($out)/bin/bruvtab_mediator"
-                | .allowed_origins = (
-                    (.allowed_origins // [])
-                    + ["chrome-extension://\($ext)/"]
-                    + ["chrome-extension://\($webStoreExt)/"]
-                  | unique)
-              ' \
-                bruvtab/mediator/chromium_mediator.json \
-                > $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json
+                '.path = "\($out)/bin/brotab_mediator"' \
+                brotab/mediator/chromium_mediator.json \
+                > $out/lib/chromium/NativeMessagingHosts/brotab_mediator.json
 
               cp \
-                $out/lib/chromium/NativeMessagingHosts/bruvtab_mediator.json \
-                $out/etc/chromium/native-messaging-hosts/bruvtab_mediator.json
+                $out/lib/chromium/NativeMessagingHosts/brotab_mediator.json \
+                $out/etc/chromium/native-messaging-hosts/brotab_mediator.json
 
-              cp -R bruvtab/extension/chrome/. \
-                $out/lib/bruvtab/extensions/chrome/
-              cp -R bruvtab/extension/firefox/. \
-                $out/lib/bruvtab/extensions/firefox/
+              cp -R brotab/extension/chrome/. \
+                $out/lib/brotab/extensions/chrome/
+              cp -R brotab/extension/firefox/. \
+                $out/lib/brotab/extensions/firefox/
 
-              local bashCompletion="$TMPDIR/bruvtab.bash"
-              local zshCompletion="$TMPDIR/_bruvtab"
-              ${py.argcomplete}/bin/register-python-argcomplete --shell bash bruvtab \
+              local bashCompletion="$TMPDIR/brotab.bash"
+              local zshCompletion="$TMPDIR/_brotab"
+              ${py.argcomplete}/bin/register-python-argcomplete --shell bash brotab \
                 > "$bashCompletion"
-              ${py.argcomplete}/bin/register-python-argcomplete --shell zsh bruvtab \
+              ${py.argcomplete}/bin/register-python-argcomplete --shell zsh brotab \
                 > "$zshCompletion"
               installShellCompletion --bash "$bashCompletion" --zsh "$zshCompletion"
             '';
 
             pythonImportsCheck = [
-              "bruvtab"
+              "brotab"
             ];
           };
 
-          firefoxXpi =
-            pkgs.runCommand "bruvtab-firefox-xpi-${version}"
-              {
-                passthru = {
-                  addonId = firefoxAddonId;
-                  extid = firefoxAddonId;
-                };
-              }
-              ''
-                addon_id='${firefoxAddonId}'
-
-                mkdir -p "$out/share/mozilla/extensions/${firefoxAppId}"
-                cp ${firefoxXpiAsset} "$out/$addon_id.xpi"
-
-                ln -s "$out/$addon_id.xpi" \
-                  "$out/share/mozilla/extensions/${firefoxAppId}/$addon_id.xpi"
-              '';
-
         in
         {
-          default = bruvtab;
-          bruvtab = bruvtab;
-          chromeCrx = chromeCrx;
-          firefoxAddon = firefoxXpi;
-          firefoxXpi = firefoxXpi;
+          default = brotab;
+          brotab = brotab;
         });
 
       apps = forAllSystems (system:
@@ -168,11 +118,11 @@
         {
           default = {
             type = "app";
-            program = "${pkg}/bin/bruvtab";
+            program = "${pkg}/bin/brotab";
           };
-          bruvtab = {
+          brotab = {
             type = "app";
-            program = "${pkg}/bin/bruvtab";
+            program = "${pkg}/bin/brotab";
           };
           sign-firefox-addon = {
             type = "app";

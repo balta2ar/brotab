@@ -4,7 +4,7 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [OPTIONS]
 
-Sign the Firefox BruvTab extension for self-distribution.
+Sign the Firefox BroTab extension for self-distribution.
 
 Required environment:
   WEB_EXT_API_KEY       Mozilla Add-ons API JWT issuer key
@@ -38,11 +38,11 @@ main() {
   local temp_source_dir
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-    echo "Must be run from inside the bruvtab git repository" >&2
+    echo "Must be run from inside the brotab git repository" >&2
     return 2
   }
 
-  source_dir="${repo_root}/bruvtab/extension/firefox"
+  source_dir="${repo_root}/brotab/extension/firefox"
   artifacts_dir="${repo_root}/dist/firefox-signed"
   amo_metadata=""
   api_key="${WEB_EXT_API_KEY:-}"

@@ -3,7 +3,7 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bruvtab"
+name = "brotab"
 description = "Control your browser's tabs from the command line"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -41,36 +41,38 @@ dev = [
   "ipdb",
   "pudb",
   "build",
-  "bruvtab[test]",
+  "brotab[test]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/pschmitt/bruvtab"
-Repository = "https://github.com/pschmitt/bruvtab"
+Homepage = "https://github.com/balta2ar/brotab"
+Repository = "https://github.com/balta2ar/brotab"
 
 [project.scripts]
-bruvtab = "bruvtab.main:main"
-bruvtab_mediator = "bruvtab.mediator.bruvtab_mediator:main"
+brotab = "brotab.main:main"
+brotab_mediator = "brotab.mediator.brotab_mediator:main"
+bt = "brotab.main:main"
+bt_mediator = "brotab.mediator.brotab_mediator:main"
 
 [tool.setuptools]
 include-package-data = true
 
 [tool.setuptools.dynamic]
-version = { attr = "bruvtab.__version__.__version__" }
+version = { attr = "brotab.__version__.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["bruvtab", "bruvtab.*"]
+include = ["brotab", "brotab.*"]
 exclude = ["firefox_extension", "firefox_mediator"]
 
 [tool.setuptools.package-data]
-bruvtab = [
+brotab = [
   "albert/*.qss",
   "mediator/*.json",
 ]
 
 [tool.setuptools.data-files]
 "config" = [
-  "bruvtab/mediator/chromium_mediator.json",
-  "bruvtab/mediator/firefox_mediator.json",
-  "bruvtab/albert/Bruvtab.qss",
+  "brotab/mediator/chromium_mediator.json",
+  "brotab/mediator/firefox_mediator.json",
+  "brotab/albert/Brotab.qss",
 ]

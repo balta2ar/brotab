@@ -7,9 +7,9 @@ ignore
 dist
 build
 artifacts
-bruvtab.egg-info
+brotab.egg-info
 target
-bruvtab/node_modules
+brotab/node_modules
 
 node_modules
 tags

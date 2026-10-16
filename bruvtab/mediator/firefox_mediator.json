@@ -1,7 +1,0 @@
-{
-  "name": "bruvtab_mediator",
-  "description": "This mediator exposes interface over TCP to control browser's tabs",
-  "path": "$PWD/bruvtab_mediator.py",
-  "type": "stdio",
-  "allowed_extensions": [ "bruvtab_mediator@example.org" ]
-}

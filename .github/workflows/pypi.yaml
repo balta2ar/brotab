@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/bruvtab
+      url: https://pypi.org/p/brotab
     permissions:
       id-token: write
     steps:

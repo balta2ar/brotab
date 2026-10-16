@@ -1,0 +1,7 @@
+{
+  "name": "brotab_mediator",
+  "description": "This mediator exposes interface over TCP to control browser's tabs",
+  "path": "$PWD/brotab_mediator.py",
+  "type": "stdio",
+  "allowed_extensions": [ "brotab_mediator@example.org" ]
+}

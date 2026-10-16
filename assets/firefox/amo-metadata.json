@@ -7,6 +7,6 @@
   ],
   "version": {
     "license": "MIT",
-    "approval_notes": "BruvTab is built from the GitHub release tag. The release workflow submits this same Firefox extension source to AMO and uploads AMO's signed XPI to the matching GitHub release."
+    "approval_notes": "BroTab is built from the GitHub release tag; the submitted extension source is brotab/extension/firefox at that tag."
   }
 }

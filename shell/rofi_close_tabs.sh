@@ -1,18 +1,18 @@
 #!/bin/bash
 
-source $HOME/rc.arch/bz/bruvtab/bruvtab.sh
+source $HOME/rc.arch/bz/brotab/brotab.sh
 
 DEFAULT_WIDTH=90
 
 if [ "$@" ]; then
-    echo "$@" | cut -d$'\t' -f1 | xargs -L1 bruvtab close
-    bruvtab list
+    echo "$@" | cut -d$'\t' -f1 | xargs -L1 brotab close
+    brotab list
 else
-    active_window=`bruvtab active | \grep firefox | awk '{print $1}'`
+    active_window=`brotab active | \grep firefox | awk '{print $1}'`
     selected=`cached_bt_list \
         | rofi -dmenu -i -multi-select -select "$active_window" -p "Close tab" -width $DEFAULT_WIDTH \
         | cut -d$'\t' -f1`
     if [ "$selected" ]; then
-        echo "$selected" | xargs -L1 bruvtab close
+        echo "$selected" | xargs -L1 brotab close
     fi
 fi

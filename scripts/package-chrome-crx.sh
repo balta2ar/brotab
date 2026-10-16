@@ -84,12 +84,12 @@ main() {
   local version
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-    echo "Must be run from inside the bruvtab git repository" >&2
+    echo "Must be run from inside the brotab git repository" >&2
     return 2
   }
 
   crx3_bin=""
-  extension_source="${repo_root}/bruvtab/extension/chrome"
+  extension_source="${repo_root}/brotab/extension/chrome"
   key_file=""
   output_dir="${repo_root}/dist/browser"
   pem_output=1
@@ -143,7 +143,7 @@ main() {
   then
     version="$(
       python3 - <<'PY'
-from bruvtab.__version__ import __version__
+from brotab.__version__ import __version__
 print(__version__)
 PY
     )"
@@ -175,8 +175,8 @@ PY
   fi
 
   mkdir -p "$output_dir"
-  output_crx="${output_dir}/bruvtab-chrome-${version}.crx"
-  output_pem="${output_dir}/bruvtab-chrome-${version}.pem"
+  output_crx="${output_dir}/brotab-chrome-${version}.crx"
+  output_pem="${output_dir}/brotab-chrome-${version}.pem"
 
   temp_dir="$(mktemp -d)"
   trap 'rm -rf "$temp_dir"' EXIT

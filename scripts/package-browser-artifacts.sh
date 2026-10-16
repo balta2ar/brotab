@@ -55,7 +55,7 @@ main() {
   local version
 
   repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
-    echo "Must be run from inside the bruvtab git repository" >&2
+    echo "Must be run from inside the brotab git repository" >&2
     return 2
   }
 
@@ -89,7 +89,7 @@ main() {
   then
     version="$(
       python3 - <<'PY'
-from bruvtab.__version__ import __version__
+from brotab.__version__ import __version__
 print(__version__)
 PY
     )"
@@ -98,12 +98,12 @@ PY
   mkdir -p "$output_dir"
 
   prepare_chrome_store_zip \
-    "${output_dir}/bruvtab-chrome-${version}.zip" \
-    "${repo_root}/bruvtab/extension/chrome"
+    "${output_dir}/brotab-chrome-${version}.zip" \
+    "${repo_root}/brotab/extension/chrome"
 
   package_zip \
-    "${output_dir}/bruvtab-firefox-source-${version}.zip" \
-    "${repo_root}/bruvtab/extension/firefox"
+    "${output_dir}/brotab-firefox-source-${version}.zip" \
+    "${repo_root}/brotab/extension/firefox"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]
