@@ -327,6 +327,21 @@ class TestQueryUpdate(WithMediator):
             {'name': 'update_tabs', 'updates': [{'tab_id': 2, 'properties': {'pinned': True}}]},
         ]
 
+    def test_update_info_accepts_single_object(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [],
+        ])
+
+        with patch('bruvtab.main.read_stdin', return_value=''), \
+                patch('bruvtab.main.stdout_buffer_write'):
+            self._run_commands(['update', '-info', '{"tab_id": "a.1.2", "properties": {"pinned": true}}'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'update_tabs', 'updates': [{'tab_id': 2, 'properties': {'pinned': True}}]},
+        ]
+
     def test_update_info_sends_parsed_json(self):
         self.mediator.transport.received_extend([
             'mocked',
