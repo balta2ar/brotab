@@ -1,4 +1,4 @@
-Unreleased
+2.0.15 (2026-10-17)
 
 * Add `bruvtab close --playing` and `bruvtab close --muted` to close all audible or muted tabs
 * Add the `query` filters (`-url`, `-title`, `+pinned`, ...) to `bruvtab close`, which then closes the tabs they match
