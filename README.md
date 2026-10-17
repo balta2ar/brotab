@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pschmitt/bruvtab/main/assets/icons/bruvtab-icon-1024x1024.png" alt="BruvTab logo" width="160">
+</p>
+
 # BruvTab
 
 ![GitHub](https://img.shields.io/github/license/pschmitt/bruvtab)
