@@ -1,9 +1,43 @@
 Unreleased
 
+* Add `bruvtab close --playing` and `bruvtab close --muted` to close all audible or muted tabs
+* Add the `query` filters (`-url`, `-title`, `+pinned`, ...) to `bruvtab close`, which then closes the tabs they match
 * Fix `bruvtab query` printing nothing for any filter, and `bruvtab update` with property flags crashing
 * Fix `bruvtab close` with several browsers connected closing tabs in the wrong browser
 * Fix `bruvtab update -info` crashing, and accept a single JSON object as well as a list
-* Add the `query` filters (`-url`, `-title`, `+pinned`, ...) to `bruvtab close`, which then closes the tabs they match
+* Fix `bruvtab move` failing with HTTP 500
+
+2.0.14 (2026-06-03)
+
+* Add `playing` and `muted` tab status to `bruvtab list` output, plus `--playing` / `--muted` filters
+* Add `bruvtab play`, `pause`, `mute` and `unmute` media control commands; `pause` and `mute` default to the first audible tab, `play` and `unmute` to the active tab, and all accept a tab ID, a title/URL fragment, `--playing` or `--muted`
+* Add `bruvtab activate --playing` to jump to the first audible tab
+* Add `-j` as shorthand for `--json`
+* Add `--debug` for details on failed commands, and report media control errors instead of failing silently
+* Add `--no-wrap` to disable wrapping of table columns, and tidy up human-readable output
+* Improve shell completion, including tab ID completion for media commands
+
+2.0.13 (2026-05-05)
+
+* Accept a title or URL fragment wherever a tab ID is expected
+* Filter `bruvtab list` by title or URL fragments
+* Add `bruvtab screenshot --wait SECONDS`
+* Add bash and zsh completions via `argcomplete`
+* Document installation and development with `uv`
+* Publish to the Chrome Web Store in parallel with other release jobs
+
+2.0.12 (2026-05-05)
+
+* Fix tab-targeted screenshots
+
+2.0.10 (2026-05-05)
+
+* Publish a self-hosted Chrome update manifest with GitHub releases, so Chromium can auto-update the extension
+
+2.0.8 (2026-05-05)
+
+* Add an optional tab ID to `bruvtab screenshot` to capture a specific tab
+* Fetch only the requested tab when `bruvtab text` or `html` gets a single tab ID
 
 2.0.7 (2026-05-05)
 
@@ -37,6 +71,11 @@ Unreleased
 
 2.0.1 (2026-04-23)
 
+* Rename the project from brotab to bruvtab (fork of https://github.com/balta2ar/brotab)
+* Add a Nix flake with packages for the CLI, the Chrome CRX and the Firefox add-on
+* Add a global `--json` flag with pretty, colored output
+* Colorize `--help` output with `rich-argparse`
+* Build and publish browser extension artifacts from CI
 * Sign Firefox add-on and package the signed XPI for Home Manager / NixOS
 * Rename Firefox mediator host to `bruvtab_mediator`
 * Fix single-tab close behavior and Chrome browser detection
