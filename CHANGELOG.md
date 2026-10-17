@@ -30,6 +30,10 @@ Unreleased
 
 * Fix tab-targeted screenshots
 
+2.0.11 (2026-05-05)
+
+* No user-visible changes (version bump)
+
 2.0.10 (2026-05-05)
 
 * Publish a self-hosted Chrome update manifest with GitHub releases, so Chromium can auto-update the extension
