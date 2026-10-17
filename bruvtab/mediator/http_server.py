@@ -60,7 +60,7 @@ class MediatorHttpServer:
         self.app.route('/shutdown', methods=['GET'])(self.shutdown)
         self.app.route('/list_tabs', methods=['GET'])(self.list_tabs)
         self.app.route('/query_tabs/<query_info>', methods=['GET'])(self.query_tabs)
-        self.app.route('/move_tabs/<query_info>', methods=['GET'])(self.move_tabs)
+        self.app.route('/move_tabs/<move_triplets>', methods=['GET'])(self.move_tabs)
         self.app.route('/open_urls/<int:window_id>', methods=['POST'])(self.open_urls)
         self.app.route('/update_tabs', methods=['POST'])(self.update_tabs)
         self.app.route('/media_control/<int:window_id>/<int:tab_id>/<action>', methods=['GET'])(self.media_control)
