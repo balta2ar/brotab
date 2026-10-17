@@ -294,6 +294,39 @@ class TestActivate(WithMediator):
         assert result == 1
 
 
+class TestQueryUpdate(WithMediator):
+    def test_query_sends_only_query_keys(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.2\tTicket\thttps://ticket.example.com/'],
+        ])
+
+        with patch('sys.stdout', new_callable=StringIO) as stdout:
+            self._run_commands(['--no-wrap', 'query', '--debug', '-url', 'https://ticket.example.com/*', '+pinned'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'query_tabs',
+             'query_info': encode_query('{"pinned": true, "url": ["https://ticket.example.com/*"]}')},
+        ]
+        assert stdout.getvalue() == 'a.1.2\tTicket\thttps://ticket.example.com/\n'
+
+    def test_update_sends_only_update_keys(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [],
+        ])
+
+        with patch('bruvtab.main.read_stdin', return_value=''), \
+                patch('bruvtab.main.stdout_buffer_write'):
+            self._run_commands(['--no-wrap', 'update', '--debug', '-tabId', 'a.1.2', '+pinned'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'update_tabs', 'updates': [{'tab_id': 2, 'properties': {'pinned': True}}]},
+        ]
+
+
 class TestMediaControls(WithMediator):
     def test_pause_targets_explicit_tab(self):
         self.mediator.transport.received_extend([

@@ -660,8 +660,7 @@ def query_tabs(args):
     if d['info'] is not None:
         queryInfo = d['info']
     else:
-        queryInfo = {k: v for k, v in d.items()
-                     if v is not None and k not in ['func', 'info', 'target_hosts', 'client_selector', 'debug']}
+        queryInfo = command_specific_args(args)
     api = MultipleMediatorsAPI(create_clients_from_args(args))
     for tab in api.query_tabs(queryInfo):
         print(tab)
@@ -741,8 +740,7 @@ def update_tabs(args):
         if d['info'] is not None:
             updates = [d['info']]
         else:
-            updates = {k: v for k, v in d.items()
-                       if v is not None and k not in ['func', 'info', 'target_hosts', 'client_selector']}
+            updates = command_specific_args(args)
             if 'tabId' not in updates: raise ValueError('tabId is required')
             updates = [make_update(**updates)]
     bruvtab_logger.info('Updating tabs: %s', updates)
@@ -1108,6 +1106,14 @@ def add_global_arguments(parser, default=None):
     parser.add_argument('--no-wrap', action='store_true', default=False if default is None else default,
                         help='Disable wrapping of table columns')
     return parser_client
+
+
+def command_specific_args(args):
+    """Return the non-None arguments of args that belong to the subcommand itself."""
+    parser = ArgumentParser(add_help=False)
+    add_global_arguments(parser)
+    excluded = {'func', 'info', 'command'} | set(vars(parser.parse_args([])))
+    return {k: v for k, v in vars(args).items() if v is not None and k not in excluded}
 
 
 def build_parser():

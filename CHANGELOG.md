@@ -1,3 +1,7 @@
+Unreleased
+
+* Fix `bruvtab query` printing nothing for any filter, and `bruvtab update` with property flags crashing
+
 2.0.7 (2026-05-05)
 
 * Fix native messaging timeout handling with buffered browser messages
