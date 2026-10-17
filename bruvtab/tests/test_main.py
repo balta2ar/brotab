@@ -342,6 +342,60 @@ class TestQueryUpdate(WithMediator):
             {'name': 'update_tabs', 'updates': [{'tab_id': 2, 'properties': {'pinned': True}}]},
         ]
 
+    def test_close_with_query_filters_closes_matching_tabs(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.2\tTicket\thttps://ticket.example.com/'],
+            'OK',
+        ])
+
+        self._run_commands(['close', '-url', 'https://ticket.example.com/*', '+pinned', '--debug'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'query_tabs',
+             'query_info': encode_query('{"pinned": true, "url": ["https://ticket.example.com/*"]}')},
+            {'name': 'close_tabs', 'tab_ids': [2]},
+        ]
+
+    def test_close_with_query_filters_reports_no_match(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            [],
+        ])
+
+        with patch('bruvtab.main.print_error') as print_error:
+            result = self._run_commands(['close', '-title', 'nothing'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'query_tabs', 'query_info': encode_query('{"title": "nothing"}')},
+        ]
+        print_error.assert_called_once_with('No matching tabs found')
+        assert result == 1
+
+    def test_close_rejects_tab_ids_with_query_filters(self):
+        with patch('bruvtab.main.print_error') as print_error:
+            result = self._run_commands(['close', '+pinned', 'a.1.2'])
+
+        print_error.assert_called_once_with('Specify either tab IDs or query filters, not both')
+        assert result == 1
+
+    def test_close_muted_flag_still_queries_muted_tabs(self):
+        self.mediator.transport.received_extend([
+            'mocked',
+            ['1.2\tTicket\thttps://ticket.example.com/'],
+            'OK',
+        ])
+
+        self._run_commands(['close', '--muted'])
+
+        self._assert_init()
+        assert self.mediator.transport.sent == [
+            {'name': 'query_tabs', 'query_info': MUTED_QUERY},
+            {'name': 'close_tabs', 'tab_ids': [2]},
+        ]
+
     def test_update_info_sends_parsed_json(self):
         self.mediator.transport.received_extend([
             'mocked',

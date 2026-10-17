@@ -3,6 +3,7 @@ Unreleased
 * Fix `bruvtab query` printing nothing for any filter, and `bruvtab update` with property flags crashing
 * Fix `bruvtab close` with several browsers connected closing tabs in the wrong browser
 * Fix `bruvtab update -info` crashing, and accept a single JSON object as well as a list
+* Add the `query` filters (`-url`, `-title`, `+pinned`, ...) to `bruvtab close`, which then closes the tabs they match
 
 2.0.7 (2026-05-05)
 
