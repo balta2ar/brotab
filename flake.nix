@@ -7,11 +7,11 @@
 
   outputs = { self, nixpkgs }:
     let
-      version = "2.0.14";
+      version = "2.0.15";
       chromeCrxVersion = version;
-      chromeCrxHash = "sha256-La1cv5kKv0Bs1Avi3z4T3MwdkBENdZlk1SMieGRuGps=";
+      chromeCrxHash = "sha256-Tp6LYKynK8jL/MR9O/xTXsob+i+BHc4qWTcNW7J/ylo=";
       firefoxXpiVersion = version;
-      firefoxXpiHash = "sha256-KWMLN7llkALvlFrHFuJ5G7cIu01jG3P4bBPiDj/WEcI=";
+      firefoxXpiHash = "sha256-1Tg+mBDmtLRSt/oMFwdzxyT9S+sifujDcjRrYtaIoRE=";
       chromeExtensionId = "edpgjheobdplebiikjgjgpmonakingef";
       chromeWebStoreExtensionId = "bkifkhiemhgpnomgdcbcbkifekkecnhk";
       firefoxAddonId = "bruvtab_mediator@example.org";
