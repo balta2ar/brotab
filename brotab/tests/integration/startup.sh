@@ -8,5 +8,5 @@ socat TCP4-LISTEN:4625,fork,reuseaddr,bind=$IF_PUBLIC TCP4:$IF_PRIVATE:4625 &
 
 cd /brotab \
   && pip install -e . \
-  && bt install --tests \
+  && brotab install --tests \
   && chromium --no-sandbox --disable-gpu --remote-debugging-address=$IF_PRIVATE --remote-debugging-port=9222 --load-extension=/brotab/brotab/extension/chrome file:///

@@ -5,6 +5,7 @@ import logging.handlers
 import os
 import re
 import socket
+import sys
 
 from brotab.env import http_iface
 from brotab.env import load_dotenv
@@ -12,11 +13,12 @@ from brotab.inout import get_mediator_ports
 from brotab.inout import is_port_accepting_connections
 from brotab.mediator import sig
 from brotab.mediator.const import DEFAULT_SHUTDOWN_POLL_INTERVAL
+from brotab.mediator.const import DEFAULT_TRANSPORT_TIMEOUT
 from brotab.mediator.http_server import MediatorHttpServer
 from brotab.mediator.log import disable_click_echo
 from brotab.mediator.log import mediator_logger
 from brotab.mediator.remote_api import default_remote_api
-from brotab.mediator.transport import default_transport
+from brotab.mediator.transport import transport_with_timeout
 
 
 # TODO:
@@ -37,7 +39,7 @@ from brotab.mediator.transport import default_transport
 # TODO: all commands should be synchronous and should only terminate after
 #       the action has been actually executed in the browser.
 # TODO: logs from main and mediator should go into different files
-# TODO: bt html may cause "Uncaught (in promise) Error: Message length exceeded maximum allowed length."
+# TODO: brotab html may cause "Uncaught (in promise) Error: Message length exceeded maximum allowed length."
 
 
 def monkeypatch_socket_bind_allow_port_reuse():
@@ -69,8 +71,7 @@ def mediator_main():
 
     load_dotenv()
     port_range = list(get_mediator_ports())
-    transport = default_transport()
-    # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
+    transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, DEFAULT_TRANSPORT_TIMEOUT)
     # transport = transport_with_timeout(sys.stdin.buffer, sys.stdout.buffer, 1.0)
     remote_api = default_remote_api(transport)
     host = http_iface()

@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from brotab.inout import edit_tabs_in_editor
+from brotab.inout import TimeoutIO
 
 
 class TestEditor(TestCase):
@@ -32,3 +33,17 @@ class TestEditor(TestCase):
         editor, filename = _run_editor_mock.call_args[0]
         assert editor == 'custom'
         assert not os.path.exists(filename)
+
+
+class TestTimeoutIO(TestCase):
+    def test_reads_from_buffered_file_without_losing_prefetched_bytes(self):
+        read_fd, write_fd = os.pipe()
+        try:
+            with os.fdopen(read_fd, 'rb') as read_file:
+                wrapped = TimeoutIO(read_file, 0.1)
+                os.write(write_fd, b'12345678')
+
+                assert wrapped.read(4) == b'1234'
+                assert wrapped.read(4) == b'5678'
+        finally:
+            os.close(write_fd)

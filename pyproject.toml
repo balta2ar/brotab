@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brotab"
+description = "Control your browser's tabs from the command line"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Philipp Schmitt", email = "philipp@schmitt.co" },
+  { name = "Yuri Bochkarev", email = "baltazar.bz@gmail.com" },
+]
+classifiers = [
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dynamic = ["version"]
+dependencies = [
+  "argcomplete>=3.5",
+  "Flask>=2.2,<4",
+  "requests>=2.24",
+  "psutil>=5.8",
+  "rich>=14.1",
+  "rich-argparse",
+  "Werkzeug>=2.2,<4",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov",
+]
+dev = [
+  "ipython",
+  "ipdb",
+  "pudb",
+  "build",
+  "brotab[test]",
+]
+
+[project.urls]
+Homepage = "https://github.com/balta2ar/brotab"
+Repository = "https://github.com/balta2ar/brotab"
+
+[project.scripts]
+brotab = "brotab.main:main"
+brotab_mediator = "brotab.mediator.brotab_mediator:main"
+bt = "brotab.main:main"
+bt_mediator = "brotab.mediator.brotab_mediator:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "brotab.__version__.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["brotab", "brotab.*"]
+exclude = ["firefox_extension", "firefox_mediator"]
+
+[tool.setuptools.package-data]
+brotab = [
+  "albert/*.qss",
+  "mediator/*.json",
+]
+
+[tool.setuptools.data-files]
+"config" = [
+  "brotab/mediator/chromium_mediator.json",
+  "brotab/mediator/firefox_mediator.json",
+  "brotab/albert/Brotab.qss",
+]

@@ -1,4 +1,5 @@
 import os
+from json import dumps
 from json import loads
 from threading import Thread
 from urllib.parse import unquote_plus
@@ -59,9 +60,10 @@ class MediatorHttpServer:
         self.app.route('/shutdown', methods=['GET'])(self.shutdown)
         self.app.route('/list_tabs', methods=['GET'])(self.list_tabs)
         self.app.route('/query_tabs/<query_info>', methods=['GET'])(self.query_tabs)
-        self.app.route('/move_tabs/<query_info>', methods=['GET'])(self.move_tabs)
+        self.app.route('/move_tabs/<move_triplets>', methods=['GET'])(self.move_tabs)
         self.app.route('/open_urls/<int:window_id>', methods=['POST'])(self.open_urls)
         self.app.route('/update_tabs', methods=['POST'])(self.update_tabs)
+        self.app.route('/media_control/<int:window_id>/<int:tab_id>/<action>', methods=['GET'])(self.media_control)
         self.app.route('/open_urls', methods=['POST'])(self.open_urls)
         self.app.route('/close_tabs/<tab_ids>', methods=['GET'])(self.close_tabs)
         self.app.route('/new_tab/<query>', methods=['GET'])(self.new_tab)
@@ -128,6 +130,12 @@ class MediatorHttpServer:
         mediator_logger.info('Update tabs result: %s', str(result))
         return '\n'.join(result)
 
+    def media_control(self, window_id, tab_id, action):
+        result = self.remote_api.media_control(window_id, tab_id, action)
+        if isinstance(result, dict):
+            return dumps(result)
+        return '\n'.join(result)
+
     def close_tabs(self, tab_ids):
         return self.remote_api.close_tabs(tab_ids)
 
@@ -143,7 +151,10 @@ class MediatorHttpServer:
         return self.remote_api.get_active_tabs()
 
     def get_screenshot(self):
-        return self.remote_api.get_screenshot()
+        tab_id = request.args.get('tab_id')
+        tab_id = int(tab_id) if is_valid_integer(tab_id) else None
+        wait = request.args.get('wait', 0, type=float)
+        return self.remote_api.get_screenshot(tab_id, wait)
 
     def get_words(self, tab_id=None):
         tab_id = int(tab_id) if is_valid_integer(tab_id) else None
@@ -157,17 +168,23 @@ class MediatorHttpServer:
         return '\n'.join(words)
 
     def get_text(self):
+        tab_id = request.args.get('tab_id')
+        tab_id = int(tab_id) if is_valid_integer(tab_id) else None
         delimiter_regex = request.args.get('delimiter_regex', DEFAULT_GET_TEXT_DELIMITER_REGEX)
         replace_with = request.args.get('replace_with', DEFAULT_GET_TEXT_REPLACE_WITH)
         lines = self.remote_api.get_text(decode_query(delimiter_regex),
-                                         decode_query(replace_with))
+                                         decode_query(replace_with),
+                                         tab_id)
         return '\n'.join(lines)
 
     def get_html(self):
+        tab_id = request.args.get('tab_id')
+        tab_id = int(tab_id) if is_valid_integer(tab_id) else None
         delimiter_regex = request.args.get('delimiter_regex', DEFAULT_GET_HTML_DELIMITER_REGEX)
         replace_with = request.args.get('replace_with', DEFAULT_GET_HTML_REPLACE_WITH)
         lines = self.remote_api.get_html(decode_query(delimiter_regex),
-                                         decode_query(replace_with))
+                                         decode_query(replace_with),
+                                         tab_id)
         return '\n'.join(lines)
 
     def get_pid(self):

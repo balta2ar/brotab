@@ -1,0 +1,12 @@
+{
+  "summary": {
+    "en-US": "Control your browser's tabs from the command line."
+  },
+  "categories": [
+    "other"
+  ],
+  "version": {
+    "license": "MIT",
+    "approval_notes": "BroTab is built from the GitHub release tag; the submitted extension source is brotab/extension/firefox at that tag."
+  }
+}

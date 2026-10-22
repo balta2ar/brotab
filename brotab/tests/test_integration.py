@@ -108,29 +108,29 @@ class Brotab:
         self.options = '--target %s' % self.targets if self.targets else ''
 
     def list(self):
-        return run(f'bt {self.options} list')
+        return run(f'brotab {self.options} list')
 
     def tabs(self):
         return parse_tab_lines(self.list())
 
     def open(self, window_id, url):
-        return run(f'echo "{url}" | bt {self.options} open {window_id}')
+        return run(f'echo "{url}" | brotab {self.options} open {window_id}')
 
     def active(self):
-        return run(f'bt {self.options} active')
+        return run(f'brotab {self.options} active')
 
     def windows(self):
-        return run(f'bt {self.options} windows')
+        return run(f'brotab {self.options} windows')
 
     def navigate(self, tab_id, url):
-        return run(f'bt {self.options} navigate {tab_id} "{url}"')
+        return run(f'brotab {self.options} navigate {tab_id} "{url}"')
 
     def update_stdin(self, updates):
         updates = dumps(updates)
-        return run(f'echo \'{updates}\' | bt {self.options} update')
+        return run(f'echo \'{updates}\' | brotab {self.options} update')
 
     def update(self, args):
-        return run(f'bt {self.options} update {args}')
+        return run(f'brotab {self.options} update {args}')
 
 
 class Browser:
@@ -210,56 +210,56 @@ def targets(containers: [Container]) -> str:
 class TestIntegration(TestCase):
     def test_open_single(self):
         with Container() as c:
-            bt = Brotab(targets([c]))
-            tabs = bt.list()
+            brotab = Brotab(targets([c]))
+            tabs = brotab.list()
             assert 'tab1' not in ''.join(tabs)
-            tab_ids = bt.open('a.1', c.echo_url('tab1'))
+            tab_ids = brotab.open('a.1', c.echo_url('tab1'))
             assert len(tab_ids) == 1
 
-            tabs = bt.list()
+            tabs = brotab.list()
             assert 'tab1' in ''.join(tabs)
             assert tab_ids[0] in ''.join(tabs)
 
     def test_active_tabs(self):
         with Container() as c:
-            bt = Brotab(targets([c]))
-            bt.open('a.1', c.echo_url('tab1'))
-            bt.open('a.1', c.echo_url('tab2'))
-            bt.open('a.1', c.echo_url('tab3'))
-            assert len(bt.tabs()) == 4
-            active_id = bt.active()[0].split('\t')[0]
-            assert active_id == bt.tabs()[-1].id
+            brotab = Brotab(targets([c]))
+            brotab.open('a.1', c.echo_url('tab1'))
+            brotab.open('a.1', c.echo_url('tab2'))
+            brotab.open('a.1', c.echo_url('tab3'))
+            assert len(brotab.tabs()) == 4
+            active_id = brotab.active()[0].split('\t')[0]
+            assert active_id == brotab.tabs()[-1].id
 
     def test_navigate_single(self):
         with Container() as c:
-            bt = Brotab(targets([c]))
-            tab_ids = bt.open('a.1', c.echo_url('tab1'))
+            brotab = Brotab(targets([c]))
+            tab_ids = brotab.open('a.1', c.echo_url('tab1'))
             assert len(tab_ids) == 1
 
-            tabs = bt.list()
+            tabs = brotab.list()
             assert 'tab1' in ''.join(tabs)
             assert tab_ids[0] in ''.join(tabs)
 
-            bt.navigate(tab_ids[0], c.echo_url('tab2'))
-            tabs = bt.list()
+            brotab.navigate(tab_ids[0], c.echo_url('tab2'))
+            tabs = brotab.list()
             assert 'tab2' in ''.join(tabs)
             assert tab_ids[0] in ''.join(tabs)
 
     def test_update_three(self):
         with Container() as c:
-            bt = Brotab(targets([c]))
-            bt.open('a.1', c.echo_url('tab1'))
-            bt.open('a.1', c.echo_url('tab1'))
-            lines = sorted(bt.list())
+            brotab = Brotab(targets([c]))
+            brotab.open('a.1', c.echo_url('tab1'))
+            brotab.open('a.1', c.echo_url('tab1'))
+            lines = sorted(brotab.list())
             assert len(lines) == 3
             assert 'tab2' not in ''.join(lines)
 
             tabs = parse_tab_lines(lines)
-            bt.update_stdin([make_update(tabId=tabs[0].id, url=c.echo_url('tab2'))])
-            bt.update_stdin([make_update(tabId=tabs[1].id, url=c.echo_url('tab2'))])
-            bt.update('-tabId {0} -url="{1}"'.format(tabs[2].id, c.echo_url('tab2')))
+            brotab.update_stdin([make_update(tabId=tabs[0].id, url=c.echo_url('tab2'))])
+            brotab.update_stdin([make_update(tabId=tabs[1].id, url=c.echo_url('tab2'))])
+            brotab.update('-tabId {0} -url="{1}"'.format(tabs[2].id, c.echo_url('tab2')))
 
-            lines = bt.list()
+            lines = brotab.list()
             assert 'tab1' not in ''.join(lines)
             assert 'tab2' in ''.join(lines)
 

@@ -21,7 +21,7 @@ function fcl() {
         id=`echo "$line" | cut -f1 -d' '`
         # echo "Closing tab: $line" >&2
         echo "$id"
-    done | xargs bt close
+    done | xargs brotab close
     #done | xargs $BROTAB_CLIENT close_tabs
 }
 
@@ -50,17 +50,17 @@ function _activate_tab() {
     local strWindowTab=$1
     # echo "Activating tab: $result"
     #$BROTAB_CLIENT activate_tab $strWindowTab
-    bt activate $strWindowTab
+    brotab activate $strWindowTab
     _activate_browser $strWindowTab
 }
 
 function _close_tabs() {
-    bt close
+    brotab close
     #$BROTAB_CLIENT close_tabs $*
 }
 
 function _list_tabs() {
-    bt list
+    brotab list
     #$BROTAB_CLIENT list_tabs 1000
 }
 

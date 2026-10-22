@@ -1,5 +1,5 @@
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from asyncio import get_event_loop, gather
 
 
 def call_parallel(functions):
@@ -9,7 +9,12 @@ def call_parallel(functions):
     Create a pool of thread as large as the number of functions.
     Functions should accept no parameters (wrap then with partial or lambda).
     """
-    loop = get_event_loop()
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
     executor = ThreadPoolExecutor(max_workers=len(functions))
 
     try:
@@ -17,9 +22,9 @@ def call_parallel(functions):
             loop.run_in_executor(executor, function)
             for function in functions
         ]
-        result = loop.run_until_complete(gather(*tasks))
+        result = loop.run_until_complete(asyncio.gather(*tasks))
 
     finally:
-        loop.close()
+        executor.shutdown(wait=True)
 
     return result

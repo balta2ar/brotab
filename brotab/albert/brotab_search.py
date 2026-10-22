@@ -20,7 +20,7 @@ __version__ = "0.1"
 __triggers__ = "s "
 __authors__ = ["Yuri Bochkarev"]
 __dependencies__ = []
-__exec_deps__ = ["bt"]
+__exec_deps__ = ["brotab"]
 
 md_iid = "0.5"
 md_version = "0.1"
@@ -38,7 +38,7 @@ QUERY_DELAY = 0.3
 
 def refresh_index():
     info('Brotab: refreshing index')
-    subprocess.Popen(['bt', 'index'])
+    subprocess.Popen(['brotab', 'index'])
 
 
 def need_refresh_index():
@@ -74,12 +74,12 @@ def handleQuery(query):
         items.append(Item(
             id=__name__,
             text='Reindex browser tabs',
-            subtext='> bt index',
+            subtext='> brotab index',
             actions=[
                 Action(
                     id='reindex',
                     text='Reindex browser tabs',
-                    callable=lambda: runDetachedProcess(cmdln=['bt', 'index'], workdir='~'),
+                    callable=lambda: runDetachedProcess(cmdln=['brotab', 'index'], workdir='~'),
                 )
             ]
         ))
@@ -97,7 +97,7 @@ def handleQuery(query):
                 Action(
                     id='activate',
                     text='Activate',
-                    callable=lambda: runDetachedProcess(cmdln=['bt', 'activate', query_result.tab_id], workdir='~'),
+                    callable=lambda: runDetachedProcess(cmdln=['brotab', 'activate', query_result.tab_id], workdir='~'),
                 )
             ]
         ))

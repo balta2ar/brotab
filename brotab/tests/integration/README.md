@@ -2,7 +2,7 @@
 ```bash
 # Testing command in docker:
 # pip install -e .
-# ~/.local/bin/bt install
+# ~/.local/bin/brotab install
 # chromium-browser --load-extension=/brotab/brotab/extension/chrome --headless --use-gl=swiftshader --disable-software-rasterizer --disable-dev-shm-usage --no-sandbox --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222 https://www.chromestatus.com/
 # xvfb-chromium --no-sandbox --load-extension=/brotab/brotab/extension/chrome --use-gl=swiftshader --disable-software-rasterizer --disable-dev-shm-usage --no-sandbox --remote-debugging-address=0.0.0.0 --remote-debugging-port=9222 https://www.chromestatus.com/
 
@@ -21,7 +21,7 @@
 
 # Inside:
 # pip install -e .
-# bt install --tests
+# brotab install --tests
 # chromium --no-sandbox --disable-gpu --remote-debugging-address=0.0.0.0 --remote-debugging-port=19222 --load-extension=/brotab/brotab/extension/chrome file:///
 
 # chromium --no-sandbox --disable-gpu --remote-debugging-address=0.0.0.0 --remote-debugging-port=19222 --load-extension=/brotab/brotab/extension/chrome https://ipinfo.io/json

@@ -2,9 +2,11 @@ __pycache__
 .mypy_cache
 .vscode
 .pytest_cache
+.venv
 ignore
 dist
 build
+artifacts
 brotab.egg-info
 target
 brotab/node_modules
@@ -13,3 +15,5 @@ node_modules
 tags
 npm-debug.log
 tmp
+*.pem
+result

@@ -163,7 +163,22 @@ class SingleMediatorAPI(object):
         return [self.prefix_tab(tab) for tab in self._get('/get_active_tabs').split(',')]
 
     def get_screenshot(self, args):
-        return self._get('/get_screenshot')
+        tab_id = getattr(args, 'tab_id', None)
+        wait = getattr(args, 'wait', 0)
+        query_params = []
+        if wait > 0:
+            query_params.append('wait=%s' % wait)
+
+        if tab_id is None:
+            query_string = '?' + '&'.join(query_params) if query_params else ''
+            return self._get('/get_screenshot%s' % query_string)
+
+        prefix, _window_id, local_tab_id = split_prefixed_tab_id(tab_id)
+        if prefix != self._prefix:
+            return dumps({'error': 'Tab %s is not available on client %s' % (tab_id, self._prefix[:-1])})
+
+        query_params.append('tab_id=%s' % local_tab_id)
+        return self._get('/get_screenshot?%s' % '&'.join(query_params))
 
     def query_tabs(self, args):
         query = args
@@ -244,6 +259,22 @@ class SingleMediatorAPI(object):
         ids = self._post('/update_tabs', files)
         return self.prefix_tabs(ids.splitlines())
 
+    def media_control(self, tab_id: str, action: str):
+        logger.info('SingleMediatorAPI: media_control: %s %s', tab_id, action)
+        prefix, window_id, local_tab_id = split_prefixed_tab_id(tab_id)
+        if prefix != self._prefix:
+            return []
+        result = self._get('/media_control/%s/%s/%s' % (window_id, local_tab_id, action))
+        try:
+            data = json.loads(result)
+            if isinstance(data, Mapping) and data.get('error'):
+                return ['ERROR\t%s\t%s' % (tab_id, data['error'])]
+        except json.JSONDecodeError:
+            pass
+        if result == '<ERROR>':
+            return ['ERROR\t%s\tMediator returned <ERROR>; see /tmp/brotab_mediator.log' % tab_id]
+        return self.prefix_tabs(result.splitlines())
+
     def get_words(self, tab_ids, match_regex, join_with):
         words = set()
         match_regex = encode_query(match_regex)
@@ -269,21 +300,35 @@ class SingleMediatorAPI(object):
         return sorted(list(words))
 
     def get_text_or_html(self, command, args, delimiter_regex, replace_with):
-        num_tabs = MAX_NUMBER_OF_TABS
-        if len(args) > 0:
-            num_tabs = int(args[0])
+        target_tab_id = None
+        matching_tab_ids = set(self.filter_tabs(args)) if args else set()
 
-        result = self._get(
-            '/%s?delimiter_regex=%s&replace_with=%s' % (
-                command,
-                encode_query(delimiter_regex),
-                encode_query(replace_with),
-            ),
+        if len(args) == 1:
+            prefix, _window_id, local_tab_id = split_prefixed_tab_id(args[0])
+            if prefix != self._prefix:
+                return []
+            target_tab_id = local_tab_id
+
+        query = '/%s?delimiter_regex=%s&replace_with=%s' % (
+            command,
+            encode_query(delimiter_regex),
+            encode_query(replace_with),
         )
+        if target_tab_id is not None:
+            query += '&tab_id=%s' % target_tab_id
+
+        result = self._get(query)
         lines = []
-        for line in result.splitlines()[:num_tabs]:
+        for line in result.splitlines()[:MAX_NUMBER_OF_TABS]:
             lines.append(line)
-        return self.prefix_tabs(lines)
+
+        prefixed_lines = self.prefix_tabs(lines)
+        if matching_tab_ids:
+            prefixed_lines = [
+                line for line in prefixed_lines
+                if line.split('\t', 1)[0] in matching_tab_ids
+            ]
+        return prefixed_lines
 
     def get_text(self, args, delimiter_regex, replace_with):
         return self.get_text_or_html('get_text', args, delimiter_regex, replace_with)
@@ -316,6 +361,11 @@ def int_tab_id(tab_id: str) -> int:
     return int(tab_id.split('.')[-1])
 
 
+def split_prefixed_tab_id(tab_id: str):
+    prefix, window_id, local_tab_id = tab_id.split('.')
+    return prefix + '.', window_id, local_tab_id
+
+
 class MultipleMediatorsAPI(object):
     """
     This API is designed to work with multiple mediators.
@@ -330,7 +380,9 @@ class MultipleMediatorsAPI(object):
 
     def close_tabs(self, args):
         for api in self._apis:
-            api.close_tabs(args)
+            tabs = [tab for tab in args if api.prefix_match(tab)]
+            if tabs:
+                api.close_tabs(tabs)
 
     def activate_tab(self, args: List[str], focused: bool):
         if len(args) == 0:
@@ -385,6 +437,14 @@ class MultipleMediatorsAPI(object):
             results.extend(api.update_tabs(updates))
         return results
 
+    def media_control(self, tab_ids, action):
+        results = []
+        for api in self._apis:
+            for tab_id in tab_ids:
+                if api.prefix_match(tab_id):
+                    results.extend(api.media_control(tab_id, action))
+        return results
+
     def move_tabs(self, args):
         """
         This command allows closing tabs and move them around.
@@ -421,8 +481,12 @@ class MultipleMediatorsAPI(object):
     def open_urls(self, urls, prefix, window_id=None):
         assert len(self._apis) > 0, \
             'There should be at least one client connected: %s' % self._apis
-        # client = self._apis[0]
-        client = self._get_api_by_prefix(prefix)
+        if prefix is None:
+            assert len(self.ready_apis) > 0, \
+                'There should be at least one ready client connected: %s' % self._apis
+            client = self.ready_apis[0]
+        else:
+            client = self._get_api_by_prefix(prefix)
         return client.open_urls(urls, window_id)
 
     def get_words(self, tab_ids, match_regex, join_with):

@@ -172,32 +172,59 @@ class TimeoutIO(io.BytesIO):
         super().__init__()
         self.file_ = file_
         self.timeout = timeout
+        self._fd = None
         if isinstance(file_, int):
-            self._write = lambda *args, **kwargs: os.write(file_, *args, **kwargs)
-            self._read = lambda *args, **kwargs: os.read(file_, *args, **kwargs)
+            self._fd = file_
             self._close = lambda: os.close(file_)
             self._flush = lambda: None
         elif isinstance(file_, io.BufferedIOBase):
-            self._write = file_.write
-            self._read = file_.read
+            try:
+                self._fd = file_.fileno()
+            except (AttributeError, OSError):
+                self._write = file_.write
+                self._read = file_.read
             self._close = file_.close
             self._flush = file_.flush
         else:
             raise TypeError('file_ must be an int or BinaryIO: %', type(file_))
 
-    def read(self, *args, **kwargs) -> bytes:
-        rlist, _, _ = select([self.file_], [], [], self.timeout)
-        if rlist:
-            return self._read(*args, **kwargs)
-        else:
+    def _select_read(self):
+        rlist, _, _ = select([self._fd if self._fd is not None else self.file_], [], [], self.timeout)
+        if not rlist:
             raise TimeoutError('Read timeout ({}s)'.format(self.timeout))
 
-    def write(self, *args, **kwargs) -> int:
-        _, wlist, _ = select([], [self.file_], [], self.timeout)
-        if wlist:
-            return self._write(*args, **kwargs)
-        else:
+    def _select_write(self):
+        _, wlist, _ = select([], [self._fd if self._fd is not None else self.file_], [], self.timeout)
+        if not wlist:
             raise TimeoutError('Write timeout ({}s)'.format(self.timeout))
+
+    def read(self, size=-1) -> bytes:
+        if self._fd is None:
+            self._select_read()
+            return self._read(size)
+
+        chunks = []
+        remaining = size
+        while remaining != 0:
+            self._select_read()
+            chunk = os.read(self._fd, 4096 if remaining < 0 else remaining)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            if remaining > 0:
+                remaining -= len(chunk)
+        return b''.join(chunks)
+
+    def write(self, data) -> int:
+        if self._fd is None:
+            self._select_write()
+            return self._write(data)
+
+        written = 0
+        while written < len(data):
+            self._select_write()
+            written += os.write(self._fd, data[written:])
+        return written
 
     def flush(self) -> None:
         self._flush()
