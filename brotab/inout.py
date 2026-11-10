@@ -25,7 +25,7 @@ def get_available_tcp_port(start=1025, end=65536, host='127.0.0.1'):
     for port in range(start, end):
         if not is_port_accepting_connections(port, host):
             return port
-    return RuntimeError('Cannot find available port in range %d:%d' % (start, end))
+    raise RuntimeError('Cannot find available port in range %d:%d' % (start, end))
 
 
 def is_port_accepting_connections(port, host='127.0.0.1'):
